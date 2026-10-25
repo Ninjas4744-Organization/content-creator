@@ -18,6 +18,12 @@ To explore immediately without installing anything, open the [browser presentati
 
 The assistant reads `AGENTS.md` and the relevant skill. In Claude Code, you can also invoke `/davinci-presentation` or `/davinci-interactive-video`. See the [application guide](docs/apps.md) for app-specific instructions and limitations. A chat without local folder access needs uploaded files or a suitable coding environment; cloning the repository on your computer does not by itself give a chat access to it.
 
+## Learning library website
+
+An Expo website under `projects/learning-library/` brings the presentations and interactive videos together in a responsive Hebrew library. It includes topic and format filters, chapter search, embedded viewing, shareable links, and PowerPoint downloads.
+
+After Python setup, run `npm ci` and `npm start` in that directory. `npm run build` exports the static website to `projects/learning-library/output/site/`. The included GitHub Actions workflow builds and deploys it to GitHub Pages; select **GitHub Actions** in the repository's **Settings → Pages**. See the [library guide](docs/gallery.md) for adding content, retaining videos for publication, and deployment instructions.
+
 ## First-time setup
 
 Python 3.10 or newer is required. Installing dependencies requires an internet connection the first time. The tools are designed for macOS, Linux, and Windows; this repository was tested on macOS.
@@ -62,4 +68,4 @@ Each project has a `brief.md` and `content.json` under `projects/`. Edit the con
 
 To share a generated player, keep its entire `interactive/` folder together. Open `index.html`; if the browser restricts local captions or media, use the `serve` command in the command guide. The player uses no external service and sends no viewing data.
 
-This repository was created locally. Once you create a remote and push to it, you can share its clone URL. Generated outputs, virtual environments, and API keys are excluded from Git. [Asset sources and rights](assets/README.md) are documented alongside the files.
+Generated working outputs, virtual environments, and API keys are excluded from Git. Intentionally retained gallery videos under `projects/learning-library/output/published/` are included so that GitHub Pages can serve them. [Asset sources and rights](assets/README.md) are documented alongside the files.

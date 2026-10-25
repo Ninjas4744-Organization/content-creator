@@ -15,6 +15,14 @@ build/
 dist/
 projects/*/output/
 projects/*/audio/
+node_modules/
+.expo/
+projects/learning-library/public/library/
+
+# Retain only intentionally published player packages for GitHub Pages.
+!projects/learning-library/output/
+projects/learning-library/output/*
+!projects/learning-library/output/published/
 
 # Local editor configuration
 .idea/
