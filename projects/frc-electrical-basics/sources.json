@@ -1,0 +1,68 @@
+{
+  "checked_on": "2026-10-25",
+  "scope": "Simple identification of components and their functions, following the user-requested FRCElectrical.org guide. Generic controller illustration; roboRIO and Systemcore named without season eligibility claims.",
+  "sources": [
+    {
+      "title": "FRCElectrical.org — FRC Control System",
+      "url": "https://frcelectrical.org/FRC-Control-System/",
+      "supports": [
+        "component selection",
+        "simple component functions",
+        "motors, controllers, distribution, radio, sensors, RSL"
+      ]
+    },
+    {
+      "title": "FRCElectrical.org — Battery",
+      "url": "https://frcelectrical.org/Battery/",
+      "supports": [
+        "battery as energy source"
+      ]
+    },
+    {
+      "title": "WPILib — Systemcore Introduction",
+      "url": "https://docs.wpilib.org/en/latest/docs/software/systemcore-info/systemcore-introduction.html",
+      "supports": [
+        "Systemcore as robot controller"
+      ]
+    },
+    {
+      "title": "WPILib — Hardware Component Overview",
+      "url": "https://docs.wpilib.org/en/stable/docs/controls-overviews/control-system-hardware.html",
+      "supports": [
+        "battery and breaker",
+        "power distribution",
+        "roboRIO",
+        "motor controllers",
+        "radio",
+        "pneumatics",
+        "RSL"
+      ]
+    },
+    {
+      "title": "WPILib — Introduction to FRC Robot Wiring",
+      "url": "https://docs.wpilib.org/en/stable/docs/zero-to-robot/step-1/intro-to-frc-robot-wiring.html",
+      "supports": [
+        "power and communication paths",
+        "wiring overview"
+      ]
+    },
+    {
+      "title": "WPILib — CAN Wiring Basics",
+      "url": "https://docs.wpilib.org/en/stable/docs/hardware/hardware-basics/can-wiring-basics.html",
+      "supports": [
+        "communication pair",
+        "device chain"
+      ]
+    },
+    {
+      "title": "WPILib — Programming Limit Switches",
+      "url": "https://docs.wpilib.org/en/stable/docs/software/hardware-apis/sensors/limit-switch.html",
+      "supports": [
+        "limit detection",
+        "software feedback"
+      ]
+    }
+  ],
+  "visuals": "Original schematic illustrations for this project, using local Da Vinci 4744 brand assets and Rubik fonts.",
+  "music": "Original procedural composition and sound effects from the repository audio renderer."
+}
