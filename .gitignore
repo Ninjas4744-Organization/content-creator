@@ -15,3 +15,6 @@ build/
 dist/
 projects/*/output/
 projects/*/audio/
+
+# Local editor configuration
+.idea/
