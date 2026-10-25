@@ -1,0 +1,98 @@
+{
+  "opening": {
+    "file": "00-opening.wav",
+    "signature": "6f3bf023e456c8d9eb9f5ded2c7443708d7dfcc52004664bfae0ba4b08bead04",
+    "sha256": "1bcdc1a358e45b19c1fff18b1d5f29e937ea5acccf0848ca253d12baac5a3b6e",
+    "provider": "Google Gemini",
+    "model": "gemini-3.8-flash-tts",
+    "voice": "Kore"
+  },
+  "people": {
+    "file": "01-people.wav",
+    "signature": "22a1a7aaefc6c6a5c86cb2a5b0ce53c821e15b2d38d88d5e4cf0df50e8d8bbc1",
+    "sha256": "b4528de081d7a7daa9dc067c98842ecdc4b393ae417e88c1784fa2dae2e355f3",
+    "provider": "Google Gemini",
+    "model": "gemini-3.8-flash-tts",
+    "voice": "Puck"
+  },
+  "values": {
+    "file": "02-values.wav",
+    "signature": "ca94494252bf3bbfc4155df6a6852ed3dbf1a09637862dd9f65dc33e1e3964d6",
+    "sha256": "2869583f168e8f222cda77bb683db7cdc9ee22331165e15a79e2ebb666a98d93",
+    "provider": "Google Gemini",
+    "model": "gemini-3.8-flash-tts",
+    "voice": "Kore"
+  },
+  "cooperation": {
+    "file": "03-cooperation.wav",
+    "signature": "66d06eddd7ae12fb77d9d306147256092f39b0d5f15dc7d8aae1241fbf8bb850",
+    "sha256": "0b2a2dcea1bddf5a57bf01833f41e3eeaac643b70ea3ad469e9bcafeba589eb7",
+    "provider": "Google Gemini",
+    "model": "gemini-3.8-flash-tts",
+    "voice": "Puck"
+  },
+  "examples": {
+    "file": "04-examples.wav",
+    "signature": "a3d9c0662718c971ae23f8f9fbd7267bd7565cd9e7041dc608c43f202eea795a",
+    "sha256": "79341cf132c880e1ff7acb558111b9fb47dacf28f4989e59945a75dfbb483c42",
+    "provider": "Google Gemini",
+    "model": "gemini-3.8-flash-tts",
+    "voice": "Kore"
+  },
+  "benefits": {
+    "file": "05-benefits.wav",
+    "signature": "4cea88a33417afc2770c44446b10d4320077ab84d71c4439a9d5bdc0f8c991d1",
+    "sha256": "25e081f734e1410c1be3ce7fed686267b77f9b8ff99cad63f300709a34745e6c",
+    "provider": "Google Gemini",
+    "model": "gemini-3.8-flash-tts",
+    "voice": "Puck"
+  },
+  "personal": {
+    "file": "06-personal.wav",
+    "signature": "1f3a416e74fc15a609163dda926cdc5669dc58b6db5fc521bd0d01d86545ddfb",
+    "sha256": "45b70d7b86159822fa5964eab650e100afd82aa8d238267448eb167329afb986",
+    "provider": "Google Gemini",
+    "model": "gemini-3.8-flash-tts",
+    "voice": "Kore"
+  },
+  "need": {
+    "file": "07-need.wav",
+    "signature": "514a9013160c8fd633defdb6dd9cf6a05aafe982e1629c27c19dc96bb8607afd",
+    "sha256": "f2e5935249d2f210cda1b820a43ca24c7c29fa3833955ea6894b118f2a57ae75",
+    "provider": "Google Gemini",
+    "model": "gemini-3.8-flash-tts",
+    "voice": "Puck"
+  },
+  "journey": {
+    "file": "08-journey.wav",
+    "signature": "29d9246ea9beae9c7d87a8ba65bb85971612e9c2fc9749be133dd49de6162ce8",
+    "sha256": "04f360fec04da1ebe445cc4aa8480637b0b15e6d5ad4875f7a13b456c901fead",
+    "provider": "Google Gemini",
+    "model": "gemini-3.8-flash-tts",
+    "voice": "Kore"
+  },
+  "measure": {
+    "file": "09-measure.wav",
+    "signature": "70f7a18bcd1c707669e5d8d1d2090d7b09101fdba8d97148544f165a63cf54ec",
+    "sha256": "be1b71be889f64207723c7d3a54d05de5aac6a8c341d5164615e4df5bef18b5d",
+    "provider": "Google Gemini",
+    "model": "gemini-3.8-flash-tts",
+    "voice": "Puck"
+  },
+  "example-project": {
+    "file": "10-example_project.wav",
+    "signature": "f051d0fc696400ed266807e5335177f0dc3d8dbea8e1f8608ea3dafa0f3630cb",
+    "sha256": "39476e1501967bdab78ff2d697de869ead8bf12cab836c6af2b0af95d5f44d49",
+    "provider": "Google Gemini",
+    "model": "gemini-3.8-flash-tts",
+    "voice": "Kore"
+  },
+  "closing": {
+    "file": "11-closing.wav",
+    "signature": "4207bc18f8b2235172c96336907275c65c0009bd83c39c5315679b43b2a77c3c",
+    "sha256": "f781078e115008d0c9b4da4f6edc34eac5f37a168ac399e2adbc6e6405ae7641",
+    "provider": "Google Gemini",
+    "model": "gemini-3.8-flash-tts",
+    "voice": "Puck"
+  }
+}

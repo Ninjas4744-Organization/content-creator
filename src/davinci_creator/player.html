@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>__TITLE__</title>
+<style>
+@font-face{font-family:Rubik;src:url(Rubik-Regular.ttf)}@font-face{font-family:Rubik;src:url(Rubik-Bold.ttf);font-weight:700}
+*{box-sizing:border-box}body{margin:0;background:#09172b;color:#fafcff;font:17px/1.6 Rubik,Arial,sans-serif}main{max-width:1450px;margin:auto;padding:24px}h1{font-size:clamp(25px,3vw,40px);margin:0 0 18px}h2{font-size:22px;margin-top:0}.layout{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:24px}.screen{position:relative;background:#000;border-radius:16px;overflow:hidden}video{width:100%;display:block;aspect-ratio:16/9}.tools{display:flex;gap:12px;flex-wrap:wrap;margin:14px 0;align-items:center}button,select,input{font:inherit;color:inherit;background:#1d3858;border:1px solid #51769b;border-radius:10px;padding:9px 14px}button{cursor:pointer}button:hover,button:focus-visible{background:#305275;outline:2px solid #ffda9d}button.active{border-color:#ffda9d;color:#ffda9d}aside{background:#11243d;border-radius:16px;padding:18px}#chapters{display:grid;gap:8px}#chapters button{text-align:right;font-size:15px}.time{direction:ltr;display:inline-block;color:#a9d8f6;margin-left:8px;font-size:13px}#search{width:100%;margin:8px 0 16px}#transcript{max-height:330px;overflow:auto;display:grid;gap:8px}#transcript button{text-align:right;font-size:16px;background:#10243d}small{color:#a9d8f6}dialog{background:#102742;color:#fafcff;border:1px solid #ffda9d;border-radius:18px;width:min(600px,92vw);padding:28px}dialog::backdrop{background:#000b}#options{display:grid;gap:10px}#feedback{min-height:45px;color:#ffda9d}#resume{margin-top:10px}label{display:inline-flex;align-items:center;gap:7px}a{color:#ffda9d}.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%)}
+@media(max-width:900px){.layout{grid-template-columns:1fr}main{padding:14px}#chapters{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important}}
+</style>
+<main>
+<h1>__TITLE__</h1>
+<div class="layout"><section>
+<div class="screen"><video id="video" controls preload="metadata" playsinline poster="poster.jpg" src="__VIDEO__"><track kind="captions" src="captions.vtt" srclang="he" label="עברית"></video></div>
+<div class="tools">
+<label>מהירות <select id="speed"><option value="0.75">0.75×</option><option selected value="1">1×</option><option value="1.25">1.25×</option><option value="1.5">1.5×</option><option value="2">2×</option></select></label>
+<label><input id="checkpoints" type="checkbox" checked>עצירה לשאלות</label>
+<button id="reviewQuestion" disabled>שאלת הפרק</button>
+<button id="restart">מההתחלה</button><a href="__VIDEO__" download>הורדת הסרטון</a>
+</div>
+<h2>תמלול וחיפוש</h2>
+<input id="search" type="search" placeholder="חיפוש בתמלול או בשם פרק" aria-label="חיפוש בתמלול">
+<div id="transcript"></div><p><small>רווח: ניגון ועצירה · חצים: דילוג של 5 שניות · ההתקדמות נשמרת בדפדפן זה.</small></p>
+</section><aside><h2>פרקי הסרטון</h2><div id="chapters"></div></aside></div>
+<dialog id="quiz" aria-labelledby="question"><h2 id="question"></h2><div id="options"></div><p id="feedback" role="status" aria-live="polite"></p><button id="resume">להמשיך בלי לענות</button></dialog>
+<p id="status" class="sr" role="status" aria-live="polite"></p>
+</main>
+<script id="content" type="application/json">__DATA__</script>
+<script>
+const data=JSON.parse(document.querySelector('#content').textContent),video=document.querySelector('#video');
+const quiz=document.querySelector('#quiz'),seen=new Set();let lastTime=0,lastSaved=0;
+const storageKey='davinci-video:'+data.title+':'+data.scenes.map(s=>s.id+':'+s.duration).join('|');
+const format=t=>`${Math.floor(t/60)}:${String(Math.floor(t%60)).padStart(2,'0')}`;
+// Video clocks round to microseconds; allow half a frame at chapter boundaries.
+const sceneIndex=t=>{const i=data.scenes.findIndex(s=>t+.02>=s.start&&t+.02<s.start+s.duration);return i<0?data.scenes.length-1:i};
+function jump(t){if(video.readyState<1){video.addEventListener('loadedmetadata',()=>jump(t),{once:true});return}video.currentTime=t;lastTime=t;document.querySelector('#status').textContent='מעבר לפרק '+format(t)}
+function button(text,action){const b=document.createElement('button');b.type='button';b.textContent=text;b.onclick=action;return b}
+data.scenes.forEach((s,i)=>{const b=button(`${format(s.start)} · ${s.chapter||s.title}`,()=>jump(s.start));b.dataset.index=i;document.querySelector('#chapters').append(b)});
+function transcript(query=''){
+const out=document.querySelector('#transcript');out.replaceChildren();
+data.scenes.filter(s=>(s.title+' '+(s.narration||'')).toLocaleLowerCase().includes(query.toLocaleLowerCase())).forEach(s=>{
+const b=button('',()=>jump(s.start));const title=document.createElement('strong');title.textContent=format(s.start)+' · '+s.title;const text=document.createElement('div');text.textContent=s.narration||'';b.append(title,text);out.append(b)});
+if(!out.children.length){const p=document.createElement('p');p.textContent='לא נמצאו תוצאות';out.append(p)}
+}transcript();
+function checkpoint(scene){
+seen.add(scene.id);video.pause();const q=scene.quiz;document.querySelector('#question').textContent=q.question;document.querySelector('#feedback').textContent='';document.querySelector('#resume').textContent='להמשיך בלי לענות';
+const options=document.querySelector('#options');options.replaceChildren();q.options.forEach((o,i)=>options.append(button(o,()=>{const correct=i===q.correct;document.querySelector('#feedback').textContent=(correct?'נכון! ':'נסו שוב. ')+(q.explanation||'');if(correct)document.querySelector('#resume').textContent='ממשיכים'})));
+quiz.showModal();
+}
+document.querySelector('#resume').onclick=()=>{quiz.close();video.play().catch(()=>{})};
+document.querySelector('#reviewQuestion').onclick=()=>{const s=data.scenes[sceneIndex(video.currentTime)];if(s?.quiz)checkpoint(s)};
+document.querySelector('#speed').onchange=e=>video.playbackRate=Number(e.target.value);
+document.querySelector('#search').oninput=e=>transcript(e.target.value);
+document.querySelector('#restart').onclick=()=>{seen.clear();jump(0);video.play().catch(()=>{})};
+video.addEventListener('loadedmetadata',()=>{try{const t=Number(localStorage.getItem(storageKey)||0);if(t>0&&t<video.duration-2)jump(t)}catch{}});
+video.addEventListener('seeking',()=>lastTime=video.currentTime);
+video.addEventListener('timeupdate',()=>{
+const t=video.currentTime,index=sceneIndex(t);
+document.querySelectorAll('#chapters button').forEach((b,i)=>{b.classList.toggle('active',i===index);if(i===index)b.setAttribute('aria-current','true');else b.removeAttribute('aria-current')});
+document.querySelector('#reviewQuestion').disabled=!data.scenes[index]?.quiz;
+if(Math.abs(t-lastSaved)>2){try{localStorage.setItem(storageKey,String(t))}catch{}lastSaved=t}
+if(document.querySelector('#checkpoints').checked&&!quiz.open&&t-lastTime<1.5){const crossed=data.scenes.find(s=>s.quiz&&!seen.has(s.id)&&s.start+s.duration-.15>lastTime&&s.start+s.duration-.15<=t);if(crossed)checkpoint(crossed)}lastTime=t;
+});
+addEventListener('keydown',e=>{if(['INPUT','SELECT','BUTTON','TEXTAREA'].includes(e.target.tagName)||quiz.open)return;if(e.code==='Space'){e.preventDefault();video.paused?video.play().catch(()=>{}):video.pause()}if(e.key==='ArrowRight')jump(Math.min(video.duration||0,video.currentTime+5));if(e.key==='ArrowLeft')jump(Math.max(0,video.currentTime-5))});
+</script>
+</html>

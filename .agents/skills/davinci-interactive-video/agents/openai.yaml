@@ -1,0 +1,4 @@
+interface:
+  display_name: "Da Vinci Interactive Video"
+  short_description: "Animate Hebrew explainers with Gemini voices and quizzes"
+  default_prompt: "Use $davinci-interactive-video to create an animated Hebrew Da Vinci 4744 video and interactive player from my brief."

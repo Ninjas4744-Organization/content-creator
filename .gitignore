@@ -1,0 +1,17 @@
+.DS_Store
+.venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.env
+.env.*
+!.env.example
+*.secret
+*.key
+credentials*.json
+outputs/
+build/
+dist/
+projects/*/output/
+projects/*/audio/

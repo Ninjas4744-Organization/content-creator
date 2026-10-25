@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "title": "המצגת החדשה שלנו",
+  "language": "he-IL",
+  "voices": {"female": "Kore", "male": "Puck"},
+  "scenes": [
+    {"id": "opening", "layout": "cover", "title": "המצגת החדשה שלנו", "subtitle": "רעיון שמתחיל בסקרנות", "speaker": "female", "narration": "ברוכים הבאים. היום נלמד משהו חדש ונחשוב איך ליישם אותו יחד."},
+    {"id": "main-ideas", "layout": "cards", "title": "מה נגלה היום?", "speaker": "male", "narration": "נתחיל ברעיון המרכזי, נבחן דוגמה ונבחר צעד ראשון שאפשר לעשות כבר עכשיו.", "items": [
+      {"heading": "מבינים", "body": "מסבירים את הרעיון בשפה פשוטה."},
+      {"heading": "מתנסים", "body": "מחברים את הרעיון לדוגמה אמיתית."},
+      {"heading": "מיישמים", "body": "בוחרים פעולה מעשית להמשך."}
+    ]},
+    {"id": "next-step", "layout": "statement", "title": "הצעד הבא", "subtitle": "מה ננסה קודם?", "body": "בחרו פעולה אחת שאפשר לבצע השבוע.", "speaker": "female", "narration": "עכשיו תורכם. בחרו פעולה אחת שתוכלו לנסות השבוע ושתפו מה תרצו ללמוד ממנה."}
+  ]
+}

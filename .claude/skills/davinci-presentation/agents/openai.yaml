@@ -1,0 +1,4 @@
+interface:
+  display_name: "Da Vinci Presentation"
+  short_description: "Create branded Hebrew slides and editable PowerPoint"
+  default_prompt: "Use $davinci-presentation to create a Hebrew Da Vinci 4744 presentation from my brief."
