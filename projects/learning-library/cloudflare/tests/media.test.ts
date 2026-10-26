@@ -109,7 +109,7 @@ test("preserves conditional requests, HEAD and If-Range validators", async () =>
 });
 
 test("the configured public MP4 route runs the range handler", async () => {
-	const response = await SELF.fetch("https://learn.davinci4744.com" + path, {
+	const response = await SELF.fetch("https://knowledge.davinci4744.com" + path, {
 		headers: { Range: "bytes=0-1" },
 	});
 	expect(response.status).toBe(206);

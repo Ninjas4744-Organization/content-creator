@@ -51,6 +51,7 @@ beforeAll(async () => {
 	bindings = {
 		...(env as unknown as Env),
 		TOOL_URL: tool,
+		ALTERNATE_TOOL_URL: "https://old-library.example",
 		PLATFORM_ISSUER: issuer,
 		PRIVATE_KEY_PEM: await exportPKCS8(service.privateKey),
 		PUBLIC_JWK: JSON.stringify(await exportJWK(service.publicKey)),
@@ -103,8 +104,8 @@ beforeEach(async () => {
 });
 afterEach(() => vi.restoreAllMocks());
 
-function request(path: string, init: RequestInit = {}, current = bindings) {
-	return worker.fetch(new Request(tool + path, init), current);
+function request(path: string, init: RequestInit = {}, current = bindings, origin = tool) {
+	return worker.fetch(new Request(origin + path, init), current);
 }
 function resultId(pid = 42, issued = 1) {
 	return base64url.encode(JSON.stringify({ pid, iat: issued })) + ".test-signature";
@@ -115,11 +116,14 @@ async function begin(
 		kind?: string;
 		pid?: number;
 		issued?: number;
+		origin?: string;
+		targetOrigin?: string;
 		overrides?: Record<string, any>;
 	} = {},
 ) {
+	const origin = options.origin || tool;
 	const target =
-		tool +
+		(options.targetOrigin || origin) +
 		"/lti/resource" +
 		(options.selection
 			? ""
@@ -133,6 +137,9 @@ async function begin(
 				lti_message_hint: "opaque-platform-hint",
 				target_link_uri: target,
 			}),
+		{},
+		bindings,
+		origin,
 	);
 	expect(start.status).toBe(200);
 	const html = await start.text();
@@ -170,49 +177,70 @@ async function begin(
 		.setProtectedHeader({ alg: "RS256", kid: "platform" })
 		.sign(platformKey);
 	const launch = () =>
-		request("/lti/launch", {
-			method: "POST",
-			body: new URLSearchParams({ state, id_token: encoded }),
-		});
-	return { launch, binding, state, encoded };
+		request(
+			"/lti/launch",
+			{
+				method: "POST",
+				body: new URLSearchParams({ state, id_token: encoded }),
+			},
+			bindings,
+			origin,
+		);
+	return { launch, binding, state, encoded, redirectUri: params.get("redirect_uri") };
 }
 async function open(options: Parameters<typeof begin>[0] = {}): Promise<string> {
+	const origin = options.origin || tool;
 	const flow = await begin(options),
 		launch = await flow.launch();
 	expect(launch.status).toBe(200);
 	const html = await launch.text();
 	const ticket = JSON.parse(html.match(/ticket:("[^"]+")/)![1]!);
-	const exchange = await request("/lti/exchange", {
-		method: "POST",
-		headers: { Origin: tool, "Content-Type": "application/json" },
-		body: JSON.stringify({ ticket, binding: flow.binding }),
-	});
+	const exchange = await request(
+		"/lti/exchange",
+		{
+			method: "POST",
+			headers: { Origin: origin, "Content-Type": "application/json" },
+			body: JSON.stringify({ ticket, binding: flow.binding }),
+		},
+		bindings,
+		origin,
+	);
 	expect(exchange.status).toBe(200);
 	return ((await exchange.json()) as any).token;
 }
-function api(path: string, secret: string, data?: unknown) {
-	return request("/lti/" + path, {
-		method: data === undefined ? "GET" : "POST",
-		headers: {
-			Authorization: "Bearer " + secret,
-			Origin: tool,
-			"Content-Type": "application/json",
+function api(path: string, secret: string, data?: unknown, origin = tool) {
+	return request(
+		"/lti/" + path,
+		{
+			method: data === undefined ? "GET" : "POST",
+			headers: {
+				Authorization: "Bearer " + secret,
+				Origin: origin,
+				"Content-Type": "application/json",
+			},
+			...(data === undefined ? {} : { body: JSON.stringify(data) }),
 		},
-		...(data === undefined ? {} : { body: JSON.stringify(data) }),
-	});
+		bindings,
+		origin,
+	);
 }
-async function finish(secret: string, correct = true) {
+async function finish(secret: string, correct = true, origin = tool) {
 	for (let index = 0; index < item.slides; index++)
-		expect((await api("progress", secret, { event: "slide", index })).status).toBe(200);
+		expect((await api("progress", secret, { event: "slide", index }, origin)).status).toBe(200);
 	for (const question of item.questions)
 		expect(
 			(
-				await api("answer", secret, {
-					question: question.id,
-					option: correct
-						? question.correct
-						: (question.correct + 1) % question.options.length,
-				})
+				await api(
+					"answer",
+					secret,
+					{
+						question: question.id,
+						option: correct
+							? question.correct
+							: (question.correct + 1) % question.options.length,
+					},
+					origin,
+				)
 			).status,
 		).toBe(200);
 }
@@ -230,6 +258,89 @@ test("public browsing and lesson links need no LMS session or signing key", asyn
 	expect((await request("/lti/session")).status).toBe(400);
 	expect((await request("/cloudflare-data/lessons.json")).status).toBe(404);
 	expect(sent).toHaveLength(0);
+});
+
+test("the old public home redirects while active LTI pages and media stay on their origin", async () => {
+	const old = bindings.ALTERNATE_TOOL_URL!;
+	const response = await request("/?item=community&view=video", {}, bindings, old);
+	expect(response.status).toBe(308);
+	expect(response.headers.get("Location")).toBe(tool + "/?item=community&view=video");
+	expect((await request("/?lti=existing-browser-session", {}, bindings, old)).status).toBe(200);
+	expect((await request("/library/catalog.json", {}, bindings, old)).status).toBe(200);
+	expect((await request("/", {}, bindings, tool)).status).toBe(200);
+});
+
+test("legacy launches keep browser binding and resume the same attempt with one result", async () => {
+	const current = await open();
+	const progress = (await (
+		await api("progress", current, { event: "slide", index: 0 })
+	).json()) as any;
+	expect(progress.progress).toBeGreaterThan(0);
+	const old = bindings.ALTERNATE_TOOL_URL!;
+	const flow = await begin({ origin: old });
+	expect(flow.redirectUri).toBe(old + "/lti/launch");
+	const legacy = await open({ origin: old });
+	expect(((await (await api("session", legacy, undefined, old)).json()) as any).progress).toBe(
+		progress.progress,
+	);
+	await finish(legacy, true, old);
+	expect((await api("complete", legacy, {}, old)).status).toBe(200);
+	expect(((await (await api("session", current)).json()) as any).reported).toBe(true);
+	expect((await api("complete", current, {})).status).toBe(200);
+	expect(sent).toHaveLength(1);
+});
+
+test("provider and lesson URLs may be migrated in either order", async () => {
+	const old = bindings.ALTERNATE_TOOL_URL!;
+	for (const [origin, targetOrigin] of [
+		[tool, old],
+		[old, tool],
+	]) {
+		const secret = await open({ origin, targetOrigin });
+		expect((await api("session", secret, undefined, origin)).status).toBe(200);
+	}
+});
+
+test("POST login initiation on the existing hostname is processed without redirecting", async () => {
+	const old = bindings.ALTERNATE_TOOL_URL!;
+	const response = await request(
+		"/lti/login",
+		{
+			method: "POST",
+			body: new URLSearchParams({
+				iss: issuer,
+				client_id: bindings.CLIENT_ID,
+				login_hint: "123",
+				lti_message_hint: "opaque-platform-hint",
+				target_link_uri: old + "/lti/resource?item=" + item.id + "&view=video",
+			}),
+		},
+		bindings,
+		old,
+	);
+	expect(response.status).toBe(200);
+	expect(response.headers.has("Location")).toBe(false);
+	expect(await response.text()).toContain(encodeURIComponent(old + "/lti/launch"));
+});
+
+test("migration keeps strict host and request Origin checks", async () => {
+	expect((await request("/health", {}, bindings, "https://untrusted.example")).status).toBe(400);
+	const secret = await open({ origin: bindings.ALTERNATE_TOOL_URL });
+	expect(
+		(
+			await request("/lti/progress", {
+				method: "POST",
+				headers: {
+					Authorization: "Bearer " + secret,
+					Origin: bindings.ALTERNATE_TOOL_URL!,
+					"Content-Type": "application/json",
+				},
+				body: JSON.stringify({ event: "slide", index: 0 }),
+			})
+		).status,
+	).toBe(400);
+	const invalid = { ...bindings, ALTERNATE_TOOL_URL: "https://untrusted.example/path" };
+	expect((await request("/health", {}, invalid)).status).toBe(400);
 });
 
 test("selection returns a signed single lesson link", async () => {
