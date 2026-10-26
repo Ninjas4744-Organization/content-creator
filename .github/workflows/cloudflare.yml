@@ -1,0 +1,54 @@
+name: Cloudflare package
+
+on:
+    pull_request:
+        paths:
+            - "projects/learning-library/**"
+            - "projects/*/content.json"
+            - "examples/**"
+            - "assets/**"
+            - "src/davinci_creator/**"
+            - "scripts/prepare_cloudflare.py"
+            - "scripts/prepare_gallery.py"
+            - "tests/test_cloudflare_package.py"
+            - ".github/workflows/cloudflare.yml"
+    workflow_dispatch:
+
+permissions:
+    contents: read
+
+jobs:
+    check:
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v6
+            - uses: actions/setup-python@v6
+              with:
+                  python-version: "3.12"
+            - uses: actions/setup-node@v6
+              with:
+                  node-version: "22"
+                  cache: npm
+                  cache-dependency-path: |
+                      projects/learning-library/package-lock.json
+                      projects/learning-library/cloudflare/package-lock.json
+            - name: Install content tools
+              run: |
+                  python -m venv .venv
+                  .venv/bin/python -m pip install -e .
+            - name: Check public and private packaging
+              run: .venv/bin/python -m unittest discover -s tests -p test_cloudflare_package.py
+            - name: Install website
+              run: npm --prefix projects/learning-library ci --no-audit --no-fund
+            - name: Build website for the service origin
+              run: npm --prefix projects/learning-library run build
+            - name: Install Cloudflare tools
+              run: npm --prefix projects/learning-library/cloudflare ci --no-audit --no-fund
+            - name: Stage Cloudflare assets and private assessments
+              run: npm --prefix projects/learning-library/cloudflare run prepare:content
+            - name: Check Worker
+              run: |
+                  npm --prefix projects/learning-library/cloudflare run typecheck
+                  npm --prefix projects/learning-library/cloudflare run format:check
+                  npm --prefix projects/learning-library/cloudflare test
+                  npm --prefix projects/learning-library/cloudflare run check:deploy

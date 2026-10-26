@@ -20,6 +20,10 @@ projects/*/output/
 projects/*/audio/
 node_modules/
 .expo/
+.wrangler/
+.dev.vars
+.dev.vars.*
+!.dev.vars.example
 projects/learning-library/public/library/
 
 # Retain only intentionally published player packages for GitHub Pages.
