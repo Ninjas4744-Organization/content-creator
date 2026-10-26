@@ -30,7 +30,7 @@ jobs:
                   cache: npm
                   cache-dependency-path: projects/learning-library/package-lock.json
             - name: Install local render tools
-              run: pip install -e .
+              run: pip install -e '.[lti]'
             - name: Verify gallery packaging
               run: python -m unittest discover -s tests
             - name: Install website

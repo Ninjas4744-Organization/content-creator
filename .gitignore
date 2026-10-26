@@ -9,6 +9,9 @@ __pycache__/
 !.env.example
 *.secret
 *.key
+*.private.pem
+*.sqlite3*
+lti.local.json
 credentials*.json
 outputs/
 build/

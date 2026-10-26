@@ -45,9 +45,30 @@ def main():
         if name=="player":command.add_argument("--video",type=Path,required=True)
     serve=sub.add_parser("serve",help="Serve an output folder locally")
     serve.add_argument("folder",type=Path);serve.add_argument("--port",type=int,default=8000)
+    keygen=sub.add_parser("lti-keygen",help="Create a private RSA signing key for the LTI tool")
+    keygen.add_argument("--out",type=Path,required=True)
+    lti=sub.add_parser("lti-serve",help="Serve the learning library with optional LTI integration")
+    lti.add_argument("--config",type=Path,required=True)
+    lti.add_argument("--host",default="127.0.0.1");lti.add_argument("--port",type=int,default=8000)
     args=parser.parse_args()
     try:
         if args.command=="doctor":doctor();return
+        if args.command in {"lti-keygen","lti-serve"}:
+            try:
+                if args.command=="lti-keygen":
+                    from .lti.protocol import generate_key
+                    generate_key(args.out)
+                    print(f"Created private LTI signing key: {args.out}")
+                else:
+                    from .lti.app import create_app
+                    from .lti.config import Settings
+                    from waitress import serve as serve_lti
+                    app=create_app(Settings.load(args.config))
+                    print(f"LTI library listening on {args.host}:{args.port}",flush=True)
+                    serve_lti(app,host=args.host,port=args.port,threads=8,clear_untrusted_proxy_headers=True)
+            except ImportError:
+                raise ValueError("Install LTI dependencies with: .venv/bin/python -m pip install -e '.[lti]'")
+            return
         if args.command=="new":
             if not re.fullmatch(r"[a-z0-9][a-z0-9-]*",args.name):raise ValueError("Use a lowercase project name with hyphens")
             folder=ROOT/"projects"/args.name
