@@ -6,7 +6,7 @@ import { video } from "../src/media";
 const [path, size] = Object.entries(mediaData)[0]!;
 const pattern = Uint8Array.from({ length: 251 * 4096 }, (_, index) => index % 251);
 
-function source(status = 200) {
+function source(status = 200, closeAtEnd = true) {
 	const cancelled = vi.fn();
 	const fetch = vi.fn(async (request: Request) => {
 		expect(request.headers.has("Range")).toBe(false);
@@ -16,13 +16,11 @@ function source(status = 200) {
 			status === 200
 				? new ReadableStream({
 						pull(controller) {
-							if (!remaining) {
-								controller.close();
-								return;
-							}
+							if (!remaining) return;
 							const chunk = pattern.subarray(0, Math.min(remaining, pattern.length));
 							remaining -= chunk.length;
 							controller.enqueue(chunk);
+							if (closeAtEnd && !remaining) controller.close();
 						},
 						cancel: cancelled,
 					})
@@ -33,27 +31,32 @@ function source(status = 200) {
 	return { env: { ASSETS: { fetch } as unknown as Fetcher }, cancelled };
 }
 
-test("streams exact prefix, interior, open-ended and suffix ranges", async () => {
-	for (const [range, start, end] of [
-		["bytes=0-1", 0, 1],
-		["bytes=1028093-1028100", 1028093, 1028100],
-		[`bytes=${size - 3}-`, size - 3, size - 1],
-		["bytes=-7", size - 7, size - 1],
-	] as const) {
-		const { env, cancelled } = source();
-		const response = (await video(
-			new Request("https://library.example" + path, { headers: { Range: range } }),
-			env,
-		))!;
-		expect(response.status).toBe(206);
-		expect(response.headers.get("Content-Range")).toBe(`bytes ${start}-${end}/${size}`);
-		expect(response.headers.get("Content-Length")).toBe(String(end - start + 1));
-		expect([...new Uint8Array(await response.arrayBuffer())]).toEqual(
-			Array.from({ length: end - start + 1 }, (_, index) => (start + index) % 251),
-		);
-		expect(cancelled).toHaveBeenCalledOnce();
-	}
-});
+test.each([{ closeAtEnd: true }, { closeAtEnd: false }])(
+	"streams exact prefix, interior, open-ended and suffix ranges (closeAtEnd=$closeAtEnd)",
+	async ({ closeAtEnd }) => {
+		for (const [range, start, end] of [
+			["bytes=0-1", 0, 1],
+			["bytes=1028093-1028100", 1028093, 1028100],
+			[`bytes=${size - 3}-`, size - 3, size - 1],
+			["bytes=-7", size - 7, size - 1],
+		] as const) {
+			const { env, cancelled } = source(200, closeAtEnd);
+			const response = (await video(
+				new Request("https://library.example" + path, { headers: { Range: range } }),
+				env,
+			))!;
+			expect(response.status).toBe(206);
+			expect(response.headers.get("Content-Range")).toBe(`bytes ${start}-${end}/${size}`);
+			expect(response.headers.get("Content-Length")).toBe(String(end - start + 1));
+			expect([...new Uint8Array(await response.arrayBuffer())]).toEqual(
+				Array.from({ length: end - start + 1 }, (_, index) => (start + index) % 251),
+			);
+			// Cancelling an already-closed stream does not call the source's cancel hook.
+			const cancellations = closeAtEnd && end === size - 1 ? 0 : 1;
+			expect(cancelled, range).toHaveBeenCalledTimes(cancellations);
+		}
+	},
+);
 
 test("rejects unsatisfiable ranges and ignores unsupported syntax", async () => {
 	for (const range of ["bytes=-0", `bytes=${size}-`, "bytes=8-3"]) {
