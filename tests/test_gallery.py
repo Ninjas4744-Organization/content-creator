@@ -10,6 +10,14 @@ spec.loader.exec_module(gallery)
 
 
 class GalleryTests(unittest.TestCase):
+    def test_learning_bridge_is_added_only_to_the_library_copy(self):
+        with tempfile.TemporaryDirectory() as temp:
+            path = Path(temp) / "index.html"
+            path.write_text("<html><body>Lesson</body></html>")
+            gallery.instrument_media(path, "../../../learning-bridge.js")
+            content = path.read_text()
+            self.assertIn('<script src="../../../learning-bridge.js"></script></body>', content)
+
     def test_linked_video_is_normalized_and_only_referenced_assets_are_copied(self):
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)

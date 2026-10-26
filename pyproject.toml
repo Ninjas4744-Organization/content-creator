@@ -25,4 +25,4 @@ davinci = "davinci_creator.cli:main"
 where = ["src"]
 
 [tool.setuptools.package-data]
-davinci_creator = ["player.html"]
+davinci_creator = ["player.html", "learning_bridge.js"]

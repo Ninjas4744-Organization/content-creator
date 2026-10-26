@@ -18,6 +18,8 @@ import {
 } from "../ui/primitives";
 import { Icon } from "../ui/Icon";
 import { MediaFrame, WebLink } from "../ui/browserMedia";
+import type { ReactNode } from "react";
+import type { LearningProgress } from "../features/lti/LtiClient";
 
 const Header = styled.View`
 	border-bottom-width: 1px;
@@ -67,6 +69,10 @@ interface Props {
 	selectedKind: MediaKind;
 	onOpen(id: string, kind: MediaKind): void;
 	onClose(): void;
+	banner?: ReactNode;
+	viewerFooter?: ReactNode;
+	locked?: boolean;
+	onProgress?(event: LearningProgress): void;
 }
 
 function Viewer({
@@ -75,19 +81,27 @@ function Viewer({
 	onOpen,
 	onClose,
 	compact,
-}: { item: LearningItem; kind: MediaKind; compact: boolean } & Pick<Props, "onOpen" | "onClose">) {
+	locked,
+	viewerFooter,
+	onProgress,
+}: { item: LearningItem; kind: MediaKind; compact: boolean } & Pick<
+	Props,
+	"onOpen" | "onClose" | "locked" | "viewerFooter" | "onProgress"
+>) {
 	const path = item[kind];
 	return (
 		<Container $compact={compact} style={{ paddingTop: 30, paddingBottom: 45, gap: 22 }}>
-			<Button
-				$secondary
-				style={{ alignSelf: "flex-start" }}
-				onPress={onClose}
-				accessibilityRole="button"
-			>
-				<Icon name="back" size={17} />
-				<ButtonText $secondary>בחזרה לספרייה</ButtonText>
-			</Button>
+			{!locked && (
+				<Button
+					$secondary
+					style={{ alignSelf: "flex-start" }}
+					onPress={onClose}
+					accessibilityRole="button"
+				>
+					<Icon name="back" size={17} />
+					<ButtonText $secondary>בחזרה לספרייה</ButtonText>
+				</Button>
+			)}
 			<View style={{ gap: 10 }}>
 				<Eyebrow>{item.category}</Eyebrow>
 				<Heading $compact={compact} accessibilityRole="header">
@@ -95,53 +109,57 @@ function Viewer({
 				</Heading>
 				<Body>{item.description}</Body>
 			</View>
-			<Row style={{ justifyContent: "space-between", flexWrap: "wrap" }}>
-				<Row>
-					{item.video && (
-						<Chip
-							$selected={kind === "video"}
-							accessibilityRole="button"
-							accessibilityState={{ selected: kind === "video" }}
-							onPress={() => onOpen(item.id, "video")}
-						>
-							<ChipText $selected={kind === "video"}>סרטון אינטראקטיבי</ChipText>
-						</Chip>
-					)}
-					{item.deck && (
-						<Chip
-							$selected={kind === "deck"}
-							accessibilityRole="button"
-							accessibilityState={{ selected: kind === "deck" }}
-							onPress={() => onOpen(item.id, "deck")}
-						>
-							<ChipText $selected={kind === "deck"}>מצגת</ChipText>
-						</Chip>
-					)}
+			{!locked && (
+				<Row style={{ justifyContent: "space-between", flexWrap: "wrap" }}>
+					<Row>
+						{item.video && (
+							<Chip
+								$selected={kind === "video"}
+								accessibilityRole="button"
+								accessibilityState={{ selected: kind === "video" }}
+								onPress={() => onOpen(item.id, "video")}
+							>
+								<ChipText $selected={kind === "video"}>סרטון אינטראקטיבי</ChipText>
+							</Chip>
+						)}
+						{item.deck && (
+							<Chip
+								$selected={kind === "deck"}
+								accessibilityRole="button"
+								accessibilityState={{ selected: kind === "deck" }}
+								onPress={() => onOpen(item.id, "deck")}
+							>
+								<ChipText $selected={kind === "deck"}>מצגת</ChipText>
+							</Chip>
+						)}
+					</Row>
+					<Row style={{ flexWrap: "wrap", gap: 8 }}>
+						{path && (
+							<WebLink path={path} label="פתיחה בלשונית חדשה">
+								<Icon name="external" size={16} />
+								פתיחה בלשונית
+							</WebLink>
+						)}
+						{item.powerpoint && (
+							<WebLink path={item.powerpoint} download>
+								<Icon name="download" size={16} />
+								PowerPoint
+							</WebLink>
+						)}
+					</Row>
 				</Row>
-				<Row style={{ flexWrap: "wrap", gap: 8 }}>
-					{path && (
-						<WebLink path={path} label="פתיחה בלשונית חדשה">
-							<Icon name="external" size={16} />
-							פתיחה בלשונית
-						</WebLink>
-					)}
-					{item.powerpoint && (
-						<WebLink path={item.powerpoint} download>
-							<Icon name="download" size={16} />
-							PowerPoint
-						</WebLink>
-					)}
-				</Row>
-			</Row>
+			)}
 			{path ? (
 				<MediaFrame
 					path={path}
 					title={`${kind === "video" ? "סרטון" : "מצגת"}: ${item.title}`}
 					kind={kind}
+					onProgress={onProgress}
 				/>
 			) : (
 				<Body>הפורמט הזה עדיין לא זמין. אפשר לבחור בפורמט אחר למעלה.</Body>
 			)}
+			{viewerFooter}
 			<Body>
 				{kind === "deck"
 					? "אפשר לעבור בין השקפים באמצעות החצים ולפתוח את הערות המנחה מתוך המצגת."
@@ -157,6 +175,10 @@ export const LibraryScreen = observer(function LibraryScreen({
 	selectedKind,
 	onOpen,
 	onClose,
+	banner,
+	viewerFooter,
+	locked,
+	onProgress,
 }: Props) {
 	const { width } = useWindowDimensions();
 	const theme = useTheme();
@@ -195,6 +217,11 @@ export const LibraryScreen = observer(function LibraryScreen({
 					</Row>
 				</Container>
 			</Header>
+			{banner && (
+				<Container $compact={compact} style={{ paddingTop: 22, gap: 12 }}>
+					{banner}
+				</Container>
+			)}
 			{store.loading ? (
 				<Container $compact={compact} style={{ paddingVertical: 90, gap: 18 }}>
 					<ActivityIndicator color={theme.primary} accessibilityLabel="טוען את הספרייה" />
@@ -219,6 +246,9 @@ export const LibraryScreen = observer(function LibraryScreen({
 						compact={compact}
 						onOpen={onOpen}
 						onClose={onClose}
+						locked={locked}
+						viewerFooter={viewerFooter}
+						onProgress={onProgress}
 					/>
 				) : (
 					<Container $compact={compact} style={{ paddingVertical: 70, gap: 20 }}>
