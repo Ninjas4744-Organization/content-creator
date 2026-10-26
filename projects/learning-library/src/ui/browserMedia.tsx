@@ -76,12 +76,15 @@ export function WebLink({
 	children,
 	download = false,
 	label,
+	primary = false,
 }: {
 	path: string;
 	children: ReactNode;
 	download?: boolean;
 	label?: string;
+	primary?: boolean;
 }) {
+	const theme = useTheme();
 	return (
 		<a
 			href={publicUrl(path)}
@@ -99,6 +102,14 @@ export function WebLink({
 				fontFamily: "Rubik",
 				fontSize: 13,
 				borderRadius: 8,
+				...(primary
+					? {
+							background: theme.primary,
+							color: theme.primaryText,
+							fontWeight: 600,
+							padding: "12px 16px",
+						}
+					: {}),
 			}}
 		>
 			{children}

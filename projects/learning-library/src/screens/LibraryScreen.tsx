@@ -20,6 +20,7 @@ import { Icon } from "../ui/Icon";
 import { MediaFrame, WebLink } from "../ui/browserMedia";
 import type { ReactNode } from "react";
 import type { LearningProgress } from "../features/lti/LtiClient";
+import { ExportDialog } from "../features/export/ExportDialog";
 
 const Header = styled.View`
 	border-bottom-width: 1px;
@@ -146,6 +147,7 @@ function Viewer({
 								PowerPoint
 							</WebLink>
 						)}
+						<ExportDialog key={`${item.id}:${kind}`} item={item} initialKind={kind} />
 					</Row>
 				</Row>
 			)}

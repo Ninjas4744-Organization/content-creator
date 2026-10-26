@@ -11,6 +11,9 @@ const paths = {
 	check: "m5 12 4 4L19 6",
 	library: "M4 4v16 M9 4v16 M14 4v16 M18 4l3 16",
 	download: "M12 3v12 M7 10l5 5 5-5 M4 17v4h16v-4",
+	export: "M12 16V3 M7 8l5-5 5 5 M5 13v8h14v-8",
+	copy: "M9 9h12v12H9z M15 9V3H3v12h6",
+	close: "m6 6 12 12 M6 18 18 6",
 };
 
 export function Icon({
