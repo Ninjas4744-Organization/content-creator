@@ -53,13 +53,13 @@ document.querySelector('#reviewQuestion').onclick=()=>{const s=data.scenes[scene
 document.querySelector('#speed').onchange=e=>video.playbackRate=Number(e.target.value);
 document.querySelector('#search').oninput=e=>transcript(e.target.value);
 document.querySelector('#restart').onclick=()=>{seen.clear();jump(0);video.play().catch(()=>{})};
-video.addEventListener('loadedmetadata',()=>{try{const t=Number(localStorage.getItem(storageKey)||0);if(t>0&&t<video.duration-2)jump(t)}catch{}});
+video.addEventListener('loadedmetadata',()=>{if(window.DAVINCI_MANAGED_PROGRESS)return;try{const t=Number(localStorage.getItem(storageKey)||0);if(t>0&&t<video.duration-2)jump(t)}catch{}});
 video.addEventListener('seeking',()=>lastTime=video.currentTime);
 video.addEventListener('timeupdate',()=>{
 const t=video.currentTime,index=sceneIndex(t);
 document.querySelectorAll('#chapters button').forEach((b,i)=>{b.classList.toggle('active',i===index);if(i===index)b.setAttribute('aria-current','true');else b.removeAttribute('aria-current')});
 document.querySelector('#reviewQuestion').disabled=!data.scenes[index]?.quiz;
-if(Math.abs(t-lastSaved)>2){try{localStorage.setItem(storageKey,String(t))}catch{}lastSaved=t}
+if(!window.DAVINCI_MANAGED_PROGRESS&&Math.abs(t-lastSaved)>2){try{localStorage.setItem(storageKey,String(t))}catch{}lastSaved=t}
 if(document.querySelector('#checkpoints').checked&&!quiz.open&&t-lastTime<1.5){const crossed=data.scenes.find(s=>s.quiz&&!seen.has(s.id)&&s.start+s.duration-.15>lastTime&&s.start+s.duration-.15<=t);if(crossed)checkpoint(crossed)}lastTime=t;
 });
 addEventListener('keydown',e=>{if(['INPUT','SELECT','BUTTON','TEXTAREA'].includes(e.target.tagName)||quiz.open)return;if(e.code==='Space'){e.preventDefault();video.paused?video.play().catch(()=>{}):video.pause()}if(e.key==='ArrowRight')jump(Math.min(video.duration||0,video.currentTime+5));if(e.key==='ArrowLeft')jump(Math.max(0,video.currentTime-5))});

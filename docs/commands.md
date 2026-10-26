@@ -48,6 +48,15 @@
 
 פתחו `http://127.0.0.1:8000/`. השרת נגיש למחשב המקומי בלבד. לעצירה: Ctrl+C. ליצירת נגן לסרטון חדש השתמשו ב־`timeline.json` שהרינדור שלו הפיק. אל תשנו תזמון בלי להתאים אותו לווידאו.
 
+## ייצוא SCORM למערכות למידה
+
+```sh
+.venv/bin/python -m davinci_creator scorm examples/community/content.json --out projects/scorm-pilot/output/slides
+.venv/bin/python -m davinci_creator scorm examples/community/approved-timeline.json --format video --video examples/community/approved-video.mp4 --out projects/scorm-pilot/output/video
+```
+
+כל פקודה מפיקה `lesson.zip` להעלאה כפריט תוכן SCORM. הפעילו שמירת התקדמות במטלה ובחרו כלל השלמה שממתין לדיווח מהלומדה. הוראות, כללי סיום ובדיקה מקומית: [מדריך SCORM](scorm.md).
+
 ## בדיקות ותחזוקה
 
 ```sh

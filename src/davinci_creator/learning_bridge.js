@@ -5,7 +5,23 @@
   const video = document.querySelector("video");
   let reportCurrent;
   window.addEventListener("message", (event) => {
-    if (event.source === window.parent && event.origin === location.origin && event.data?.type === "davinci-progress-request") reportCurrent?.();
+    if (event.source !== window.parent || event.origin !== location.origin) return;
+    if (event.data?.type === "davinci-progress-request") reportCurrent?.();
+    if (event.data?.type === "davinci-restore" && window.DAVINCI_MANAGED_PROGRESS) {
+      if (video && Number.isFinite(event.data.position) && event.data.position >= 0) {
+        const restore = () => {
+          video.currentTime = Math.min(video.duration || 0, event.data.position);
+          window.parent.postMessage({ type: "davinci-restored" }, location.origin);
+          reportCurrent?.();
+        };
+        if (video.readyState >= 1) restore();
+        else video.addEventListener("loadedmetadata", restore, { once: true });
+      } else if (!video && Number.isInteger(event.data.index)) {
+        window.show?.(event.data.index);
+        window.parent.postMessage({ type: "davinci-restored" }, location.origin);
+        reportCurrent?.();
+      }
+    }
   });
   if (video) {
     let last = -Infinity;
@@ -13,7 +29,7 @@
       if (!Number.isFinite(video.duration)) return;
       if (!force && performance.now() - last < 4000) return;
       last = performance.now();
-      send({ event: "video", position: video.currentTime, rate: video.playbackRate, playing: !video.paused && !video.ended });
+      send({ event: "video", position: video.currentTime, rate: video.playbackRate, playing: !video.paused && !video.ended, seeking: video.seeking });
     };
     video.addEventListener("timeupdate", () => report());
     reportCurrent = () => report(true);

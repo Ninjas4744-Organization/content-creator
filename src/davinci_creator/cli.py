@@ -43,6 +43,13 @@ def main():
             command.add_argument("--workers",type=int,default=2);command.add_argument("--draft",action="store_true")
             command.add_argument("--seconds",type=float);command.add_argument("--limit",type=int)
         if name=="player":command.add_argument("--video",type=Path,required=True)
+    scorm=sub.add_parser("scorm",help="Export a single-SCO SCORM 1.2 package for learning platforms")
+    scorm.add_argument("content",type=Path)
+    scorm.add_argument("--out",type=Path,required=True)
+    scorm.add_argument("--format",choices=["slides","video"],default="slides")
+    scorm.add_argument("--video",type=Path)
+    scorm.add_argument("--pass-score",type=float,default=0.8)
+    scorm.add_argument("--coverage",type=float,default=0.9)
     serve=sub.add_parser("serve",help="Serve an output folder locally")
     serve.add_argument("folder",type=Path);serve.add_argument("--port",type=int,default=8000)
     keygen=sub.add_parser("lti-keygen",help="Create a private RSA signing key for the LTI tool")
@@ -96,6 +103,9 @@ def main():
         if args.command=="deck":
             from .deck import build
             build(doc,args.out)
+        elif args.command=="scorm":
+            from .scorm import build_scorm
+            build_scorm(doc,args.out,mode=args.format,video=args.video,pass_score=args.pass_score,coverage=args.coverage)
         elif args.command=="tts":
             from .tts import generate
             generate(doc,args.voices or args.content.parent/"audio/voices",args.key_file,args.model)

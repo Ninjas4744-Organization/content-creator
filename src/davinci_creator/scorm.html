@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>__TITLE__</title>
+<style>
+@font-face{font-family:Rubik;src:url(Rubik-Regular.ttf)}@font-face{font-family:Rubik;src:url(Rubik-Bold.ttf);font-weight:700}
+*{box-sizing:border-box}body{margin:0;background:#09172b;color:#fafcff;font:17px/1.6 Rubik,Arial,sans-serif}main{max-width:1180px;margin:auto;padding:20px}header{display:flex;align-items:center;gap:20px}header img{width:48px;height:48px;object-fit:contain}h1{font-size:clamp(22px,2.3vw,30px);line-height:1.3;margin:0}h2{font-size:24px;margin-top:0}.muted{color:#a9d8f6}#connection{margin:8px 0 0}#connection[data-error=true]{color:#ffda9d}.progress{margin:20px 0;display:flex;align-items:center;gap:16px;flex-wrap:wrap}progress{height:14px;flex:1;min-width:140px;accent-color:#ffda9d}iframe{display:block;border:1px solid #305275;border-radius:16px;width:100%;aspect-ratio:16/9;background:#08152b}video{display:block;width:100%;aspect-ratio:16/9;background:#000;border-radius:12px}.video-tools{display:flex;gap:20px;flex-wrap:wrap;padding:12px 0}.video-tools label{margin:0;align-items:center}select{font:inherit;color:#fafcff;background:#11243d;padding:7px;border:1px solid #305275;border-radius:8px;max-width:100%}.assessment{margin-top:28px;border:1px solid #305275;background:#11243d;border-radius:16px;padding:24px}fieldset{border:0;border-top:1px solid #305275;padding:18px 0;margin:0}legend{font-weight:700;padding:0 0 8px}label{display:flex;align-items:baseline;gap:12px;margin:8px 0;cursor:pointer}input{accent-color:#ffda9d;flex-shrink:0}button{font:inherit;color:#09172b;background:#ffda9d;border:0;border-radius:10px;padding:12px 22px;cursor:pointer;font-weight:700}button:disabled{opacity:.5;cursor:default}button:focus-visible,input:focus-visible{outline:3px solid #a9d8f6;outline-offset:3px}#result{font-weight:700;color:#ffda9d}#save{margin-inline-start:8px;background:#244666;color:#fafcff}#feedback{min-height:28px}.result-detail{margin:12px 0;padding:12px;border-right:3px solid #a9d8f6}footer{padding:20px 0;color:#a9d8f6;font-size:14px}@media(max-width:600px){main{padding:14px}header img{width:50px;height:50px}.assessment{padding:16px}.video-tools label{width:100%;flex-wrap:wrap}}
+</style>
+<body data-mode="__MODE__">
+<main>
+<header><img src="logo.png" alt="Da Vinci 4744"><div><h1>__TITLE__</h1><p id="connection" class="muted" role="status">מתחברים למערכת הלמידה…</p></div></header>
+<div class="progress"><span id="progressText">התקדמות בצפייה: 0%</span><progress id="progress" max="1" value="0" aria-label="התקדמות בצפייה"></progress></div>
+__MEDIA__
+<section class="assessment" aria-labelledby="assessmentTitle"><h2 id="assessmentTitle">בדיקת ידע וסיום השיעור</h2>
+<p id="requirements" class="muted"></p><form id="assessment"><div id="questions"></div><p id="result" role="status"></p><p id="feedback" role="status" aria-live="polite"></p><button id="submit" type="submit" disabled>הגשת התוצאה וסיום</button><button id="save" type="button" disabled>שמירת התקדמות</button></form><div id="explanations"></div></section>
+<footer>Da Vinci 4744 · למידה, עשייה והשפעה</footer>
+</main>
+<script id="scorm-config" type="application/json">__CONFIG__</script>
+<script src="scorm_runtime.js"></script><script src="scorm_player.js"></script>
+</body></html>
