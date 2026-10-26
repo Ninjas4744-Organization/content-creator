@@ -26,7 +26,7 @@ After Python setup, run `npm ci` and `npm start` in that directory. `npm run bui
 
 The library is open for everyone to browse and use. It also offers an optional **LTI 1.3 integration**: instructors select lessons for their courses, and learners submit scores and completion to their learning platform. Public browsing and LTI use the same website. A Python service is also available for local use and conventional server hosting. See the [LTI setup guide](docs/lti.md) for supported reporting, registration and verification.
 
-The [Cloudflare deployment guide](docs/cloudflare.md) covers Workers, D1 and GitHub Actions credentials. Existing LTI links on `learn.davinci4744.com` remain supported during the domain migration. The current videos fit static hosting, so R2 is optional.
+The [Cloudflare deployment guide](docs/cloudflare.md) covers Workers, D1 and GitHub Actions credentials. The retired `learn.davinci4744.com` hostname redirects public bookmarks; all LTI connections use `knowledge.davinci4744.com`. The current videos fit static hosting, so R2 is optional.
 
 ## First-time setup
 

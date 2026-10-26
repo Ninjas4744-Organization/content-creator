@@ -106,8 +106,12 @@ jobs:
               run: node_modules/.bin/wrangler d1 migrations apply DB --remote
             - name: Deploy verified library to Cloudflare
               run: node_modules/.bin/wrangler deploy
+            - name: Deploy retired-domain redirect
+              run: node_modules/.bin/wrangler deploy --config wrangler.redirect.jsonc
             - name: Verify public site and LTI configuration
               run: |
                   curl --fail --silent --show-error --retry 5 --retry-delay 3 https://knowledge.davinci4744.com/ -o /dev/null
                   curl --fail --silent --show-error --retry 5 --retry-delay 3 https://knowledge.davinci4744.com/health |
                       python3 -c 'import json,sys; status=json.load(sys.stdin); assert status.get("status")=="ok" and status.get("lti")=="configured", "LTI setup is incomplete"'
+                  retired_status=$(curl --silent --show-error --retry 5 --retry-delay 3 --output /dev/null --write-out '%{http_code}' https://learn.davinci4744.com/lti/jwks)
+                  test "$retired_status" = "410"

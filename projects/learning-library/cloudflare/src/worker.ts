@@ -7,7 +7,6 @@ import {
 	object,
 	platformUrl,
 	resource,
-	registrationForOrigin,
 	settings,
 	type Attempt,
 	type Env,
@@ -405,13 +404,6 @@ class Router {
 export default {
 	async fetch(request: Request, env: Env): Promise<Response> {
 		const url = new URL(request.url);
-		if (
-			url.origin === env.ALTERNATE_TOOL_URL &&
-			url.pathname === "/" &&
-			!url.searchParams.has("lti") &&
-			["GET", "HEAD"].includes(request.method)
-		)
-			return Response.redirect(env.TOOL_URL + "/" + url.search, 308);
 		if (url.pathname.endsWith(".mp4")) {
 			const response = await video(request, env);
 			if (response) return response;
@@ -422,7 +414,8 @@ export default {
 		let response: Response;
 		try {
 			settings(env);
-			router = new Router(request, registrationForOrigin(env, url.origin));
+			if (url.origin !== env.TOOL_URL) throw new InputError("Invalid tool origin");
+			router = new Router(request, env);
 			response = await router.route(url.pathname);
 		} catch (error) {
 			const code = error instanceof Error && "code" in error ? error.code : undefined;

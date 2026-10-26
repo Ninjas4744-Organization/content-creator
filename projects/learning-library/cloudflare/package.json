@@ -8,8 +8,8 @@
 		"typecheck": "tsc --noEmit",
 		"test": "vitest run",
 		"dev": "wrangler dev",
-		"check:deploy": "npm run prepare:content && wrangler deploy --dry-run --outdir ../output/cloudflare-bundle",
-		"deploy": "npm run prepare:content && wrangler deploy",
+		"check:deploy": "npm run prepare:content && wrangler deploy --dry-run --outdir ../output/cloudflare-bundle && wrangler deploy --config wrangler.redirect.jsonc --dry-run --outdir ../output/cloudflare-redirect-bundle",
+		"deploy": "npm run prepare:content && wrangler deploy && wrangler deploy --config wrangler.redirect.jsonc",
 		"format": "prettier --write src tests *.json *.jsonc *.ts",
 		"format:check": "prettier --check src tests *.json *.jsonc *.ts"
 	},

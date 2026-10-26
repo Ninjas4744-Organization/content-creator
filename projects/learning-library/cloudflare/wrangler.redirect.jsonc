@@ -1,0 +1,9 @@
+{
+	"$schema": "node_modules/wrangler/config-schema.json",
+	"name": "davinci-learning-library-redirect",
+	"account_id": "a7ae291ec1fdbfb9cf661940e399d9d1",
+	"main": "src/redirect.ts",
+	"compatibility_date": "2026-10-26",
+	"workers_dev": false,
+	"routes": [{ "pattern": "learn.davinci4744.com", "custom_domain": true }],
+}

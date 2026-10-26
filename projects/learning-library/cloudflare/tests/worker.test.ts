@@ -51,7 +51,6 @@ beforeAll(async () => {
 	bindings = {
 		...(env as unknown as Env),
 		TOOL_URL: tool,
-		ALTERNATE_TOOL_URL: "https://old-library.example",
 		PLATFORM_ISSUER: issuer,
 		PRIVATE_KEY_PEM: await exportPKCS8(service.privateKey),
 		PUBLIC_JWK: JSON.stringify(await exportJWK(service.publicKey)),
@@ -260,87 +259,38 @@ test("public browsing and lesson links need no LMS session or signing key", asyn
 	expect(sent).toHaveLength(0);
 });
 
-test("the old public home redirects while active LTI pages and media stay on their origin", async () => {
-	const old = bindings.ALTERNATE_TOOL_URL!;
-	const response = await request("/?item=community&view=video", {}, bindings, old);
-	expect(response.status).toBe(308);
-	expect(response.headers.get("Location")).toBe(tool + "/?item=community&view=video");
-	expect((await request("/?lti=existing-browser-session", {}, bindings, old)).status).toBe(200);
-	expect((await request("/library/catalog.json", {}, bindings, old)).status).toBe(200);
-	expect((await request("/", {}, bindings, tool)).status).toBe(200);
-});
-
-test("legacy launches keep browser binding and resume the same attempt with one result", async () => {
-	const current = await open();
-	const progress = (await (
-		await api("progress", current, { event: "slide", index: 0 })
-	).json()) as any;
-	expect(progress.progress).toBeGreaterThan(0);
-	const old = bindings.ALTERNATE_TOOL_URL!;
-	const flow = await begin({ origin: old });
-	expect(flow.redirectUri).toBe(old + "/lti/launch");
-	const legacy = await open({ origin: old });
-	expect(((await (await api("session", legacy, undefined, old)).json()) as any).progress).toBe(
-		progress.progress,
-	);
-	await finish(legacy, true, old);
-	expect((await api("complete", legacy, {}, old)).status).toBe(200);
-	expect(((await (await api("session", current)).json()) as any).reported).toBe(true);
-	expect((await api("complete", current, {})).status).toBe(200);
-	expect(sent).toHaveLength(1);
-});
-
-test("provider and lesson URLs may be migrated in either order", async () => {
-	const old = bindings.ALTERNATE_TOOL_URL!;
-	for (const [origin, targetOrigin] of [
-		[tool, old],
-		[old, tool],
-	]) {
-		const secret = await open({ origin, targetOrigin });
-		expect((await api("session", secret, undefined, origin)).status).toBe(200);
-	}
-});
-
-test("POST login initiation on the existing hostname is processed without redirecting", async () => {
-	const old = bindings.ALTERNATE_TOOL_URL!;
-	const response = await request(
-		"/lti/login",
-		{
-			method: "POST",
-			body: new URLSearchParams({
-				iss: issuer,
-				client_id: bindings.CLIENT_ID,
-				login_hint: "123",
-				lti_message_hint: "opaque-platform-hint",
-				target_link_uri: old + "/lti/resource?item=" + item.id + "&view=video",
-			}),
-		},
-		bindings,
-		old,
-	);
-	expect(response.status).toBe(200);
-	expect(response.headers.has("Location")).toBe(false);
-	expect(await response.text()).toContain(encodeURIComponent(old + "/lti/launch"));
-});
-
-test("migration keeps strict host and request Origin checks", async () => {
-	expect((await request("/health", {}, bindings, "https://untrusted.example")).status).toBe(400);
-	const secret = await open({ origin: bindings.ALTERNATE_TOOL_URL });
+test("the retired hostname is rejected as an LTI origin", async () => {
+	const old = "https://learn.davinci4744.com";
+	expect((await request("/health", {}, bindings, old)).status).toBe(400);
+	const secret = await open();
 	expect(
 		(
 			await request("/lti/progress", {
 				method: "POST",
 				headers: {
 					Authorization: "Bearer " + secret,
-					Origin: bindings.ALTERNATE_TOOL_URL!,
+					Origin: old,
 					"Content-Type": "application/json",
 				},
 				body: JSON.stringify({ event: "slide", index: 0 }),
 			})
 		).status,
 	).toBe(400);
-	const invalid = { ...bindings, ALTERNATE_TOOL_URL: "https://untrusted.example/path" };
-	expect((await request("/health", {}, invalid)).status).toBe(400);
+});
+
+test("login rejects lesson targets on the retired hostname", async () => {
+	const response = await request(
+		"/lti/login?" +
+			new URLSearchParams({
+				iss: issuer,
+				client_id: bindings.CLIENT_ID,
+				login_hint: "123",
+				lti_message_hint: "opaque-platform-hint",
+				target_link_uri:
+					"https://learn.davinci4744.com/lti/resource?item=" + item.id + "&view=video",
+			}),
+	);
+	expect(response.status).toBe(400);
 });
 
 test("selection returns a signed single lesson link", async () => {

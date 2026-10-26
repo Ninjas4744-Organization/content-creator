@@ -10,7 +10,7 @@ The Cloudflare entry point uses TypeScript and Web Crypto. This keeps signing an
 
 `.github/workflows/cloudflare.yml` checks pull requests and builds on pushes to `master` or `main`. Only the repository's default branch deploys, including manual runs from that branch. GitHub Pages is no longer a deployment target.
 
-The check job runs the Python, website and Worker tests, typechecks, formatting checks, a fresh site build and a Wrangler dry run. It passes only `cloudflare-assets/` and `cloudflare-data/` to the deploy job. The deploy job applies D1 migrations and publishes those verified inputs with the pinned Wrangler version. It retains existing Worker signing secrets and D1 data. The artifact expires after one day and never contains `output/lti/`, credentials, state databases or local logs.
+The check job runs the Python, website and Worker tests, typechecks, formatting checks, a fresh site build and a Wrangler dry run. It passes only `cloudflare-assets/` and `cloudflare-data/` to the deploy job. The deploy job applies D1 migrations and publishes those verified inputs and the retired-domain redirect with the pinned Wrangler version. It retains existing Worker signing secrets and D1 data. The artifact expires after one day and never contains `output/lti/`, credentials, state databases or local logs.
 
 Add a repository Actions secret named `CLOUDFLARE_API_TOKEN`. Use a dedicated Cloudflare token restricted to this account and the `davinci4744.com` zone with:
 
@@ -25,18 +25,20 @@ The account ID is already set in `wrangler.jsonc`; it is an identifier, not a cr
 
 After adding the secret, push to the default branch or run **Learning library** manually from that branch. The workflow verifies the public home page and `/health` after deployment. [Cloudflare's GitHub Actions guide](https://developers.cloudflare.com/workers/ci-cd/external-cicd/github-actions/) describes the authentication model.
 
-## Primary domain and existing LTI links
+## Primary domain and retired address
 
-`knowledge.davinci4744.com` is the primary public and LTI hostname. `learn.davinci4744.com` remains an explicit alternate origin for existing registrations and assignments. The old public home page redirects to the primary domain, preserving public lesson query parameters. Its active `?lti=…` pages, LTI POST endpoints and media continue to run on their original origin, preserving browser session storage and embedded progress events.
+`knowledge.davinci4744.com` is the only public library and LTI origin. The LMS registration and lesson links have moved to this hostname. The signing key, client ID, database and attempt identity remain unchanged, preserving saved progress and results.
 
-Login and launch flows stay on the hostname where they started. Lesson links may reference either registered hostname, so the LMS provider URLs and assignment lesson links can be updated in either order. Both hostnames use the same signing key, client ID, database and attempt identity; moving a link does not reset a Performance or report its result twice. Other origins remain rejected.
+`learn.davinci4744.com` is handled by a separate redirect Worker configured in `wrangler.redirect.jsonc`. It has no asset, database or signing-key bindings. Public GET/HEAD requests redirect permanently to the equivalent `knowledge` path and query. Stale `lti` query references are removed because browser session storage cannot be transferred between origins.
 
-For the initial cutover, remove the previous `knowledge` CNAME to `ninjas4744-organization.github.io` before attaching the Worker custom domain. The previous record was DNS-only with an automatic TTL (300 seconds in public DNS). Cloudflare can reject domain attachment while an externally managed CNAME exists, even when Wrangler requests replacement. This one-time DNS change is separate from normal CI deployments. Preserve both configured custom domains until all existing LMS references have moved; removing the alternate early would break those references.
+All requests under `/lti/`, the old `/health` endpoint and every non-GET/HEAD request return HTTP 410 without redirecting a request body. The active LTI service rejects the retired origin and retired lesson targets. Any old open learner tab must reopen its lesson from the updated LMS; stored progress remains available on the primary service.
+
+GitHub Actions deploys the main library first and the redirect Worker second, then verifies the active health endpoint and the retired LTI response. The old hostname stays bound only to the redirect Worker so old public bookmarks do not become dead links.
 
 ## Services and costs
 
 - **Workers Static Assets** serves the public website, presentations, images and fonts directly.
-- **Workers** handles the home page, `/lti/*`, `/health` and MP4 requests. The home page handles the alternate-domain redirect before serving its static asset. Video responses stream byte ranges so chapter navigation and Safari playback work. Home-page and video requests count toward the Worker request allowance. No whole video is buffered in Worker memory.
+- **Workers** handles `/lti/*`, `/health` and MP4 requests on the primary site. Video responses stream byte ranges so chapter navigation and Safari playback work. Video and retired-domain redirect requests count toward the Worker request allowance. No whole video is buffered in Worker memory.
 - **D1** stores short-lived launch/session records and saved attempts. An expiry index and an hourly cleanup limit retained data. Conditional updates prevent competing requests from overwriting one another.
 - **R2 is optional.** The current media files fit the 25 MiB static-asset limit, so this package needs no R2 subscription. Packaging fails with the file name if a future asset exceeds that limit. Add media storage before publishing such files.
 
@@ -45,7 +47,8 @@ The deployment targets Workers Free and D1 Free. It does not select or upgrade a
 ## Files
 
 - `projects/learning-library/cloudflare/wrangler.jsonc`: domain, LMS connection, D1 binding and asset routing.
-- `projects/learning-library/cloudflare/src/`: the Worker, signed messages, completion logic and D1 storage.
+- `projects/learning-library/cloudflare/src/`: the Workers, signed messages, completion logic and D1 storage.
+- `projects/learning-library/cloudflare/wrangler.redirect.jsonc`: the retired hostname and its isolated redirect Worker.
 - `projects/learning-library/cloudflare/migrations/`: D1 schema.
 - `projects/learning-library/output/cloudflare-assets/`: only public files; safe to upload as assets.
 - `projects/learning-library/output/cloudflare-data/lessons.json`: the assessment module bundled into the Worker, outside public assets.
@@ -65,7 +68,7 @@ npm --prefix projects/learning-library/cloudflare test
 npm --prefix projects/learning-library/cloudflare run check:deploy
 ```
 
-Build for the origin root with `EXPO_BASE_URL` unset. The packager copies the export into a separate asset directory and creates the private assessment module. It does not change the GitHub Pages export. Static routing serves portable players and supporting files. Home-page redirects, LTI routes and MP4 byte-range handling run before asset lookup. Packaging records media sizes alongside the private assessment module.
+Build for the origin root with `EXPO_BASE_URL` unset. The packager copies the export into a separate asset directory and creates the private assessment module. It does not change the GitHub Pages export. Static routing serves portable players and supporting files. LTI routes and MP4 byte-range handling run before asset lookup. The primary home page is served directly as a static asset. Packaging records media sizes alongside the private assessment module.
 
 The tests run in the local Workers runtime with a real local D1 binding. They cover signed launches and selection, browser binding, replay rejection, server-calculated scores, completion and retries, refreshed result tokens, video coverage, concurrent updates, public access and expired-record cleanup. Media tests cover streamed byte ranges, conditional requests and MP4 routing. Network calls to the test LMS are intercepted; tests make no live LMS changes.
 

@@ -10,20 +10,15 @@
 			"pattern": "knowledge.davinci4744.com",
 			"custom_domain": true,
 		},
-		{
-			"pattern": "learn.davinci4744.com",
-			"custom_domain": true,
-		},
 	],
 	"assets": {
 		"directory": "../output/cloudflare-assets",
 		"binding": "ASSETS",
-		"run_worker_first": ["/", "/lti/*", "/health", "/library/media/*.mp4"],
+		"run_worker_first": ["/lti/*", "/health", "/library/media/*.mp4"],
 		"html_handling": "auto-trailing-slash",
 	},
 	"vars": {
 		"TOOL_URL": "https://knowledge.davinci4744.com",
-		"ALTERNATE_TOOL_URL": "https://learn.davinci4744.com",
 		"PLATFORM_ISSUER": "https://davinci4744.blossom-kc.com",
 		"CLIENT_ID": "davinci-learning-library",
 		"DEPLOYMENT_ID": "na",

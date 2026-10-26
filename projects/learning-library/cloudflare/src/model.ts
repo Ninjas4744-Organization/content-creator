@@ -2,7 +2,6 @@ export interface Env {
 	ASSETS: Fetcher;
 	DB: D1Database;
 	TOOL_URL: string;
-	ALTERNATE_TOOL_URL?: string;
 	PLATFORM_ISSUER: string;
 	CLIENT_ID: string;
 	DEPLOYMENT_ID: string;
@@ -79,11 +78,7 @@ export function object(value: unknown): Record<string, any> {
 }
 
 export function settings(env: Env) {
-	for (const value of [
-		env.TOOL_URL,
-		env.PLATFORM_ISSUER,
-		...(env.ALTERNATE_TOOL_URL ? [env.ALTERNATE_TOOL_URL] : []),
-	]) {
+	for (const value of [env.TOOL_URL, env.PLATFORM_ISSUER]) {
 		const url = new URL(value);
 		const local =
 			env.ALLOW_LOCAL_HTTP === "true" &&
@@ -100,8 +95,6 @@ export function settings(env: Env) {
 	}
 	if (
 		new URL(env.TOOL_URL).origin !== env.TOOL_URL ||
-		(env.ALTERNATE_TOOL_URL &&
-			new URL(env.ALTERNATE_TOOL_URL).origin !== env.ALTERNATE_TOOL_URL) ||
 		!env.CLIENT_ID ||
 		!env.DEPLOYMENT_ID ||
 		!env.KEY_ID
@@ -121,14 +114,6 @@ export function settings(env: Env) {
 	)
 		throw new InputError("Invalid service settings");
 	return { pass, session, retention, platformOrigin: new URL(env.PLATFORM_ISSUER).origin };
-}
-
-/** Keep every login flow on its starting origin, including existing LMS registrations. */
-export function registrationForOrigin(env: Env, origin: string): Env {
-	if (origin === env.TOOL_URL) return env;
-	if (origin === env.ALTERNATE_TOOL_URL)
-		return { ...env, TOOL_URL: origin, ALTERNATE_TOOL_URL: env.TOOL_URL };
-	throw new InputError("Invalid tool origin");
 }
 
 export function platformUrl(env: Env, endpoint: string): string {
@@ -153,7 +138,7 @@ export function callback(env: Env, value: unknown, endpoint: string): string {
 export function resource(env: Env, value: string): { item: string; kind: Kind } | null {
 	const url = new URL(value);
 	if (
-		(url.origin !== env.TOOL_URL && url.origin !== env.ALTERNATE_TOOL_URL) ||
+		url.origin !== env.TOOL_URL ||
 		url.pathname !== "/lti/resource" ||
 		url.username ||
 		url.password ||
