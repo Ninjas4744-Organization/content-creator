@@ -1,0 +1,20 @@
+{
+  "checked_on": "2026-10-26",
+  "public_site": "https://knowledge.davinci4744.com/",
+  "local_sources": [
+    "docs/gallery.md",
+    "docs/commands.md",
+    "docs/content-format.md",
+    "docs/brand.md",
+    "docs/scorm.md",
+    "scripts/prepare_gallery.py",
+    "projects/learning-library/src/screens/LibraryScreen.tsx",
+    ".github/workflows/cloudflare.yml"
+  ],
+  "narration_provider": "Google Gemini",
+  "voices": {
+    "female": "Kore",
+    "male": "Puck"
+  },
+  "notes": "Screenshots show the public library UI at capture time. No live deployment was performed."
+}
