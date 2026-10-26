@@ -15,6 +15,7 @@ export interface LearningItem {
 	deck: string | null;
 	powerpoint: string | null;
 	video: string | null;
+	scorm?: Partial<Record<MediaKind, string>>;
 }
 
 export interface CatalogRepository {

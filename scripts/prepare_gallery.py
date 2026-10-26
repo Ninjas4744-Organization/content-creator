@@ -118,6 +118,7 @@ def publish_video(project_id, source):
 def prepare():
     from davinci_creator.common import load
     from davinci_creator.deck import build
+    from davinci_creator.scorm import build_scorm
 
     settings = json.loads((LIBRARY / "library.json").read_text(encoding="utf-8"))
     target = LIBRARY / "public/library"
@@ -154,10 +155,21 @@ def prepare():
             instrument_media(output / "interactive/index.html", "../../../learning-bridge.js")
             shutil.copy2(player / "poster.jpg", output / "poster.jpg")
             parser = re.search(r'<script[^>]*id="content"[^>]*>(.*?)</script>', (player / "index.html").read_text(encoding="utf-8"), re.S)
-            if parser:
-                timeline = json.loads(parser.group(1))
-                duration = max((s.get("start", 0) + s.get("duration", 0) for s in timeline["scenes"]), default=0)
+            if not parser:
+                raise ValueError(f"No rendered timeline found for {project_id}")
+            timeline = json.loads(parser.group(1))
+            duration = max((s.get("start", 0) + s.get("duration", 0) for s in timeline["scenes"]), default=0)
         prefix = f"library/media/{project_id}"
+        exports = target / "exports" / project_id
+        archive = build_scorm(doc, exports / "staging", mode="slides")
+        archive.replace(exports / "slides.zip")
+        scorm = {"deck": f"library/exports/{project_id}/slides.zip"}
+        if has_video:
+            timeline = scorm_timeline(doc, timeline)
+            archive = build_scorm(timeline, exports / "staging", mode="video", video=output / "interactive/video.mp4")
+            archive.replace(exports / "video.zip")
+            scorm["video"] = f"library/exports/{project_id}/video.zip"
+        shutil.rmtree(exports / "staging")
         catalog.append({
             "id": project_id, "title": metadata.get("title", doc["title"]),
             "description": metadata.get("description", doc["scenes"][0].get("subtitle", "מצגת מבית דה וינצ׳י 4744")),
@@ -167,10 +179,20 @@ def prepare():
             "chapters": [s.get("chapter", s["title"]) for s in doc["scenes"]],
             "deck": f"{prefix}/presentation.html", "powerpoint": f"{prefix}/presentation.pptx",
             "video": f"{prefix}/interactive/index.html" if has_video else None,
+            "scorm": scorm,
         })
     (target / "catalog.json").write_text(json.dumps(catalog, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     (LIBRARY / "public/.nojekyll").touch()
     print(f"Gallery ready: {len(catalog)} topics, {sum(bool(i['video']) for i in catalog)} videos")
+
+
+def scorm_timeline(doc: dict, rendered: dict) -> dict:
+    """Use retained video timing with the current source's single final question set."""
+    timings = {scene["id"]: scene for scene in rendered["scenes"]}
+    if set(timings) != {scene["id"] for scene in doc["scenes"]}:
+        raise ValueError("Video scene IDs do not match the source document; render it again before exporting")
+    fields = {"start", "duration", "voice_offset", "voice_duration", "captions"}
+    return {**doc, "scenes": [{**scene, **{key: value for key, value in timings[scene["id"]].items() if key in fields}} for scene in doc["scenes"]]}
 
 
 def instrument_media(path: Path, bridge: str) -> None:

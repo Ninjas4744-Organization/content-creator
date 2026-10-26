@@ -10,6 +10,15 @@ spec.loader.exec_module(gallery)
 
 
 class GalleryTests(unittest.TestCase):
+    def test_scorm_timeline_keeps_current_questions_and_validates_scene_identity(self):
+        doc = {"title": "Lesson", "scenes": [{"id": "one", "title": "One", "quiz": {"question": "Current"}}]}
+        rendered = {"scenes": [{"id": "one", "start": 0, "duration": 12, "quiz": {"question": "Old"}}]}
+        timeline = gallery.scorm_timeline(doc, rendered)
+        self.assertEqual(timeline["scenes"][0]["quiz"]["question"], "Current")
+        self.assertEqual(timeline["scenes"][0]["duration"], 12)
+        with self.assertRaisesRegex(ValueError, "scene IDs"):
+            gallery.scorm_timeline(doc, {"scenes": []})
+
     def test_learning_bridge_is_added_only_to_the_library_copy(self):
         with tempfile.TemporaryDirectory() as temp:
             path = Path(temp) / "index.html"
