@@ -19,6 +19,8 @@ jobs:
         timeout-minutes: 25
         env:
             WRANGLER_SEND_METRICS: "false"
+            PLATFORM_ISSUER: ${{ secrets.LTI_PLATFORM_ISSUER }}
+            OUTCOME_EXTENSION: ${{ secrets.LTI_OUTCOME_EXTENSION }}
         steps:
             - uses: actions/checkout@v6
             - uses: actions/setup-python@v6
@@ -83,12 +85,18 @@ jobs:
         env:
             CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
             WRANGLER_SEND_METRICS: "false"
+            PLATFORM_ISSUER: ${{ secrets.LTI_PLATFORM_ISSUER }}
+            OUTCOME_EXTENSION: ${{ secrets.LTI_OUTCOME_EXTENSION }}
         steps:
             - uses: actions/checkout@v6
             - name: Check deployment credential
               run: |
                   if [ -z "$CLOUDFLARE_API_TOKEN" ]; then
                       echo "::error::Add the CLOUDFLARE_API_TOKEN Actions secret to enable Cloudflare deployments."
+                      exit 1
+                  fi
+                  if [ -z "$PLATFORM_ISSUER" ]; then
+                      echo "::error::Configure the private LTI_PLATFORM_ISSUER Actions secret before deploying."
                       exit 1
                   fi
             - uses: actions/setup-node@v6
@@ -105,7 +113,11 @@ jobs:
             - name: Apply database migrations
               run: node_modules/.bin/wrangler d1 migrations apply DB --remote
             - name: Deploy verified library to Cloudflare
-              run: node_modules/.bin/wrangler deploy
+              run: |
+                  python3 -c 'import json, os; json.dump({name: os.environ[name] for name in ("PLATFORM_ISSUER", "OUTCOME_EXTENSION")}, open("../output/platform-secrets.json", "w"))'
+                  node_modules/.bin/wrangler secret bulk ../output/platform-secrets.json
+                  rm ../output/platform-secrets.json
+                  node_modules/.bin/wrangler deploy
             - name: Deploy retired-domain redirect
               run: node_modules/.bin/wrangler deploy --config wrangler.redirect.jsonc
             - name: Verify public site and LTI configuration

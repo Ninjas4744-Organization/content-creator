@@ -35,6 +35,7 @@ Copy `projects/learning-library/lti.example.json` to `projects/learning-library/
 - `client_id`: the same unique client ID in both registrations.
 - `deployment_id`: the deployment ID configured in the LMS; the current connection uses `na`.
 - `pass_score`: the passing fraction, from `0` to `1`; default `0.8`.
+- `outcome_extension`: optional XML element name for an LMS-specific completion/time extension; empty by default for standard Basic Outcomes. Keep any installation-specific value in the ignored `lti.platform.local.json` beside the config. No provider names belong in code, tests or exported media.
 
 File paths resolve relative to the JSON configuration file. `source_root` is the content-creator repository root. Keep the source documents available to the service so it can load questions and calculate scores. Do not serve that directory publicly.
 

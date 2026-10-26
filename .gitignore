@@ -12,6 +12,7 @@ __pycache__/
 *.private.pem
 *.sqlite3*
 lti.local.json
+lti.platform.local.json
 credentials*.json
 outputs/
 build/

@@ -52,6 +52,7 @@ beforeAll(async () => {
 		...(env as unknown as Env),
 		TOOL_URL: tool,
 		PLATFORM_ISSUER: issuer,
+		OUTCOME_EXTENSION: "platform_result",
 		PRIVATE_KEY_PEM: await exportPKCS8(service.privateKey),
 		PUBLIC_JWK: JSON.stringify(await exportJWK(service.publicKey)),
 	};
@@ -321,7 +322,7 @@ test("scores are calculated on the server and completion is reported once", asyn
 	expect(data.reported).toBe(true);
 	const record = sent[0].imsx_POXEnvelopeRequest.imsx_POXBody.replaceResultRequest.resultRecord;
 	expect(record.sourcedGUID.sourcedId).toBe(resultId());
-	expect(record.blossom_extra.completion_state).toBe("Yes");
+	expect(record.platform_result.completion_state).toBe("Yes");
 	expect(lastAssertion.aud).toBe(issuer);
 	expect((await api("complete", secret, {})).status).toBe(200);
 	expect(sent).toHaveLength(1);
@@ -343,6 +344,22 @@ test("failed score delivery is frozen and retryable", async () => {
 	const after = (await (await api("complete", secret, {})).json()) as any;
 	expect(after.result).toEqual(before.result);
 	expect(after.reported).toBe(true);
+});
+
+test("standard outcomes omit an optional installation extension", async () => {
+	const original = bindings;
+	try {
+		bindings = { ...bindings, OUTCOME_EXTENSION: "" };
+		const secret = await open();
+		await finish(secret);
+		expect((await api("complete", secret, {})).status).toBe(200);
+		const record =
+			sent[0].imsx_POXEnvelopeRequest.imsx_POXBody.replaceResultRequest.resultRecord;
+		expect(record.result.resultScore.textString).toBe(1);
+		expect(record.platform_result).toBeUndefined();
+	} finally {
+		bindings = original;
+	}
 });
 
 test("platform redirects are rejected and a result can be retried safely", async () => {

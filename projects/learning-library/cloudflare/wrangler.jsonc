@@ -5,6 +5,7 @@
 	"main": "src/worker.ts",
 	"compatibility_date": "2026-10-26",
 	"workers_dev": false,
+	"keep_vars": true,
 	"routes": [
 		{
 			"pattern": "knowledge.davinci4744.com",
@@ -19,7 +20,6 @@
 	},
 	"vars": {
 		"TOOL_URL": "https://knowledge.davinci4744.com",
-		"PLATFORM_ISSUER": "https://davinci4744.blossom-kc.com",
 		"CLIENT_ID": "davinci-learning-library",
 		"DEPLOYMENT_ID": "na",
 		"KEY_ID": "davinci-lti-1",

@@ -12,6 +12,7 @@ export interface Env {
 	PRIVATE_KEY_PEM?: string;
 	PUBLIC_JWK?: string;
 	ALLOW_LOCAL_HTTP?: string;
+	OUTCOME_EXTENSION?: string;
 }
 
 export type Kind = "deck" | "video";
@@ -78,6 +79,8 @@ export function object(value: unknown): Record<string, any> {
 }
 
 export function settings(env: Env) {
+	if (env.OUTCOME_EXTENSION && !/^[A-Za-z_][A-Za-z0-9_.-]{0,63}$/.test(env.OUTCOME_EXTENSION))
+		throw new InputError("Invalid outcome extension element name");
 	for (const value of [env.TOOL_URL, env.PLATFORM_ISSUER]) {
 		const url = new URL(value);
 		const local =

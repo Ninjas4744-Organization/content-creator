@@ -42,7 +42,7 @@ def demo(tool_port: int, platform_port: int) -> None:
         key = root / "tool.private.pem"
         generate_key(key)
         settings = Settings(tool, issuer, "davinci-demo", key, root / "state.sqlite3",
-                            ROOT / "projects/learning-library/output/site", ROOT, allow_local_http=True)
+                            ROOT / "projects/learning-library/output/site", ROOT, allow_local_http=True, outcome_extension="platform_result")
         tool_app = create_app(settings)
         protocol = tool_app.extensions["lti"]["protocol"]
         # Separate tool/platform RSA pairs make signature checks representative.

@@ -12,6 +12,7 @@ from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import rsa
 from jwt.algorithms import RSAAlgorithm
 from davinci_creator.lti.protocol import generate_key
+from lti_settings import platform_settings
 
 
 def prepare(library: Path = ROOT / "projects/learning-library") -> Path:
@@ -26,6 +27,7 @@ def prepare(library: Path = ROOT / "projects/learning-library") -> Path:
     public = json.loads(RSAAlgorithm.to_jwk(key.public_key()))
     # PUBLIC_JWK is public, but the same file also holds the private signing key.
     values = {"PRIVATE_KEY_PEM": private.read_text(encoding="utf-8"), "PUBLIC_JWK": json.dumps(public)}
+    values.update({name: value for name, value in platform_settings(library).items() if value})
     output = directory / "cloudflare-secrets.json"
     descriptor = os.open(output, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
     with os.fdopen(descriptor, "w", encoding="utf-8") as stream:

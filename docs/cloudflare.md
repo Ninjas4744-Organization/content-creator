@@ -19,6 +19,8 @@ Add a repository Actions secret named `CLOUDFLARE_API_TOKEN`. Use a dedicated Cl
 - Zone → Zone: Read.
 - Zone → Workers Routes: Edit.
 
+Keep the installation-specific `LTI_PLATFORM_ISSUER` and optional `LTI_OUTCOME_EXTENSION` in Actions secrets too. The build uses the issuer's origin for the frame policy; deployment uploads these settings as Worker secrets. A missing issuer stops publication before replacing the live service. `keep_vars` preserves remote bindings during deployment.
+
 Create it under [My Profile → API Tokens](https://dash.cloudflare.com/profile/api-tokens) using **Create Token → Create Custom Token**. Add the value directly to the [repository's Actions secrets](https://github.com/Ninjas4744-Organization/content-creator/settings/secrets/actions), never to chat or a committed file.
 
 The account ID is already set in `wrangler.jsonc`; it is an identifier, not a credential. Do not reuse the interactive Wrangler OAuth login as the CI credential. The `production` GitHub environment may add repository-configured approval rules. A missing token fails with an explicit setup message before migrations or publishing.
@@ -84,6 +86,8 @@ npx wrangler whoami
 ```
 
 Review `wrangler.jsonc`. Its `TOOL_URL` is the service's public HTTPS origin. Copy `PLATFORM_ISSUER` exactly from the target LMS registration form and use the same `CLIENT_ID` on both sides. The configured domain is `knowledge.davinci4744.com`; an existing DNS record at that hostname must be reviewed before attaching the Worker. Do not replace the main website at `davinci4744.com`.
+
+For local builds, store `platform_issuer` and optional `outcome_extension` in the ignored `projects/learning-library/lti.platform.local.json`, or set `PLATFORM_ISSUER` and `OUTCOME_EXTENSION` in the environment. The latter is an XML element name supplied by the LMS's integration profile; leave it empty for standard Basic Outcomes. The signing-material script includes configured installation settings in its private upload file. Never copy that file or the local profile into public assets. These values are configuration, not provider-specific code.
 
 If the account has several memberships, set `CLOUDFLARE_ACCOUNT_ID` to the account that owns the domain, or add that account ID to the config. No account credentials belong in this repository.
 

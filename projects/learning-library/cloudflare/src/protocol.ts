@@ -221,7 +221,13 @@ export class Protocol {
 				(c) =>
 					({ "<": "&lt;", ">": "&gt;", "&": "&amp;", '"': "&quot;", "'": "&apos;" })[c]!,
 			);
-		const xml = `<?xml version="1.0" encoding="UTF-8"?><imsx_POXEnvelopeRequest xmlns="http://www.imsglobal.org/services/ltiv1p1/xsd/imsoms_v1p0"><imsx_POXHeader><imsx_POXRequestHeaderInfo><imsx_version>V1.0</imsx_version><imsx_messageIdentifier>${escape(attempt.result.id)}</imsx_messageIdentifier></imsx_POXRequestHeaderInfo></imsx_POXHeader><imsx_POXBody><replaceResultRequest><resultRecord><sourcedGUID><sourcedId>${escape(attempt.sourcedid)}</sourcedId></sourcedGUID><result><resultScore><language>en</language><textString>${attempt.result.score}</textString></resultScore></result><blossom_extra><completion_state>${attempt.result.completion}</completion_state><performance_time>${attempt.result.seconds}</performance_time></blossom_extra></resultRecord></replaceResultRequest></imsx_POXBody></imsx_POXEnvelopeRequest>`;
+		const extension = this.env.OUTCOME_EXTENSION || "";
+		if (extension && !/^[A-Za-z_][A-Za-z0-9_.-]{0,63}$/.test(extension))
+			throw new InputError("Invalid outcome extension element name");
+		const extra = extension
+			? `<${extension}><completion_state>${escape(attempt.result.completion)}</completion_state><performance_time>${attempt.result.seconds}</performance_time></${extension}>`
+			: "";
+		const xml = `<?xml version="1.0" encoding="UTF-8"?><imsx_POXEnvelopeRequest xmlns="http://www.imsglobal.org/services/ltiv1p1/xsd/imsoms_v1p0"><imsx_POXHeader><imsx_POXRequestHeaderInfo><imsx_version>V1.0</imsx_version><imsx_messageIdentifier>${escape(attempt.result.id)}</imsx_messageIdentifier></imsx_POXRequestHeaderInfo></imsx_POXHeader><imsx_POXBody><replaceResultRequest><resultRecord><sourcedGUID><sourcedId>${escape(attempt.sourcedid)}</sourcedId></sourcedGUID><result><resultScore><language>en</language><textString>${attempt.result.score}</textString></resultScore></result>${extra}</resultRecord></replaceResultRequest></imsx_POXBody></imsx_POXEnvelopeRequest>`;
 		const response = await remote(callback(this.env, attempt.outcomeUrl, "basic_outcome"), {
 			method: "POST",
 			headers: {

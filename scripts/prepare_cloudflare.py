@@ -11,6 +11,8 @@ sys.path.insert(0, str(ROOT / "src"))
 sys.path.insert(0, str(ROOT / "scripts"))
 from davinci_creator.common import load
 from prepare_gallery import content_sources
+from lti_settings import platform_settings
+from urllib.parse import urlsplit
 
 
 def prepare(library: Path = ROOT / "projects/learning-library", source_root: Path = ROOT) -> None:
@@ -21,7 +23,7 @@ def prepare(library: Path = ROOT / "projects/learning-library", source_root: Pat
     if any(path.is_symlink() for path in entries):
         raise ValueError("Public site must not contain symlinks")
     files = [path for path in entries if path.is_file()]
-    if any(path.name.startswith(".env") or path.suffix.lower() in {".pem", ".key", ".secret", ".sqlite3", ".db"} for path in files):
+    if any(path.name.startswith(".env") or path.name in {"lti.local.json", "lti.platform.local.json", "cloudflare-secrets.json", "platform-secrets.json"} or path.suffix.lower() in {".pem", ".key", ".secret", ".sqlite3", ".db"} for path in files):
         raise ValueError("Public site contains a private configuration or signing file")
     oversized = [str(path.relative_to(site)) for path in files if path.stat().st_size > 25 * 1024 * 1024]
     if oversized:
@@ -43,7 +45,10 @@ def prepare(library: Path = ROOT / "projects/learning-library", source_root: Pat
     public = library / "output/cloudflare-assets"
     shutil.rmtree(public, ignore_errors=True)
     shutil.copytree(site, public)
-    (public / "_headers").write_text("/*\n  X-Content-Type-Options: nosniff\n  Referrer-Policy: no-referrer\n  Content-Security-Policy: frame-ancestors 'self' https://davinci4744.blossom-kc.com; base-uri 'self'\n", encoding="utf-8")
+    issuer = platform_settings(library)["PLATFORM_ISSUER"]
+    parsed = urlsplit(issuer)
+    ancestor = f" {parsed.scheme}://{parsed.netloc}" if issuer else ""
+    (public / "_headers").write_text(f"/*\n  X-Content-Type-Options: nosniff\n  Referrer-Policy: no-referrer\n  Content-Security-Policy: frame-ancestors 'self'{ancestor}; base-uri 'self'\n", encoding="utf-8")
     print(f"Cloudflare package ready: {len(lessons)} lessons; private assessments are outside public assets")
 
 

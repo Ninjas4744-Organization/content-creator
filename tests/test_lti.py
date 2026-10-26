@@ -1,4 +1,4 @@
-"""Blossom v64 protocol round trips and security boundary tests; no real LMS writes."""
+"""Platform LTI protocol round trips and security boundary tests; no real LMS writes."""
 from __future__ import annotations
 
 import json
@@ -7,6 +7,7 @@ import re
 import tempfile
 import time
 import unittest
+from dataclasses import asdict, replace
 from pathlib import Path
 from unittest.mock import patch
 from urllib.parse import parse_qs, urlencode, urlsplit
@@ -22,7 +23,7 @@ except ImportError:
     jwt = None
 
 
-class Blossom:
+class Platform:
     def __init__(self, signing_key):
         self.key = signing_key
         self.tool_key = None
@@ -33,12 +34,12 @@ class Blossom:
     def request(self, url, body=None, headers=None):
         if url.endswith("/jwk"):
             public = json.loads(jwt.algorithms.RSAAlgorithm.to_jwk(self.key.public_key()))
-            return json.dumps({"keys": [{**public, "kid": "blossom", "alg": "RS256"}]}).encode()
+            return json.dumps({"keys": [{**public, "kid": "platform", "alg": "RS256"}]}).encode()
         if url.endswith("/oauth2_token"):
             self.token_requests += 1
             fields = parse_qs(body.decode())
             assertion = jwt.decode(fields["client_assertion"][0], self.tool_key, algorithms=["RS256"],
-                                   issuer="davinci", audience="https://blossom.example/v64")
+                                   issuer="davinci", audience="https://platform.example/lms")
             assert assertion["sub"] == "davinci" and assertion["jti"]
             assert fields["scope"] == [SCOPE]
             return json.dumps({"access_token": "mock-service-token", "scope": SCOPE}).encode()
@@ -83,13 +84,13 @@ class LtiTests(unittest.TestCase):
         ]}))
         key = root / "private.pem"
         generate_key(key)
-        self.settings = Settings("https://library.example", "https://blossom.example/v64", "davinci",
-                                 key, root / "state.sqlite3", site, root)
-        self.blossom = Blossom(self.platform_key)
-        self.app = create_app(self.settings, transport=self.blossom)
+        self.settings = Settings("https://library.example", "https://platform.example/lms", "davinci",
+                                 key, root / "state.sqlite3", site, root, outcome_extension="platform_result")
+        self.platform = Platform(self.platform_key)
+        self.app = create_app(self.settings, transport=self.platform)
         self.app.testing = True
         self.client = self.app.test_client()
-        self.blossom.tool_key = self.app.extensions["lti"]["protocol"].private_key.public_key()
+        self.platform.tool_key = self.app.extensions["lti"]["protocol"].private_key.public_key()
 
     def begin(self, kind="deck", selection=False):
         target = self.settings.tool_url + "/lti/resource"
@@ -97,14 +98,14 @@ class LtiTests(unittest.TestCase):
             target += "?" + urlencode({"item": "demo", "view": kind})
         response = self.client.get("/lti/login", query_string={
             "iss": self.settings.platform_issuer, "client_id": "davinci", "login_hint": "learner",
-            "lti_message_hint": "opaque-blossom-hint", "target_link_uri": target, "lti_deployment_id": "na",
+            "lti_message_hint": "opaque-platform-hint", "target_link_uri": target, "lti_deployment_id": "na",
         })
         self.assertEqual(response.status_code, 200)
         html = response.get_data(as_text=True)
         auth = json.loads(re.search(r'location.replace\(("[^"]*")\)', html)[1])
         fields = parse_qs(urlsplit(auth).query)
         binding = json.loads(re.search(r"flow\.'\+\"[^\"]+\",(\"[^\"]+\")", html)[1])
-        self.assertEqual(fields["lti_message_hint"], ["opaque-blossom-hint"])
+        self.assertEqual(fields["lti_message_hint"], ["opaque-platform-hint"])
         now = int(time.time())
         claims = {
             "iss": self.settings.platform_issuer, "aud": "davinci", "sub": 123,
@@ -122,7 +123,7 @@ class LtiTests(unittest.TestCase):
 
     def launch(self, flow):
         state, binding, claims = flow
-        token = jwt.encode(claims, self.platform_key, algorithm="RS256", headers={"kid": "blossom"})
+        token = jwt.encode(claims, self.platform_key, algorithm="RS256", headers={"kid": "platform"})
         return self.client.post("/lti/launch", data={"state": state, "id_token": token})
 
     def exchange(self, flow, response):
@@ -147,12 +148,12 @@ class LtiTests(unittest.TestCase):
             self.assertEqual(self.api("progress", token, {"event": "slide", "index": index}).status_code, 200)
         self.assertEqual(self.api("answer", token, {"question": "two", "option": answer}).status_code, 200)
 
-    def test_instructor_selects_one_lesson_and_response_is_signed_for_v64(self):
+    def test_instructor_selects_one_lesson_and_response_is_signed_for_platform(self):
         token = self.open(selection=True)
         self.assertEqual(self.api("session", token).json, {"mode": "select"})
         response = self.api("select", token, {"item": "demo", "kind": "video"})
         self.assertEqual(response.status_code, 200)
-        data = jwt.decode(response.json["jwt"], self.blossom.tool_key, algorithms=["RS256"],
+        data = jwt.decode(response.json["jwt"], self.platform.tool_key, algorithms=["RS256"],
                           issuer="davinci", audience=self.settings.platform_issuer)
         self.assertEqual(data[DL + "data"], "opaque-selection-data")
         self.assertEqual(len(data[DL + "content_items"]), 1)
@@ -167,12 +168,25 @@ class LtiTests(unittest.TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertTrue(response.json["reported"])
         self.assertEqual(response.json["result"]["score"], 1)
-        xml = self.blossom.reports[0]
+        xml = self.platform.reports[0]
         self.assertEqual(xml.findtext(".//{*}sourcedId"), sourcedid())
         self.assertEqual(xml.findtext(".//{*}textString"), "1.0")
         self.assertEqual(xml.findtext(".//{*}completion_state"), "Yes")
         self.assertEqual(self.api("complete", token, {}).status_code, 200)
-        self.assertEqual(len(self.blossom.reports), 1)
+        self.assertEqual(len(self.platform.reports), 1)
+
+    def test_standard_outcomes_work_without_an_optional_extension(self):
+        self.settings = replace(self.settings, outcome_extension="")
+        self.app = create_app(self.settings, transport=self.platform)
+        self.client = self.app.test_client()
+        token = self.open()
+        self.finish_deck(token)
+        self.assertEqual(self.api("complete", token, {}).status_code, 200)
+        record = self.platform.reports[0]
+        self.assertEqual(record.findtext(".//{*}textString"), "1.0")
+        self.assertIsNone(record.find(".//{*}completion_state"))
+        with self.assertRaisesRegex(ValueError, "extension"):
+            replace(self.settings, outcome_extension="invalid:element")
         self.assertEqual(self.api("answer", token, {"question": "two", "option": 1}).status_code, 400)
 
     def test_wrong_answer_reports_failure_and_ignores_forged_score(self):
@@ -180,17 +194,17 @@ class LtiTests(unittest.TestCase):
         self.finish_deck(token, answer=1)
         response = self.api("complete", token, {"score": 1, "completion": "Yes"})
         self.assertEqual(response.json["result"]["score"], 0)
-        self.assertEqual(self.blossom.reports[0].findtext(".//{*}completion_state"), "Scorm_fail")
+        self.assertEqual(self.platform.reports[0].findtext(".//{*}completion_state"), "Scorm_fail")
 
     def test_failed_report_is_frozen_and_can_be_retried(self):
         token = self.open()
         self.finish_deck(token)
-        self.blossom.reject = True
+        self.platform.reject = True
         self.assertEqual(self.api("complete", token, {}).status_code, 502)
         first = self.api("session", token).json
         self.assertIsNotNone(first["result"])
         self.assertFalse(first["reported"])
-        self.blossom.reject = False
+        self.platform.reject = False
         second = self.api("complete", token, {})
         self.assertEqual(second.status_code, 200)
         self.assertEqual(first["result"], second.json["result"])
@@ -198,14 +212,14 @@ class LtiTests(unittest.TestCase):
     def test_progress_survives_relaunch_and_service_restart(self):
         token = self.open()
         self.finish_deck(token)
-        self.client = create_app(self.settings, transport=self.blossom).test_client()
+        self.client = create_app(self.settings, transport=self.platform).test_client()
         flow = self.begin()
         flow[2][BO + "claim/basicoutcome"]["lis_result_sourcedid"] = sourcedid(issued=int(time.time()) + 60)
         resumed = self.exchange(flow, self.launch(flow))
         self.assertTrue(self.api("session", resumed).json["ready"])
         self.assertEqual(self.api("session", resumed).json["answers"], {"two": 0})
         self.api("complete", resumed, {})
-        self.assertEqual(self.blossom.reports[0].findtext(".//{*}sourcedId"), flow[2][BO + "claim/basicoutcome"]["lis_result_sourcedid"])
+        self.assertEqual(self.platform.reports[0].findtext(".//{*}sourcedId"), flow[2][BO + "claim/basicoutcome"]["lis_result_sourcedid"])
 
     def test_new_performance_starts_with_no_progress(self):
         token = self.open()
@@ -222,7 +236,7 @@ class LtiTests(unittest.TestCase):
         self.api("progress", token, {"event": "slide", "index": 0})
         self.api("progress", token, {"event": "slide", "index": 1})
         self.assertEqual(self.api("complete", token, {}).status_code, 400)
-        self.assertEqual(self.blossom.reports, [])
+        self.assertEqual(self.platform.reports, [])
 
     def test_rejects_tampered_claims_and_replayed_launch(self):
         for claim, value in (("aud", "another-tool"), ("iss", "https://evil.example"), ("nonce", "wrong"),
@@ -236,7 +250,7 @@ class LtiTests(unittest.TestCase):
         self.assertEqual(self.launch(flow).status_code, 400)
         flow = self.begin()
         other_key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
-        forged = jwt.encode(flow[2], other_key, algorithm="RS256", headers={"kid": "blossom"})
+        forged = jwt.encode(flow[2], other_key, algorithm="RS256", headers={"kid": "platform"})
         self.assertEqual(self.client.post("/lti/launch", data={"state": flow[0], "id_token": forged}).status_code, 400)
 
     def test_browser_binding_is_required_and_exchange_is_one_use(self):
@@ -328,7 +342,7 @@ class LtiTests(unittest.TestCase):
         self.assertEqual(response.location, "/?item=demo&view=deck")
         with self.client.get(response.location) as public:
             self.assertEqual(public.status_code, 200)
-        self.assertEqual(self.blossom.reports, [])
+        self.assertEqual(self.platform.reports, [])
 
     def test_preview_is_explicit_and_no_quiz_lesson_completes(self):
         flow = self.begin()
@@ -350,9 +364,25 @@ class LtiTests(unittest.TestCase):
         self.assertEqual(public.json["keys"][0]["kid"], "davinci-lti-1")
         self.assertNotIn("d", public.json["keys"][0])
         with self.assertRaises(ValueError):
-            Settings("https://library.example", "https://blossom.example/v64", "davinci",
+            Settings("https://library.example", "https://platform.example/lms", "davinci",
                      self.settings.site_dir / "private.pem", self.settings.database_file,
                      self.settings.site_dir, self.settings.source_root)
+
+    def test_private_platform_profile_supplies_only_installation_settings(self):
+        root = self.settings.source_root
+        values = asdict(self.settings)
+        del values["outcome_extension"]
+        for name in ("private_key_file", "database_file", "site_dir", "source_root"):
+            values[name] = str(values[name])
+        config = root / "test-config.json"
+        config.write_text(json.dumps(values))
+        (root / "lti.platform.local.json").write_text(json.dumps({
+            "platform_issuer": "https://other.example", "outcome_extension": "platform_result",
+            "unrelated": "ignored",
+        }))
+        loaded = Settings.load(config)
+        self.assertEqual(loaded.platform_issuer, self.settings.platform_issuer)
+        self.assertEqual(loaded.outcome_extension, "platform_result")
 
 
 if __name__ == "__main__":

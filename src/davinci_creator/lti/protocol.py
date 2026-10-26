@@ -164,9 +164,10 @@ class Protocol:
         score = ET.SubElement(ET.SubElement(record, "result"), "resultScore")
         ET.SubElement(score, "language").text = "en"
         ET.SubElement(score, "textString").text = str(attempt["result"]["score"])
-        extra = ET.SubElement(record, "blossom_extra")
-        ET.SubElement(extra, "completion_state").text = attempt["result"]["completion"]
-        ET.SubElement(extra, "performance_time").text = str(attempt["result"]["seconds"])
+        if settings.outcome_extension:
+            extra = ET.SubElement(record, settings.outcome_extension)
+            ET.SubElement(extra, "completion_state").text = attempt["result"]["completion"]
+            ET.SubElement(extra, "performance_time").text = str(attempt["result"]["seconds"])
         response = self.transport.request(settings.check_callback(attempt["outcome_url"], "basic_outcome"),
                                           ET.tostring(envelope, encoding="utf-8", xml_declaration=True),
                                           {"Content-Type": "application/xml", "Authorization": "Bearer " + token})

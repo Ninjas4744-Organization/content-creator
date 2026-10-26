@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 from dataclasses import dataclass
 from pathlib import Path
 from urllib.parse import parse_qs, urlsplit
@@ -22,8 +23,11 @@ class Settings:
     session_seconds: int = 28800
     retention_days: int = 90
     allow_local_http: bool = False
+    outcome_extension: str = ""
 
     def __post_init__(self) -> None:
+        if self.outcome_extension and not re.fullmatch(r"[A-Za-z_][A-Za-z0-9_.-]{0,63}", self.outcome_extension):
+            raise ValueError("Invalid outcome extension element name")
         for value in (self.tool_url, self.platform_issuer):
             parsed = urlsplit(value)
             local = self.allow_local_http and parsed.hostname in {"localhost", "127.0.0.1", "::1"}
@@ -47,6 +51,10 @@ class Settings:
     def load(cls, path: Path | None = None) -> Settings:
         path = path or Path(os.environ["DAVINCI_LTI_CONFIG"])
         values = json.loads(path.read_text(encoding="utf-8"))
+        profile = path.parent / "lti.platform.local.json"
+        if profile.is_file():
+            private = json.loads(profile.read_text(encoding="utf-8"))
+            values = {**{name: private[name] for name in ("platform_issuer", "outcome_extension") if name in private}, **values}
         for name in ("private_key_file", "database_file", "site_dir", "source_root"):
             values[name] = (path.resolve().parent / values[name]).resolve()
         return cls(**values)
