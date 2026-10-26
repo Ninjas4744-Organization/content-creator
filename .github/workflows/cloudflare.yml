@@ -1,25 +1,24 @@
-name: Cloudflare package
+name: Learning library
 
 on:
+    push:
+        branches: [master, main]
     pull_request:
-        paths:
-            - "projects/learning-library/**"
-            - "projects/*/content.json"
-            - "examples/**"
-            - "assets/**"
-            - "src/davinci_creator/**"
-            - "scripts/prepare_cloudflare.py"
-            - "scripts/prepare_gallery.py"
-            - "tests/test_cloudflare_package.py"
-            - ".github/workflows/cloudflare.yml"
     workflow_dispatch:
 
 permissions:
     contents: read
 
+concurrency:
+    group: learning-library-${{ github.event_name == 'pull_request' && github.ref || 'production' }}
+    cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
     check:
         runs-on: ubuntu-latest
+        timeout-minutes: 25
+        env:
+            WRANGLER_SEND_METRICS: "false"
         steps:
             - uses: actions/checkout@v6
             - uses: actions/setup-python@v6
@@ -35,20 +34,80 @@ jobs:
             - name: Install content tools
               run: |
                   python -m venv .venv
-                  .venv/bin/python -m pip install -e .
-            - name: Check public and private packaging
-              run: .venv/bin/python -m unittest discover -s tests -p test_cloudflare_package.py
+                  .venv/bin/python -m pip install -e '.[lti]'
+            - name: Check content tools and packaging
+              run: .venv/bin/python -m unittest discover -s tests
             - name: Install website
               run: npm --prefix projects/learning-library ci --no-audit --no-fund
+            - name: Check website
+              run: |
+                  npm --prefix projects/learning-library run typecheck
+                  npm --prefix projects/learning-library run format:check
+                  npm --prefix projects/learning-library test
             - name: Build website for the service origin
+              env:
+                  EXPO_BASE_URL: ""
               run: npm --prefix projects/learning-library run build
             - name: Install Cloudflare tools
               run: npm --prefix projects/learning-library/cloudflare ci --no-audit --no-fund
-            - name: Stage Cloudflare assets and private assessments
+            - name: Stage public assets and backend assessments
               run: npm --prefix projects/learning-library/cloudflare run prepare:content
-            - name: Check Worker
+            - name: Check Worker and deployment bundle
               run: |
                   npm --prefix projects/learning-library/cloudflare run typecheck
                   npm --prefix projects/learning-library/cloudflare run format:check
                   npm --prefix projects/learning-library/cloudflare test
                   npm --prefix projects/learning-library/cloudflare run check:deploy
+            - name: Save verified deployment inputs
+              if: github.event_name != 'pull_request' && github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
+              uses: actions/upload-artifact@v4
+              with:
+                  name: cloudflare-library
+                  path: |
+                      projects/learning-library/output/cloudflare-assets
+                      projects/learning-library/output/cloudflare-data
+                  if-no-files-found: error
+                  retention-days: 1
+
+    deploy:
+        if: github.event_name != 'pull_request' && github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
+        needs: check
+        runs-on: ubuntu-latest
+        timeout-minutes: 15
+        environment:
+            name: production
+            url: https://knowledge.davinci4744.com
+        defaults:
+            run:
+                working-directory: projects/learning-library/cloudflare
+        env:
+            CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+            WRANGLER_SEND_METRICS: "false"
+        steps:
+            - uses: actions/checkout@v6
+            - name: Check deployment credential
+              run: |
+                  if [ -z "$CLOUDFLARE_API_TOKEN" ]; then
+                      echo "::error::Add the CLOUDFLARE_API_TOKEN Actions secret to enable Cloudflare deployments."
+                      exit 1
+                  fi
+            - uses: actions/setup-node@v6
+              with:
+                  node-version: "22"
+                  cache: npm
+                  cache-dependency-path: projects/learning-library/cloudflare/package-lock.json
+            - name: Install pinned Cloudflare tools
+              run: npm ci --no-audit --no-fund
+            - uses: actions/download-artifact@v4
+              with:
+                  name: cloudflare-library
+                  path: projects/learning-library/output
+            - name: Apply database migrations
+              run: node_modules/.bin/wrangler d1 migrations apply DB --remote
+            - name: Deploy verified library to Cloudflare
+              run: node_modules/.bin/wrangler deploy
+            - name: Verify public site and LTI configuration
+              run: |
+                  curl --fail --silent --show-error --retry 5 --retry-delay 3 https://knowledge.davinci4744.com/ -o /dev/null
+                  curl --fail --silent --show-error --retry 5 --retry-delay 3 https://knowledge.davinci4744.com/health |
+                      python3 -c 'import json,sys; status=json.load(sys.stdin); assert status.get("status")=="ok" and status.get("lti")=="configured", "LTI setup is incomplete"'

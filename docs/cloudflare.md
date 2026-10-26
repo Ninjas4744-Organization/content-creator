@@ -1,15 +1,42 @@
 # Cloudflare deployment
 
-This deployment serves the public library and its optional LTI connection at `learn.davinci4744.com`. GitHub continues to hold the source. Public website visitors need no LMS account.
+This deployment serves the public library and its optional LTI connection at `knowledge.davinci4744.com`. GitHub continues to hold the source. Public website visitors need no LMS account.
 
 The domain, D1 database, schema and signing bindings are deployed. Subsequent updates need a fresh build and `npm run deploy`; reuse the existing database and signing material. LMS provider registration and a real learner result check are separate steps described below.
 
 The Cloudflare entry point uses TypeScript and Web Crypto. This keeps signing and verification in the platform runtime. The existing Python service remains available for local use and conventional server hosting. Both entry points use the same frontend, content sources, LTI routes and completion rules.
 
+## GitHub Actions deployment
+
+`.github/workflows/cloudflare.yml` checks pull requests and builds on pushes to `master` or `main`. Only the repository's default branch deploys, including manual runs from that branch. GitHub Pages is no longer a deployment target.
+
+The check job runs the Python, website and Worker tests, typechecks, formatting checks, a fresh site build and a Wrangler dry run. It passes only `cloudflare-assets/` and `cloudflare-data/` to the deploy job. The deploy job applies D1 migrations and publishes those verified inputs with the pinned Wrangler version. It retains existing Worker signing secrets and D1 data. The artifact expires after one day and never contains `output/lti/`, credentials, state databases or local logs.
+
+Add a repository Actions secret named `CLOUDFLARE_API_TOKEN`. Use a dedicated Cloudflare token restricted to this account and the `davinci4744.com` zone with:
+
+- Account → Workers Scripts: Edit.
+- Account → D1: Edit.
+- Zone → Zone: Read.
+- Zone → Workers Routes: Edit.
+
+Create it under [My Profile → API Tokens](https://dash.cloudflare.com/profile/api-tokens) using **Create Token → Create Custom Token**. Add the value directly to the [repository's Actions secrets](https://github.com/Ninjas4744-Organization/content-creator/settings/secrets/actions), never to chat or a committed file.
+
+The account ID is already set in `wrangler.jsonc`; it is an identifier, not a credential. Do not reuse the interactive Wrangler OAuth login as the CI credential. The `production` GitHub environment may add repository-configured approval rules. A missing token fails with an explicit setup message before migrations or publishing.
+
+After adding the secret, push to the default branch or run **Learning library** manually from that branch. The workflow verifies the public home page and `/health` after deployment. [Cloudflare's GitHub Actions guide](https://developers.cloudflare.com/workers/ci-cd/external-cicd/github-actions/) describes the authentication model.
+
+## Primary domain and existing LTI links
+
+`knowledge.davinci4744.com` is the primary public and LTI hostname. `learn.davinci4744.com` remains an explicit alternate origin for existing registrations and assignments. The old public home page redirects to the primary domain, preserving public lesson query parameters. Its active `?lti=…` pages, LTI POST endpoints and media continue to run on their original origin, preserving browser session storage and embedded progress events.
+
+Login and launch flows stay on the hostname where they started. Lesson links may reference either registered hostname, so the LMS provider URLs and assignment lesson links can be updated in either order. Both hostnames use the same signing key, client ID, database and attempt identity; moving a link does not reset a Performance or report its result twice. Other origins remain rejected.
+
+For the initial cutover, remove the previous `knowledge` CNAME to `ninjas4744-organization.github.io` before attaching the Worker custom domain. The previous record was DNS-only with an automatic TTL (300 seconds in public DNS). Cloudflare can reject domain attachment while an externally managed CNAME exists, even when Wrangler requests replacement. This one-time DNS change is separate from normal CI deployments. Preserve both configured custom domains until all existing LMS references have moved; removing the alternate early would break those references.
+
 ## Services and costs
 
 - **Workers Static Assets** serves the public website, presentations, images and fonts directly.
-- **Workers** handles `/lti/*`, `/health` and MP4 requests. Video responses stream byte ranges so chapter navigation and Safari playback work. Videos remain public; their requests count toward the Worker request allowance. No whole video is buffered in Worker memory.
+- **Workers** handles the home page, `/lti/*`, `/health` and MP4 requests. The home page handles the alternate-domain redirect before serving its static asset. Video responses stream byte ranges so chapter navigation and Safari playback work. Home-page and video requests count toward the Worker request allowance. No whole video is buffered in Worker memory.
 - **D1** stores short-lived launch/session records and saved attempts. An expiry index and an hourly cleanup limit retained data. Conditional updates prevent competing requests from overwriting one another.
 - **R2 is optional.** The current media files fit the 25 MiB static-asset limit, so this package needs no R2 subscription. Packaging fails with the file name if a future asset exceeds that limit. Add media storage before publishing such files.
 
@@ -38,7 +65,7 @@ npm --prefix projects/learning-library/cloudflare test
 npm --prefix projects/learning-library/cloudflare run check:deploy
 ```
 
-Build for the origin root with `EXPO_BASE_URL` unset. The packager copies the export into a separate asset directory and creates the private assessment module. It does not change the GitHub Pages export. Static routing serves the home page and portable players. LTI routes and MP4 byte-range handling run before asset lookup. Packaging records media sizes alongside the private assessment module.
+Build for the origin root with `EXPO_BASE_URL` unset. The packager copies the export into a separate asset directory and creates the private assessment module. It does not change the GitHub Pages export. Static routing serves portable players and supporting files. Home-page redirects, LTI routes and MP4 byte-range handling run before asset lookup. Packaging records media sizes alongside the private assessment module.
 
 The tests run in the local Workers runtime with a real local D1 binding. They cover signed launches and selection, browser binding, replay rejection, server-calculated scores, completion and retries, refreshed result tokens, video coverage, concurrent updates, public access and expired-record cleanup. Media tests cover streamed byte ranges, conditional requests and MP4 routing. Network calls to the test LMS are intercepted; tests make no live LMS changes.
 
@@ -53,7 +80,7 @@ npx wrangler login
 npx wrangler whoami
 ```
 
-Review `wrangler.jsonc`. Its `TOOL_URL` is the service's public HTTPS origin. Copy `PLATFORM_ISSUER` exactly from the target LMS registration form and use the same `CLIENT_ID` on both sides. The configured domain is `learn.davinci4744.com`; an existing DNS record at that hostname must be reviewed before attaching the Worker. Do not replace the main website at `davinci4744.com`.
+Review `wrangler.jsonc`. Its `TOOL_URL` is the service's public HTTPS origin. Copy `PLATFORM_ISSUER` exactly from the target LMS registration form and use the same `CLIENT_ID` on both sides. The configured domain is `knowledge.davinci4744.com`; an existing DNS record at that hostname must be reviewed before attaching the Worker. Do not replace the main website at `davinci4744.com`.
 
 If the account has several memberships, set `CLOUDFLARE_ACCOUNT_ID` to the account that owns the domain, or add that account ID to the config. No account credentials belong in this repository.
 
@@ -107,11 +134,11 @@ Use these tool URLs in the LMS's LTI 1.3 provider form:
 
 | Field | Value |
 | --- | --- |
-| Default target URL | `https://learn.davinci4744.com/lti/resource` |
-| Deep link URL | `https://learn.davinci4744.com/lti/resource` |
-| Login initiation URL | `https://learn.davinci4744.com/lti/login` |
-| Public keyset URL | `https://learn.davinci4744.com/lti/jwks` |
-| Redirect URI, if requested | `https://learn.davinci4744.com/lti/launch` |
+| Default target URL | `https://knowledge.davinci4744.com/lti/resource` |
+| Deep link URL | `https://knowledge.davinci4744.com/lti/resource` |
+| Login initiation URL | `https://knowledge.davinci4744.com/lti/login` |
+| Public keyset URL | `https://knowledge.davinci4744.com/lti/jwks` |
+| Redirect URI, if requested | `https://knowledge.davinci4744.com/lti/launch` |
 | Client ID | `davinci-learning-library` |
 | Deployment ID | `na` for the current connection |
 

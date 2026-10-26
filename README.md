@@ -22,11 +22,11 @@ The assistant reads `AGENTS.md` and the relevant skill. In Claude Code, you can 
 
 An Expo website under `projects/learning-library/` brings the presentations and interactive videos together in a responsive Hebrew library. It includes topic and format filters, chapter search, embedded viewing, shareable links, and PowerPoint downloads.
 
-After Python setup, run `npm ci` and `npm start` in that directory. `npm run build` exports the static website to `projects/learning-library/output/site/`. The included GitHub Actions workflow builds and deploys it to GitHub Pages; select **GitHub Actions** in the repository's **Settings → Pages**. See the [library guide](docs/gallery.md) for adding content, retaining videos for publication, and deployment instructions.
+After Python setup, run `npm ci` and `npm start` in that directory. `npm run build` exports the website to `projects/learning-library/output/site/`. GitHub Actions checks the project and deploys the public library and LTI service to Cloudflare at [knowledge.davinci4744.com](https://knowledge.davinci4744.com/). See the [library guide](docs/gallery.md) for adding content and retaining videos for publication.
 
-The library is open for everyone to browse and use. It also offers an optional **LTI 1.3 integration**: instructors select lessons for their courses, and learners submit scores and completion to their learning platform. This mode uses a Python service and HTTPS hosting. See the [LTI setup guide](docs/lti.md) for supported reporting, registration and verification.
+The library is open for everyone to browse and use. It also offers an optional **LTI 1.3 integration**: instructors select lessons for their courses, and learners submit scores and completion to their learning platform. Public browsing and LTI use the same website. A Python service is also available for local use and conventional server hosting. See the [LTI setup guide](docs/lti.md) for supported reporting, registration and verification.
 
-The [Cloudflare deployment guide](docs/cloudflare.md) provides an alternative with Workers and D1 on `learn.davinci4744.com`. It keeps public browsing open and uses the same lessons and course reporting. The current videos fit static hosting, so R2 is optional.
+The [Cloudflare deployment guide](docs/cloudflare.md) covers Workers, D1 and GitHub Actions credentials. Existing LTI links on `learn.davinci4744.com` remain supported during the domain migration. The current videos fit static hosting, so R2 is optional.
 
 ## First-time setup
 
@@ -72,4 +72,4 @@ Each project has a `brief.md` and `content.json` under `projects/`. Edit the con
 
 To share a generated player, keep its entire `interactive/` folder together. Open `index.html`; if the browser restricts local captions or media, use the `serve` command in the command guide. Standalone players use no external service and send no viewing data. In LTI mode, the library records progress and reports the submitted result to the learner's course.
 
-Generated working outputs, virtual environments, and API keys are excluded from Git. Intentionally retained gallery videos under `projects/learning-library/output/published/` are included so that GitHub Pages can serve them. [Asset sources and rights](assets/README.md) are documented alongside the files.
+Generated working outputs, virtual environments, and API keys are excluded from Git. Intentionally retained gallery videos under `projects/learning-library/output/published/` are included so that the deployment workflow can publish them. [Asset sources and rights](assets/README.md) are documented alongside the files.

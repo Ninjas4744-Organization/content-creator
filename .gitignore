@@ -26,7 +26,7 @@ node_modules/
 !.dev.vars.example
 projects/learning-library/public/library/
 
-# Retain only intentionally published player packages for GitHub Pages.
+# Retain only intentionally published player packages for library deployments.
 !projects/learning-library/output/
 projects/learning-library/output/*
 !projects/learning-library/output/published/
