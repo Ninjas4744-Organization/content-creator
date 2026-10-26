@@ -114,10 +114,10 @@ jobs:
               run: node_modules/.bin/wrangler d1 migrations apply DB --remote
             - name: Deploy verified library to Cloudflare
               run: |
+                  umask 077
+                  trap 'rm -f ../output/platform-secrets.json' EXIT
                   python3 -c 'import json, os; json.dump({name: os.environ[name] for name in ("PLATFORM_ISSUER", "OUTCOME_EXTENSION")}, open("../output/platform-secrets.json", "w"))'
-                  node_modules/.bin/wrangler secret bulk ../output/platform-secrets.json
-                  rm ../output/platform-secrets.json
-                  node_modules/.bin/wrangler deploy
+                  node_modules/.bin/wrangler deploy --secrets-file ../output/platform-secrets.json
             - name: Deploy retired-domain redirect
               run: node_modules/.bin/wrangler deploy --config wrangler.redirect.jsonc
             - name: Verify public site and LTI configuration

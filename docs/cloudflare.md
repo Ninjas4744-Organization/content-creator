@@ -19,7 +19,7 @@ Add a repository Actions secret named `CLOUDFLARE_API_TOKEN`. Use a dedicated Cl
 - Zone → Zone: Read.
 - Zone → Workers Routes: Edit.
 
-Keep the installation-specific `LTI_PLATFORM_ISSUER` and optional `LTI_OUTCOME_EXTENSION` in Actions secrets too. The build uses the issuer's origin for the frame policy; deployment uploads these settings as Worker secrets. A missing issuer stops publication before replacing the live service. `keep_vars` preserves remote bindings during deployment.
+Keep the installation-specific `LTI_PLATFORM_ISSUER` and optional `LTI_OUTCOME_EXTENSION` in Actions secrets too. The build uses the issuer's origin for the frame policy; deployment uploads these settings as Worker secrets alongside the code with `wrangler deploy --secrets-file`. This replaces an existing plaintext binding of the same name without a separate secrets-only deployment. The temporary file is readable only by the runner's user and is removed even if deployment fails. A missing issuer stops publication before replacing the live service. `keep_vars` preserves unrelated remote variables; existing signing secrets are retained.
 
 Create it under [My Profile → API Tokens](https://dash.cloudflare.com/profile/api-tokens) using **Create Token → Create Custom Token**. Add the value directly to the [repository's Actions secrets](https://github.com/Ninjas4744-Organization/content-creator/settings/secrets/actions), never to chat or a committed file.
 
