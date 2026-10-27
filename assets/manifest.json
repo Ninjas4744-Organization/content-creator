@@ -174,6 +174,30 @@
       "bytes": 339953,
       "sha256": "189edbddc3ef165e803ee51077a963845b2f1ede47001cba49531ccf8013704a",
       "source": "User-provided recruitment PowerPoint; SVG icons rendered with transparent background"
+    },
+    {
+      "path": "assets/recruitment/technology-unit-1.png",
+      "bytes": 42182,
+      "sha256": "5fe73312a5bf614cd75f52c0bb536a8997a0fedf0a8f7633bc159aa21eee1909",
+      "source": "User-provided recruitment PowerPoint; restored original media without alteration"
+    },
+    {
+      "path": "assets/recruitment/technology-unit-2.png",
+      "bytes": 56512,
+      "sha256": "429758c7549f2831867b12376cb1165b9937e9c4e01db1f1f2f6378733801652",
+      "source": "User-provided recruitment PowerPoint; restored original media without alteration"
+    },
+    {
+      "path": "assets/recruitment/technology-unit-3.png",
+      "bytes": 29397,
+      "sha256": "e1491ae991fdb89d757f612ad01827629ad27b52eb85d8754a407a826cb968ae",
+      "source": "User-provided recruitment PowerPoint; restored original media without alteration"
+    },
+    {
+      "path": "assets/recruitment/learning.gif",
+      "bytes": 4445013,
+      "sha256": "e490cded90e0199440c5dbef52f66b505ad212ed5aff6f87ae2bd62513096bda",
+      "source": "User-provided recruitment PowerPoint; restored original media without alteration"
     }
   ]
 }

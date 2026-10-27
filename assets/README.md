@@ -19,3 +19,4 @@
 | `training/library-guide/home.png`, `search.png`, `viewer.png`, `export.png` | צילומי ממשק מהספרייה הציבורית ב־https://knowledge.davinci4744.com/, בתצוגת חלון צר, 26.10.2026. משמשים בסרטון ההיכרות; הממשק והתוכן שייכים לפרויקט Da Vinci 4744. |
 | `recruitment/team.jpg`, `first.png`, `join-qr.png` | תמונת הקבוצה, סמל FIRST וקוד ההצטרפות שחולצו ממצגת הגיוסים שסיפק המשתמש. משמשים במצגת הגיוסים בלבד; המקור נשמר ב־`projects/recruitment/source/recruitment.pptx`. |
 | `recruitment/{software,field,electrical,leadership,mechanics,engineering,media}.{svg,png}` | סמלי התחומים מתוך קובצי ה־SVG במצגת המקורית. קובצי PNG רונדרו מה־SVG על רקע שקוף, ללא שינוי בצורות וללא יצירת סמלים חלופיים. לשימוש במצגות הקבוצה בהתאם לבקשת המשתמש. |
+| `recruitment/technology-unit-{1,2,3}.png`, `learning.gif` | שלושת סמלי היחידות והאנימציה בת 20 השניות מתוך מצגת הגיוסים המקורית. הקבצים נשמרו ללא שינוי; החיתוך של האנימציה מוגדר בפריסה, כפי שהיה במקור. |

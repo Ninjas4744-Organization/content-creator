@@ -11,8 +11,9 @@ from .layout import W, H, WHITE, GOLD, BLUE, font, elements, wrapped
 
 
 @functools.lru_cache(64)
-def picture(name):
+def picture(name, frame_index=0):
     with Image.open(local_file(ASSETS, name)) as src:
+        src.seek(min(frame_index, getattr(src, "n_frames", 1)-1))
         return src.convert("RGBA")
 
 
@@ -39,7 +40,11 @@ def draw_element(im, item, progress=1):
         d.ellipse((x, y, x+w, y+h), outline="#"+item["color"], width=3)
         d.polygon([(x+w*.4, y+h*.28), (x+w*.4, y+h*.72), (x+w*.73, y+h*.5)], fill="#"+item["color"])
     elif item["kind"] == "image":
-        src = picture(item["src"])
+        src = picture(item["src"], item.get("preview_frame", 0))
+        crop = item.get("crop", {})
+        if crop:
+            src = src.crop((round(src.width*crop.get("left", 0)), round(src.height*crop.get("top", 0)),
+                            round(src.width*(1-crop.get("right", 0))), round(src.height*(1-crop.get("bottom", 0)))))
         ratio = min(item["w"]/src.width, item["h"]/src.height)
         src = src.resize((round(src.width*ratio), round(src.height*ratio)), Image.Resampling.LANCZOS)
         x = item["x"]+(item["w"]-src.width)/2
