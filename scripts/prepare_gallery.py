@@ -174,6 +174,7 @@ def prepare():
             "id": project_id, "title": metadata.get("title", doc["title"]),
             "description": metadata.get("description", doc["scenes"][0].get("subtitle", "מצגת מבית דה וינצ׳י 4744")),
             "category": metadata.get("category", "עוד מהקבוצה"), "featured": metadata.get("featured", False),
+            "unlisted": metadata.get("unlisted", False),
             "poster": f"{prefix}/poster.jpg", "slides": len(doc["scenes"]), "duration": duration,
             "checkpoints": sum(bool(s.get("quiz")) for s in doc["scenes"]),
             "chapters": [s.get("chapter", s["title"]) for s in doc["scenes"]],

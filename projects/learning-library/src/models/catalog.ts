@@ -7,6 +7,7 @@ export interface LearningItem {
 	description: string;
 	category: string;
 	featured: boolean;
+	unlisted?: boolean;
 	poster: string;
 	slides: number;
 	duration: number | null;
