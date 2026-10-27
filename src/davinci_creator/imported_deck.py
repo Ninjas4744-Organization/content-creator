@@ -85,7 +85,7 @@ def slide_markup(source: dict, scene: dict) -> str:
         parts.append(f'<a class="source-link" style="{style}" href="{href}" target="_blank" rel="noopener noreferrer" aria-label="{label}"></a>')
     if source.get("youtube"):
         video = source["youtube"]
-        parts.append(f'<div class="source-video" data-youtube="{video}" data-title="{title}"><button class="youtube-play" aria-label="ניגון {title}"><span class="play-icon" aria-hidden="true">▶</span><span>ניגון הסרטון</span></button></div><a class="youtube-external" href="https://www.youtube.com/watch?v={video}" target="_blank" rel="noopener noreferrer">פתיחה ב־YouTube ↗</a>')
+        parts.append(f'<div class="source-video" data-youtube="{video}" data-title="{title}"><button class="youtube-play" aria-label="ניגון {title}"><span class="play-icon" aria-hidden="true">▶</span><span>ניגון הסרטון</span></button></div><a class="youtube-external" dir="rtl" href="https://www.youtube.com/watch?v={video}" target="_blank" rel="noopener noreferrer">פתיחה ב־<bdi dir="ltr">YouTube</bdi> ↗</a>')
     return "".join(parts)
 
 
