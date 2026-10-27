@@ -1,0 +1,200 @@
+{
+  "version": 1,
+  "title": "מצגת גיוסים",
+  "language": "he-IL",
+  "unlisted": true,
+  "voices": {
+    "female": "Kore",
+    "male": "Puck"
+  },
+  "source_deck": {
+    "powerpoint": "projects/recruitment/source/recruitment.pptx",
+    "slides": [
+      {
+        "image": "projects/recruitment/source/slides/slide-01.jpg"
+      },
+      {
+        "image": "projects/recruitment/source/slides/slide-02.jpg"
+      },
+      {
+        "image": "projects/recruitment/source/slides/slide-03.jpg",
+        "links": [
+          {
+            "x": 200,
+            "y": 500,
+            "w": 395,
+            "h": 107,
+            "href": "https://www.youtube.com/watch?v=_fybREErgyM",
+            "label": "המשחק של עונת 2026 — פתיחה ב־YouTube"
+          }
+        ]
+      },
+      {
+        "image": "projects/recruitment/source/slides/slide-04.jpg",
+        "youtube": "_fybREErgyM"
+      },
+      {
+        "image": "projects/recruitment/source/slides/slide-05.jpg",
+        "youtube": "LpSKkulNuz8"
+      },
+      {
+        "image": "projects/recruitment/source/slides/slide-06.jpg",
+        "youtube": "3-_qhjSbCCU"
+      },
+      {
+        "image": "projects/recruitment/source/slides/slide-07.jpg"
+      },
+      {
+        "image": "projects/recruitment/source/slides/slide-08.jpg"
+      },
+      {
+        "image": "projects/recruitment/source/slides/slide-09.jpg"
+      },
+      {
+        "image": "projects/recruitment/source/slides/slide-10.jpg"
+      },
+      {
+        "image": "projects/recruitment/source/slides/slide-11.jpg",
+        "overlays": [
+          {
+            "image": "projects/recruitment/source/workshop.gif",
+            "x": 98.59961504811899,
+            "y": 207.33333333333334,
+            "w": 381.92069991251094,
+            "h": 350.3871916010499,
+            "crop": {
+              "top": 0.25054,
+              "bottom": 0.23312
+            },
+            "preview_frame": 15
+          }
+        ]
+      },
+      {
+        "image": "projects/recruitment/source/slides/slide-12.jpg"
+      },
+      {
+        "image": "projects/recruitment/source/slides/slide-13.jpg"
+      }
+    ]
+  },
+  "scenes": [
+    {
+      "id": "welcome",
+      "layout": "statement",
+      "title": "ברוכים הבאים לתוכנית",
+      "subtitle": "",
+      "body": "",
+      "notes": "ברוכים הבאים לתוכנית",
+      "narration": ""
+    },
+    {
+      "id": "who-we-are",
+      "layout": "statement",
+      "title": "מי אנחנו?",
+      "subtitle": "",
+      "body": "",
+      "notes": "מי אנחנו?\n03\nתוכנית רובוטיקה\nמשלבים את תהליך הלמידה בצורה פרקטית, ויזואלית ואיכותית\nתחומי העשייה\nרובוטיקה, אלקטרוניקה, חשמל ומכניקה\nשרטוט ובינה מלאכותית (AI)\nהדפסה בתלת־ממד\nמה שיעניק לכם הרבה מאוד ניסיון ויכין אתכם לצבא ולעולם האמיתי",
+      "narration": ""
+    },
+    {
+      "id": "first-frc",
+      "layout": "statement",
+      "title": "FIRST ו־FRC",
+      "subtitle": "",
+      "body": "",
+      "notes": "המשחק של עונת 2026\nFIRST ו-FRC\n05\nFIRST\nהארגון שמאחורי התוכניות\nFRC\nFIRST Robotics Competition\nארגון בינלאומי שמחבר בני נוער\nלמדע ולטכנולוגיה דרך רובוטיקה.\nבכל שנה מתפרסם אתגר חדש.\nתלמידי תיכון מתכננים, בונים\nומתכנתים רובוט למשימות המשחק.",
+      "narration": ""
+    },
+    {
+      "id": "game-video",
+      "layout": "statement",
+      "title": "המשחק של עונת 2026",
+      "subtitle": "",
+      "body": "",
+      "notes": "סרטון מקושר מהמצגת המקורית: https://www.youtube.com/watch?v=_fybREErgyM",
+      "narration": ""
+    },
+    {
+      "id": "team-video",
+      "layout": "statement",
+      "title": "סרטון מהמצגת · 2",
+      "subtitle": "",
+      "body": "",
+      "notes": "סרטון מקושר מהמצגת המקורית: https://www.youtube.com/watch?v=LpSKkulNuz8",
+      "narration": ""
+    },
+    {
+      "id": "inspiration-video",
+      "layout": "statement",
+      "title": "סרטון מהמצגת · 3",
+      "subtitle": "",
+      "body": "",
+      "notes": "סרטון מקושר מהמצגת המקורית: https://www.youtube.com/watch?v=3-_qhjSbCCU",
+      "narration": ""
+    },
+    {
+      "id": "what-you-get",
+      "layout": "statement",
+      "title": "מה מקבלים בתוכנית Da Vinci",
+      "subtitle": "",
+      "body": "",
+      "notes": "מה מקבלים בתוכנית Da Vinci\nבגרות ברמת 5 יח״ל במכטרוניקה\nניסיון מעשי בתכנון, בנייה תכנות, שיווק וחשמל \nמחוייבות אישית \nהיכרות עם עולם ההנדסה \nהזדמנויות למלגות \nהכנה ללימודים ולהשתלבות בעתיד בעולם הטכנולוגי וההנדסי\nהשתתפות בתחרויות בארץ, עם אפשרות למשלחות בחו״ל\nחברים, חוויות, והרבה מאוד הפתעות",
+      "narration": ""
+    },
+    {
+      "id": "military-service",
+      "layout": "statement",
+      "title": "ומה זה תורם לשירות הצבאי?",
+      "subtitle": "",
+      "body": "",
+      "notes": "ומה זה תורם לשירות הצבאי?\nבתוכנית Da Vinci תקבלו הרבה מאוד, ידע, נסיון וכלים שתסייע לכם להתמיין לתפקידים הכי מעניינים ומשמעותיים בצבא.\nבנוסף תהיה לכם הכרויות וביקורים של היחידות הטכנולוגיות והקרביות ההכי מתקדמות בצבא, תוכלו להכיר, לשאול, למצוא ולכוון למקום שתאפשר לכם לעשות את השירות ההכי מעניין ומשמעותי עבורכם.",
+      "narration": ""
+    },
+    {
+      "id": "year-in-the-program",
+      "layout": "statement",
+      "title": "איך נראית שנה בתוכנית",
+      "subtitle": "",
+      "body": "",
+      "notes": "איך נראית שנה בתוכנית\n04\nאתם כאן\nמפגש ההיכרות\nהמפגש הבא\nחשיפה לקבוצה\nפוגשים את אנשי הקבוצה, עוברים ראיון אישי ומצטרפים לצוות\nסוף אוקטובר–דצמבר\nתקופת הכשרות\nלומדים ומתרגלים\nבתחומי הצוותים\nדצמבר\nתחרות הכנה\nהתנסות לקראת העונה\nעד תחילת ינואר\nהמשך ההכשרות\nסיורים, הרצאות\nותכנים מעניינים נוספים\nינואר–סוף אפריל\nקיקאוף ועונת 2027\nתהליך בניית רובוט חדש לאתגר 2027 בעזרת ההכשרות שלמדנו.\nמרץ–אפריל\nתחרויות\nבארץ ובעולם\nלאורך השנה\nפעילויות והפתעות\nועוד הרבה דברים מעניינים\nומיוחדים בהמשך השנה",
+      "narration": ""
+    },
+    {
+      "id": "teams",
+      "layout": "statement",
+      "title": "הצוותים והתחומים שלנו",
+      "subtitle": "",
+      "body": "",
+      "notes": "הצוותים והתחומים שלנו\n06\nמכניקה\nתכנון, בנייה והרכבה\nשל מנגנוני הרובוט\nמידול בתלת־ממד\nוייצור חלקים\nתוכנה\nתכנות הרובוט\nובניית פעולות אוטונומיות\nסימולציות ושילובי AI\nבעולם התוכנה\nחשמל\nחיווט, חיישנים והמערכת\nהחשמלית של הרובוט\nמידול והדפסות בתלת־ממד\nיק״מ\nקהילה ומדיה\nהצגת הפעילות שלנו\nגיוס כספים ותמיכה\nוניהול רשתות חברתיות\nמגרש\nנהיגה ברובוט, אסטרטגיה\nואימונים לקראת עלייה למגרש\nהובלה\nתיאום וניהול העבודה המשותפת\nוהובלת הנבחרת והצוותים\nבמהלך השנה",
+      "narration": ""
+    },
+    {
+      "id": "our-home",
+      "layout": "statement",
+      "title": "איפה הבית שלנו נמצא",
+      "subtitle": "",
+      "body": "",
+      "notes": "איפה הבית שלנו נמצא\n07\nהבית שלנו נמצא ממש כאן בבית הספר.\nסדנת העבודה\nכלים, חומרים ומכונות לעבודה\nעל הפרויקטים שלנו לאורך השנה.\nמרכז היזמות והרובוטיקה\nבאשכול פיס, שבו השיפוץ יסתיים בקרוב.\nכאן נפגשים לפגישות קבוצה, הרצאות ואירועים,\nובעונת התחרויות נמצא כאן גם מגרש העונה.\nגם הבית שלכם במהלך היום\nהמקום השקט שאפשר להגיע אליו, לחמם בו אוכל, להשלים שיעורים וסתם לשבת במהלך היום בשעות החופשיות ולאחר הלימודים.",
+      "narration": ""
+    },
+    {
+      "id": "questions",
+      "layout": "statement",
+      "title": "שאלות?",
+      "subtitle": "",
+      "body": "",
+      "notes": "08\nשאלות?",
+      "narration": ""
+    },
+    {
+      "id": "join",
+      "layout": "statement",
+      "title": "איך מצטרפים לתוכנית Da Vinci?",
+      "subtitle": "",
+      "body": "",
+      "notes": "איך מצטרפים לתוכנית Da Vinci?",
+      "narration": ""
+    }
+  ]
+}

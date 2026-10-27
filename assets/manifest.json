@@ -72,6 +72,108 @@
       "bytes": 1423274,
       "sha256": "e3df4ab635acdb36dfb0ff69654d781688cd59a94fe2406443b4e0c8d3e87e2a",
       "source": "User-provided Da Vinci brand/reference material"
+    },
+    {
+      "path": "assets/recruitment/electrical.png",
+      "bytes": 14312,
+      "sha256": "aea5aa6b4dd2d1dc60bcaf48a62087e1651e4b586f49b259bb4537d2de245265",
+      "source": "User-provided recruitment PowerPoint; SVG icons rendered with transparent background"
+    },
+    {
+      "path": "assets/recruitment/electrical.svg",
+      "bytes": 205193,
+      "sha256": "284ba5dcd2c254e1ec132910eb6a6b497e73506f2ce15a3785bbf2f59a1d41a7",
+      "source": "User-provided recruitment PowerPoint; SVG icons rendered with transparent background"
+    },
+    {
+      "path": "assets/recruitment/engineering.png",
+      "bytes": 12471,
+      "sha256": "d3ca185d1e151ac796736d61129852c6be8c8240fdf6e8f16515a5357f593c76",
+      "source": "User-provided recruitment PowerPoint; SVG icons rendered with transparent background"
+    },
+    {
+      "path": "assets/recruitment/engineering.svg",
+      "bytes": 192309,
+      "sha256": "02ba0d9f75ca86072b2871042d9fa4e744c134da3e03ca04ba40f5f6de2ca085",
+      "source": "User-provided recruitment PowerPoint; SVG icons rendered with transparent background"
+    },
+    {
+      "path": "assets/recruitment/field.png",
+      "bytes": 17569,
+      "sha256": "45d3ab8b30eb5734702c08fcaf8484278f17627ffbac6bef0615b5f15a743324",
+      "source": "User-provided recruitment PowerPoint; SVG icons rendered with transparent background"
+    },
+    {
+      "path": "assets/recruitment/field.svg",
+      "bytes": 257457,
+      "sha256": "f2587a53f75ee5bd2940be459fe3ec838a389b41b2c0b98aeacd0c8b350662c7",
+      "source": "User-provided recruitment PowerPoint; SVG icons rendered with transparent background"
+    },
+    {
+      "path": "assets/recruitment/first.png",
+      "bytes": 49105,
+      "sha256": "8a97084b62592ac553e3f61e9bfa8a32a9d53469e46199ec79114af1d68941e9",
+      "source": "User-provided recruitment PowerPoint; SVG icons rendered with transparent background"
+    },
+    {
+      "path": "assets/recruitment/join-qr.png",
+      "bytes": 80782,
+      "sha256": "0140abdc494ebad264d51d447f944e44743f140d12aa9de051352ef809e17667",
+      "source": "User-provided recruitment PowerPoint; SVG icons rendered with transparent background"
+    },
+    {
+      "path": "assets/recruitment/leadership.png",
+      "bytes": 16491,
+      "sha256": "6e77e866cc51989783e47082b5f86185b5fa3c44a865315a1e6b767a15afb191",
+      "source": "User-provided recruitment PowerPoint; SVG icons rendered with transparent background"
+    },
+    {
+      "path": "assets/recruitment/leadership.svg",
+      "bytes": 247645,
+      "sha256": "2c6476374c5ae4e1b2cd18dcfd977350a17b367355efd175113901790d75a110",
+      "source": "User-provided recruitment PowerPoint; SVG icons rendered with transparent background"
+    },
+    {
+      "path": "assets/recruitment/mechanics.png",
+      "bytes": 7345,
+      "sha256": "e1b275842fbde48741640502a1c8daa0b22eed764caa9ac3f815942ef18116b5",
+      "source": "User-provided recruitment PowerPoint; SVG icons rendered with transparent background"
+    },
+    {
+      "path": "assets/recruitment/mechanics.svg",
+      "bytes": 111293,
+      "sha256": "f4ff2dd5b26ae58e4a049fdce03a0d13fcddb1293b48f831e8463dc6f36d3ba1",
+      "source": "User-provided recruitment PowerPoint; SVG icons rendered with transparent background"
+    },
+    {
+      "path": "assets/recruitment/media.png",
+      "bytes": 17242,
+      "sha256": "f4e260277bdf567ce83018be67e9fca4c169e276f3d0c97a78c0bd84ec6166d6",
+      "source": "User-provided recruitment PowerPoint; SVG icons rendered with transparent background"
+    },
+    {
+      "path": "assets/recruitment/media.svg",
+      "bytes": 298885,
+      "sha256": "dce40df44ea0cd822c730c5d7a425dc148645df052bcfeb1ca0bab79b80a71dd",
+      "source": "User-provided recruitment PowerPoint; SVG icons rendered with transparent background"
+    },
+    {
+      "path": "assets/recruitment/software.png",
+      "bytes": 22241,
+      "sha256": "6f4cade0829dd5889e37a86503ca709e77a15735531887e0cfbedede6a9f1a73",
+      "source": "User-provided recruitment PowerPoint; SVG icons rendered with transparent background"
+    },
+    {
+      "path": "assets/recruitment/software.svg",
+      "bytes": 347549,
+      "sha256": "bfc7c25212789fa5530c8415cb587939b350bdee22102db07755b26e71a6bb63",
+      "source": "User-provided recruitment PowerPoint; SVG icons rendered with transparent background"
+    },
+    {
+      "path": "assets/recruitment/team.jpg",
+      "bytes": 339953,
+      "sha256": "189edbddc3ef165e803ee51077a963845b2f1ede47001cba49531ccf8013704a",
+      "source": "User-provided recruitment PowerPoint; SVG icons rendered with transparent background"
     }
   ]
 }

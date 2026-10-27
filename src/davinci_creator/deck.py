@@ -30,6 +30,7 @@ def html_deck(doc,out):
 nav{position:fixed;bottom:8px;left:50%;translate:-50% 0;display:flex;align-items:center;gap:12px;background:#08152be8;border-radius:20px;padding:6px 14px;opacity:.25;transition:opacity .2s}nav:hover,nav:focus-within{opacity:1}button{font:inherit;color:inherit;background:#244666;border:0;border-radius:8px;padding:7px 15px;cursor:pointer}
 #count{direction:ltr;unicode-bidi:isolate}#notes{display:none;position:fixed;bottom:55px;right:5%;width:90%;padding:20px;background:#08152bf5;direction:rtl;border:1px solid #a9d8f6;border-radius:12px;max-height:35vh;overflow:auto}
 .source-snapshot{position:absolute;inset:0;width:100%;height:100%;object-fit:contain}.source-overlay,.source-link{position:absolute}.source-overlay{object-fit:fill}.source-link:focus-visible{outline:4px solid #ffda9d}.source-video{position:absolute;inset:180px 120px 95px;display:grid;place-items:center}.youtube-play{display:grid;place-items:center;gap:16px;font-size:28px;background:#08152be8;border:2px solid #ffda9d;padding:24px 48px;border-radius:20px}.play-icon{font-size:64px;color:#ffda9d}.source-video iframe{position:absolute;inset:0;width:100%;height:100%;border:0;background:#000}.youtube-external{position:absolute;bottom:48px;right:80px;color:#fafcff;font-size:21px}.youtube-play[hidden]{display:none}
+.slide.video-slide{background:#000}.video-slide .source-video{inset:0}.video-slide .youtube-play{position:absolute;inset:0;width:100%;height:100%;border:0;background:transparent;padding:0}.video-slide .youtube-play:focus-visible{outline:3px solid #ffda9d;outline-offset:-6px}.video-slide.playing .youtube-external{display:none}
 @media(prefers-reduced-motion:reduce){.slide.active .el{animation:none}}
 @media print{@page{size:13.333in 7.5in;margin:0}body{overflow:visible}#stage{position:static;transform:none!important}nav,#notes{display:none!important}.slide{position:relative;display:block!important;width:1280px;height:720px;break-after:page;print-color-adjust:exact}.el{animation:none!important}}
 """.replace("REGULAR",data_url("brand/Rubik-Regular.ttf")).replace("BOLD",data_url("brand/Rubik-Bold.ttf"))
@@ -46,16 +47,22 @@ nav{position:fixed;bottom:8px;left:50%;translate:-50% 0;display:flex;align-items
                 parts.append(f'<div class="el" style="{style}width:{max(1,el["x2"]-el["x"])}px;height:{max(1,el["y2"]-el["y"])}px;background:#{el["color"]};opacity:.65"></div>')
             elif el["kind"]=="image":
                 parts.append(f'<img class="el" alt="" style="{style}width:{el["w"]}px;height:{el["h"]}px;object-fit:contain" src="{data_url(el["src"])}">')
+            elif el["kind"] == "play":
+                parts.append(f'<svg class="el" aria-hidden="true" style="{style}width:{el["w"]}px;height:{el["h"]}px" viewBox="0 0 176 176"><circle cx="88" cy="88" r="85" fill="none" stroke="#{el["color"]}" stroke-width="3"/><path d="M70 49 L70 127 L128 88 Z" fill="#{el["color"]}"/></svg>')
             else:
                 direction="rtl" if el["rtl"] else "ltr"
                 parts.append(f'<p dir="{direction}" class="el" style="{style}width:{el["w"]}px;height:{el["h"]}px;font-size:{el["size"]}px;font-weight:{700 if el["bold"] else 400};text-align:{el["align"]};color:#{el["color"]}">{html.escape(el["text"])}</p>')
-        sections.append(f'<section class="slide{" active" if i==0 else ""}{" hero" if scene.get("layout")=="cover" else ""}" aria-label="{html.escape(scene["title"],quote=True)}">'+"".join(parts)+"</section>")
+        if scene.get("layout") == "video":
+            title = html.escape(scene["title"], quote=True)
+            video = scene["youtube"]
+            parts.append(f'<div class="source-video" data-youtube="{video}" data-title="{title}" data-fullscreen="true"><button class="youtube-play" aria-label="ניגון {title} במסך מלא"></button></div><a class="youtube-external" dir="rtl" href="https://www.youtube.com/watch?v={video}" target="_blank" rel="noopener noreferrer">פתיחה ב־<bdi dir="ltr">YouTube</bdi> ↗</a>')
+        sections.append(f'<section class="slide{" active" if i==0 else ""}{" hero" if scene.get("layout")=="cover" else ""}{" video-slide" if scene.get("layout")=="video" else ""}" aria-label="{html.escape(scene["title"],quote=True)}">'+"".join(parts)+"</section>")
     notes=json.dumps([s.get("notes",s.get("narration","")) for s in doc["scenes"]],ensure_ascii=False).replace("<","\\u003c")
     js="""
 const slides=[...document.querySelectorAll('.slide')],notes=NOTES;let index=0;
 function resize(){document.querySelector('#stage').style.transform=`translate(-50%,-50%) scale(${Math.min(innerWidth/1280,innerHeight/720)})`}
-function show(n){index=Math.max(0,Math.min(slides.length-1,Number.isFinite(n)?n:0));slides.forEach((s,i)=>{s.classList.toggle('active',i===index);s.setAttribute('aria-hidden',String(i!==index));if(i!==index){s.querySelectorAll('.source-video iframe').forEach(frame=>frame.remove());s.querySelectorAll('.youtube-play').forEach(button=>button.hidden=false)}});document.querySelector('#count').textContent=`${index+1} / ${slides.length}`;document.querySelector('#notes').textContent=notes[index];location.hash=String(index+1)}
-document.querySelectorAll('.youtube-play').forEach(button=>{button.onclick=()=>{const box=button.closest('.source-video'),frame=document.createElement('iframe');frame.src=`https://www.youtube-nocookie.com/embed/${box.dataset.youtube}?autoplay=1&rel=0`;frame.title=box.dataset.title;frame.referrerPolicy='strict-origin-when-cross-origin';frame.allow='autoplay; encrypted-media; picture-in-picture; fullscreen';frame.allowFullscreen=true;button.hidden=true;box.append(frame)}});
+function show(n){index=Math.max(0,Math.min(slides.length-1,Number.isFinite(n)?Math.trunc(n):0));slides.forEach((s,i)=>{s.classList.toggle('active',i===index);s.setAttribute('aria-hidden',String(i!==index));if(i!==index){s.classList.remove('playing');s.querySelectorAll('.source-video iframe').forEach(frame=>frame.remove());s.querySelectorAll('.youtube-play').forEach(button=>button.hidden=false)}});document.querySelector('#count').textContent=`${index+1} / ${slides.length}`;document.querySelector('#notes').textContent=notes[index];location.hash=String(index+1)}
+document.querySelectorAll('.youtube-play').forEach(button=>{button.onclick=()=>{const box=button.closest('.source-video'),frame=document.createElement('iframe');if(box.dataset.fullscreen==='true'&&!document.fullscreenElement)document.documentElement.requestFullscreen?.().catch(()=>{});frame.src=`https://www.youtube-nocookie.com/embed/${box.dataset.youtube}?autoplay=1&rel=0`;frame.title=box.dataset.title;frame.referrerPolicy='strict-origin-when-cross-origin';frame.allow='autoplay; encrypted-media; picture-in-picture; fullscreen';frame.allowFullscreen=true;button.hidden=true;box.closest('.slide').classList.add('playing');box.append(frame)}});
 document.querySelector('#next').onclick=()=>show(index+1);document.querySelector('#prev').onclick=()=>show(index-1);
 function toggleNotes(){const el=document.querySelector('#notes');el.style.display=el.style.display==='block'?'none':'block'}
 document.querySelector('#noteButton').onclick=toggleNotes;
@@ -82,9 +89,24 @@ def pptx_deck(doc,out):
     prs.slide_height=Inches(H/96)
     for i,scene in enumerate(doc["scenes"]):
         slide=prs.slides.add_slide(prs.slide_layouts[6])
-        bg=ASSETS/"brand"/("space-hero.png" if scene.get("layout")=="cover" else "space-content.png")
-        slide.shapes.add_picture(str(bg),0,0,prs.slide_width,prs.slide_height)
-        for el in elements(scene,i,len(doc["scenes"])):
+        if scene.get("layout") == "video":
+            from io import BytesIO
+            from .render import frame
+            from pptx.oxml.ns import qn
+            poster = BytesIO()
+            frame(scene, i, len(doc["scenes"])).save(poster, format="PNG")
+            poster.seek(0)
+            picture = slide.shapes.add_picture(poster, 0, 0, prs.slide_width, prs.slide_height)
+            url = f'https://www.youtube.com/watch?v={scene["youtube"]}'
+            relation = slide.part.relate_to(url, "http://schemas.openxmlformats.org/officeDocument/2006/relationships/video", is_external=True)
+            video_file = OxmlElement("a:videoFile")
+            video_file.set(qn("r:link"), relation)
+            picture._element.nvPicPr.nvPr.append(video_file)
+            picture.click_action.hyperlink.address = url
+        else:
+            bg=ASSETS/"brand"/("space-hero.png" if scene.get("layout")=="cover" else "space-content.png")
+            slide.shapes.add_picture(str(bg),0,0,prs.slide_width,prs.slide_height)
+        for el in ([] if scene.get("layout") == "video" else elements(scene,i,len(doc["scenes"]))):
             px=lambda v:Inches(v/96)
             if el["kind"]=="image":
                 path=local_file(ASSETS,el["src"])
@@ -113,6 +135,11 @@ def pptx_deck(doc,out):
                     rpr=run._r.get_or_add_rPr();rpr.set("lang","he-IL" if el["rtl"] else "en-US")
                     for tag in ["a:cs","a:ea"]:
                         node=OxmlElement(tag);node.set("typeface","Rubik");rpr.append(node)
+        if doc.get("slide_transition") == "fade":
+            transition = OxmlElement("p:transition")
+            transition.set("spd", "med")
+            transition.append(OxmlElement("p:fade"))
+            slide._element.insert(2, transition)
         slide.notes_slide.notes_text_frame.text=scene.get("notes",scene.get("narration",""))
     prs.core_properties.title=doc["title"]
     prs.core_properties.author="Da Vinci 4744"
