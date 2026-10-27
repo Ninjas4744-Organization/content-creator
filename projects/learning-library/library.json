@@ -1,4 +1,10 @@
 {
+	"recruitment": {
+		"title": "מצגת גיוסים",
+		"category": "היכרות עם התוכנית",
+		"description": "היכרות עם תוכנית Da Vinci 4744: הפעילות, הצוותים, השנה בקבוצה ואיך מצטרפים.",
+		"unlisted": true
+	},
 	"community": {
 		"title": "מבוא לקהילה בפירסט",
 		"category": "קהילה וערכים",

@@ -77,6 +77,36 @@ test("disposal prevents a late response from changing the screen", async () => {
 	assert.equal(store.items.length, 0);
 });
 
+test("unlisted content opens by ID but never appears in gallery discovery", async () => {
+	const hidden = {
+		...items[1]!,
+		id: "recruitment",
+		title: "מצגת גיוסים",
+		category: "היכרות עם התוכנית",
+		unlisted: true,
+	};
+	const store = new CatalogStore(repository(async () => [hidden, ...items]));
+	await store.load();
+	assert.equal(store.items.find((item) => item.id === "recruitment")?.title, hidden.title);
+	assert.deepEqual(
+		store.visibleItems.map((item) => item.id),
+		["robot", "community"],
+	);
+	assert.equal(store.featured?.id, "community");
+	assert.equal(store.deckCount, 2);
+	assert.equal(store.videoCount, 1);
+	assert.ok(!store.categories.includes(hidden.category));
+	store.setQuery("גיוסים");
+	assert.deepEqual(store.visibleItems, []);
+
+	const hiddenOnly = new CatalogStore(repository(async () => [hidden]));
+	await hiddenOnly.load();
+	assert.equal(hiddenOnly.featured, undefined);
+	assert.equal(hiddenOnly.deckCount, 0);
+	assert.equal(hiddenOnly.videoCount, 0);
+	assert.deepEqual(hiddenOnly.categories, ["הכול"]);
+});
+
 test("failed loading can be retried", async () => {
 	let fail = true;
 	const store = new CatalogStore(

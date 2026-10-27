@@ -87,6 +87,8 @@ def validate(doc):
         duration = scene.get("duration", 8)
         if not isinstance(duration, (int, float)) or not 1 <= duration <= 600:
             raise ValueError(f"{label}: duration must be 1–600 seconds")
+    from .imported_deck import validate_source
+    validate_source(doc)
     return doc
 
 

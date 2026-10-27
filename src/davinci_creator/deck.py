@@ -5,8 +5,9 @@ import html
 import json
 import mimetypes
 import re
+import shutil
 from pathlib import Path
-from .common import ASSETS, local_file
+from .common import ASSETS, ROOT, local_file
 from .layout import W,H,elements
 from .render import storyboard
 
@@ -28,6 +29,7 @@ def html_deck(doc,out):
 @keyframes enter{from{opacity:0;translate:0 18px}to{opacity:1;translate:0 0}}
 nav{position:fixed;bottom:8px;left:50%;translate:-50% 0;display:flex;align-items:center;gap:12px;background:#08152be8;border-radius:20px;padding:6px 14px;opacity:.25;transition:opacity .2s}nav:hover,nav:focus-within{opacity:1}button{font:inherit;color:inherit;background:#244666;border:0;border-radius:8px;padding:7px 15px;cursor:pointer}
 #count{direction:ltr;unicode-bidi:isolate}#notes{display:none;position:fixed;bottom:55px;right:5%;width:90%;padding:20px;background:#08152bf5;direction:rtl;border:1px solid #a9d8f6;border-radius:12px;max-height:35vh;overflow:auto}
+.source-snapshot{position:absolute;inset:0;width:100%;height:100%;object-fit:contain}.source-overlay,.source-link{position:absolute}.source-overlay{object-fit:fill}.source-link:focus-visible{outline:4px solid #ffda9d}.source-video{position:absolute;inset:180px 120px 95px;display:grid;place-items:center}.youtube-play{display:grid;place-items:center;gap:16px;font-size:28px;background:#08152be8;border:2px solid #ffda9d;padding:24px 48px;border-radius:20px}.play-icon{font-size:64px;color:#ffda9d}.source-video iframe{position:absolute;inset:0;width:100%;height:100%;border:0;background:#000}.youtube-external{position:absolute;bottom:48px;right:80px;color:#fafcff;font-size:21px}.youtube-play[hidden]{display:none}
 @media(prefers-reduced-motion:reduce){.slide.active .el{animation:none}}
 @media print{@page{size:13.333in 7.5in;margin:0}body{overflow:visible}#stage{position:static;transform:none!important}nav,#notes{display:none!important}.slide{position:relative;display:block!important;width:1280px;height:720px;break-after:page;print-color-adjust:exact}.el{animation:none!important}}
 """.replace("REGULAR",data_url("brand/Rubik-Regular.ttf")).replace("BOLD",data_url("brand/Rubik-Bold.ttf"))
@@ -35,7 +37,10 @@ nav{position:fixed;bottom:8px;left:50%;translate:-50% 0;display:flex;align-items
     sections=[]
     for i,scene in enumerate(doc["scenes"]):
         parts=[]
-        for el in elements(scene,i,len(doc["scenes"])):
+        if doc.get("source_deck"):
+            from .imported_deck import slide_markup
+            parts.append(slide_markup(doc["source_deck"]["slides"][i], scene))
+        for el in ([] if doc.get("source_deck") else elements(scene,i,len(doc["scenes"]))):
             style=f'left:{el["x"]}px;top:{el["y"]}px;--delay:{el["delay"]}s;'
             if el["kind"]=="line":
                 parts.append(f'<div class="el" style="{style}width:{max(1,el["x2"]-el["x"])}px;height:{max(1,el["y2"]-el["y"])}px;background:#{el["color"]};opacity:.65"></div>')
@@ -49,18 +54,23 @@ nav{position:fixed;bottom:8px;left:50%;translate:-50% 0;display:flex;align-items
     js="""
 const slides=[...document.querySelectorAll('.slide')],notes=NOTES;let index=0;
 function resize(){document.querySelector('#stage').style.transform=`translate(-50%,-50%) scale(${Math.min(innerWidth/1280,innerHeight/720)})`}
-function show(n){index=Math.max(0,Math.min(slides.length-1,n));slides.forEach((s,i)=>{s.classList.toggle('active',i===index);s.setAttribute('aria-hidden',String(i!==index))});document.querySelector('#count').textContent=`${index+1} / ${slides.length}`;document.querySelector('#notes').textContent=notes[index];location.hash=String(index+1)}
+function show(n){index=Math.max(0,Math.min(slides.length-1,Number.isFinite(n)?n:0));slides.forEach((s,i)=>{s.classList.toggle('active',i===index);s.setAttribute('aria-hidden',String(i!==index));if(i!==index){s.querySelectorAll('.source-video iframe').forEach(frame=>frame.remove());s.querySelectorAll('.youtube-play').forEach(button=>button.hidden=false)}});document.querySelector('#count').textContent=`${index+1} / ${slides.length}`;document.querySelector('#notes').textContent=notes[index];location.hash=String(index+1)}
+document.querySelectorAll('.youtube-play').forEach(button=>{button.onclick=()=>{const box=button.closest('.source-video'),frame=document.createElement('iframe');frame.src=`https://www.youtube-nocookie.com/embed/${box.dataset.youtube}?autoplay=1&rel=0`;frame.title=box.dataset.title;frame.referrerPolicy='strict-origin-when-cross-origin';frame.allow='autoplay; encrypted-media; picture-in-picture; fullscreen';frame.allowFullscreen=true;button.hidden=true;box.append(frame)}});
 document.querySelector('#next').onclick=()=>show(index+1);document.querySelector('#prev').onclick=()=>show(index-1);
 function toggleNotes(){const el=document.querySelector('#notes');el.style.display=el.style.display==='block'?'none':'block'}
 document.querySelector('#noteButton').onclick=toggleNotes;
 document.querySelector('#full').onclick=()=>document.fullscreenElement?document.exitFullscreen():document.documentElement.requestFullscreen?.();
 addEventListener('keydown',e=>{if(['ArrowLeft','PageDown',' '].includes(e.key)){e.preventDefault();show(index+1)}if(['ArrowRight','PageUp'].includes(e.key))show(index-1);if(e.key.toLowerCase()==='n')toggleNotes();if(e.key==='Home')show(0);if(e.key==='End')show(slides.length-1)});
-addEventListener('resize',resize);resize();show(Number(location.hash.slice(1)||1)-1);
+addEventListener('hashchange',()=>show(Number(location.hash.slice(1)||1)-1));addEventListener('resize',resize);resize();show(Number(location.hash.slice(1)||1)-1);
 """.replace("NOTES",notes)
-    out.write_text(f'<!doctype html><html lang="he"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>{html.escape(doc["title"])}</title><style>{css}</style><main id="stage">'+"".join(sections)+'</main><aside id="notes"></aside><nav dir="rtl" aria-label="ניווט במצגת"><button id="prev">הקודם</button><span id="count" aria-live="polite"></span><button id="next">הבא</button><button id="noteButton">הערות</button><button id="full">מסך מלא</button></nav><script>'+js+'</script></html>',encoding="utf-8")
+    robots = '<meta name="robots" content="noindex,nofollow">' if doc.get("unlisted") else ""
+    out.write_text(f'<!doctype html><html lang="he"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">{robots}<title>{html.escape(doc["title"])}</title><style>{css}</style><main id="stage">'+"".join(sections)+'</main><aside id="notes"></aside><nav dir="rtl" aria-label="ניווט במצגת"><button id="prev">הקודם</button><span id="count" aria-live="polite"></span><button id="next">הבא</button><button id="noteButton">הערות</button><button id="full">מסך מלא</button></nav><script>'+js+'</script></html>',encoding="utf-8")
 
 
 def pptx_deck(doc,out):
+    if doc.get("source_deck"):
+        shutil.copy2(local_file(ROOT, doc["source_deck"]["powerpoint"]), out)
+        return
     from pptx import Presentation
     from pptx.util import Inches,Pt
     from pptx.dml.color import RGBColor
@@ -113,5 +123,9 @@ def build(doc,out:Path):
     out.mkdir(parents=True,exist_ok=True)
     pptx_deck(doc,out/"presentation.pptx")
     html_deck(doc,out/"presentation.html")
-    storyboard(doc,out/"previews")
-    print(f"Created {len(doc['scenes'])} editable slides, HTML and previews: {out}")
+    if doc.get("source_deck"):
+        from .imported_deck import storyboard as imported_storyboard
+        imported_storyboard(doc, out/"previews")
+    else:
+        storyboard(doc,out/"previews")
+    print(f"Created {len(doc['scenes'])} slides, PowerPoint, HTML and previews: {out}")

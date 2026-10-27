@@ -18,21 +18,24 @@ export class CatalogStore {
 		);
 	}
 
+	get listedItems() {
+		return this.items.filter((item) => !item.unlisted);
+	}
 	get categories() {
-		return ["הכול", ...new Set(this.items.map((item) => item.category))];
+		return ["הכול", ...new Set(this.listedItems.map((item) => item.category))];
 	}
 	get featured() {
-		return this.items.find((item) => item.featured) ?? this.items[0];
+		return this.listedItems.find((item) => item.featured) ?? this.listedItems[0];
 	}
 	get videoCount() {
-		return this.items.filter((item) => item.video).length;
+		return this.listedItems.filter((item) => item.video).length;
 	}
 	get deckCount() {
-		return this.items.filter((item) => item.deck).length;
+		return this.listedItems.filter((item) => item.deck).length;
 	}
 	get visibleItems() {
 		const words = this.query.trim().toLocaleLowerCase("he").split(/\s+/).filter(Boolean);
-		return this.items.filter((item) => {
+		return this.listedItems.filter((item) => {
 			const text = [item.title, item.description, item.category, ...item.chapters]
 				.join(" ")
 				.toLocaleLowerCase("he");
