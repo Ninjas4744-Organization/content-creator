@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import math
 import re
 from pathlib import Path
 
@@ -78,7 +79,25 @@ def validate(doc):
             if item.get("image"):
                 local_file(ASSETS, item["image"])
         if layout == "photo":
-            local_file(ASSETS, scene.get("image", ""))
+            media = scene.get("images") or [{"image": scene.get("image", ""), "crop": scene.get("image_crop", {}),
+                                             "preview_frame": scene.get("image_preview_frame", 0)}]
+            if not isinstance(media, list) or not 1 <= len(media) <= 3:
+                raise ValueError(f"{label}: photo requires one to three images")
+            if items and len(items) > 3:
+                raise ValueError(f"{label}: photo supports at most three text sections")
+            if scene.get("images") and not items:
+                raise ValueError(f"{label}: an image stack requires text sections in items")
+            for entry in media:
+                if not isinstance(entry, dict) or not isinstance(entry.get("image"), str):
+                    raise ValueError(f"{label}: image entry must name an asset")
+                local_file(ASSETS, entry["image"])
+                crop = entry.get("crop", {})
+                if not isinstance(crop, dict) or any(key not in {"left", "top", "right", "bottom"} or type(value) not in (int, float) or not math.isfinite(value) or not 0 <= value < 1 for key, value in crop.items()):
+                    raise ValueError(f"{label}: image crop must contain fractions between zero and one")
+                if crop.get("left", 0)+crop.get("right", 0) >= 1 or crop.get("top", 0)+crop.get("bottom", 0) >= 1:
+                    raise ValueError(f"{label}: image crop removes the entire image")
+                if type(entry.get("preview_frame", 0)) is not int or entry.get("preview_frame", 0) < 0:
+                    raise ValueError(f"{label}: image preview frame must be a nonnegative integer")
         if layout == "video" and (not isinstance(scene.get("youtube"), str) or not re.fullmatch(r"[A-Za-z0-9_-]{11}", scene["youtube"])):
             raise ValueError(f"{label}: video needs a YouTube video ID")
         quiz = scene.get("quiz")

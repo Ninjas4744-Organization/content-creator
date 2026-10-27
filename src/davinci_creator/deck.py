@@ -46,7 +46,14 @@ nav{position:fixed;bottom:8px;left:50%;translate:-50% 0;display:flex;align-items
             if el["kind"]=="line":
                 parts.append(f'<div class="el" style="{style}width:{max(1,el["x2"]-el["x"])}px;height:{max(1,el["y2"]-el["y"])}px;background:#{el["color"]};opacity:.65"></div>')
             elif el["kind"]=="image":
-                parts.append(f'<img class="el" alt="" style="{style}width:{el["w"]}px;height:{el["h"]}px;object-fit:contain" src="{data_url(el["src"])}">')
+                crop = el.get("crop", {})
+                if crop:
+                    width = 100/(1-crop.get("left", 0)-crop.get("right", 0))
+                    height = 100/(1-crop.get("top", 0)-crop.get("bottom", 0))
+                    inner = f'position:absolute;width:{width}%;height:{height}%;left:{-crop.get("left", 0)*width}%;top:{-crop.get("top", 0)*height}%'
+                    parts.append(f'<div class="el" style="{style}width:{el["w"]}px;height:{el["h"]}px;overflow:hidden"><img alt="" style="{inner}" src="{data_url(el["src"])}"></div>')
+                else:
+                    parts.append(f'<img class="el" alt="" style="{style}width:{el["w"]}px;height:{el["h"]}px;object-fit:contain" src="{data_url(el["src"])}">')
             elif el["kind"] == "play":
                 parts.append(f'<svg class="el" aria-hidden="true" style="{style}width:{el["w"]}px;height:{el["h"]}px" viewBox="0 0 176 176"><circle cx="88" cy="88" r="85" fill="none" stroke="#{el["color"]}" stroke-width="3"/><path d="M70 49 L70 127 L128 88 Z" fill="#{el["color"]}"/></svg>')
             else:
@@ -111,8 +118,13 @@ def pptx_deck(doc,out):
             if el["kind"]=="image":
                 path=local_file(ASSETS,el["src"])
                 with Image.open(path) as img:iw,ih=img.size
-                ratio=min(el["w"]/iw,el["h"]/ih)
-                slide.shapes.add_picture(str(path),px(el["x"]+(el["w"]-iw*ratio)/2),px(el["y"]+(el["h"]-ih*ratio)/2),px(iw*ratio),px(ih*ratio))
+                crop = el.get("crop", {})
+                visible_w = iw*(1-crop.get("left", 0)-crop.get("right", 0))
+                visible_h = ih*(1-crop.get("top", 0)-crop.get("bottom", 0))
+                ratio=min(el["w"]/visible_w,el["h"]/visible_h)
+                picture = slide.shapes.add_picture(str(path),px(el["x"]+(el["w"]-visible_w*ratio)/2),px(el["y"]+(el["h"]-visible_h*ratio)/2),px(visible_w*ratio),px(visible_h*ratio))
+                for side in ("left", "top", "right", "bottom"):
+                    setattr(picture, f"crop_{side}", crop.get(side, 0))
             elif el["kind"]=="line":
                 from pptx.enum.shapes import MSO_CONNECTOR
                 shape=slide.shapes.add_connector(MSO_CONNECTOR.STRAIGHT,px(el["x"]),px(el["y"]),px(el["x2"]),px(el["y2"]))

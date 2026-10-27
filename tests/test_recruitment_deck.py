@@ -1,4 +1,6 @@
 import tempfile
+import base64
+import re
 import unittest
 from pathlib import Path
 from zipfile import ZipFile
@@ -63,6 +65,34 @@ class RecruitmentDeckTests(unittest.TestCase):
             self.assertNotIn("href=", third)
             self.assertEqual(content.count('data-fullscreen="true"'), 3)
             self.assertNotIn('class="source-snapshot"', content)
+
+    def test_original_unit_logos_animation_and_single_cover_wordmark_are_retained(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            output = Path(temporary) / "presentation.pptx"
+            pptx_deck(self.doc, output)
+            presentation = Presentation(output)
+            cover = presentation.slides[0]
+            visible_text = [shape.text for shape in cover.shapes if shape.has_text_frame]
+            self.assertFalse(any("Da Vinci" in text for text in visible_text))
+            wordmark_bytes = (ASSETS / "brand/wordmark.png").read_bytes()
+            wordmarks = [shape for shape in cover.shapes if hasattr(shape, "image") and shape.image.blob == wordmark_bytes]
+            self.assertEqual(len(wordmarks), 1)
+            title = next(shape for shape in cover.shapes if shape.has_text_frame and "ברוכים" in shape.text)
+            self.assertGreaterEqual(wordmarks[0].top, title.top+title.height)
+            self.assertLess(wordmarks[0].top-title.top-title.height, presentation.slide_height/8)
+            military_images = {shape.image.blob for shape in presentation.slides[7].shapes if hasattr(shape, "image")}
+            for index in (1, 2, 3):
+                self.assertIn((ASSETS / f"recruitment/technology-unit-{index}.png").read_bytes(), military_images)
+            original_gif = (ASSETS / "recruitment/learning.gif").read_bytes()
+            animation = next(shape for shape in presentation.slides[10].shapes if hasattr(shape, "image") and shape.image.blob == original_gif)
+            self.assertAlmostEqual(animation.crop_top, .25054, places=5)
+            self.assertAlmostEqual(animation.crop_bottom, .23312, places=5)
+            html_output = Path(temporary) / "presentation.html"
+            html_deck(self.doc, html_output)
+            html = html_output.read_text()
+            payload = re.search(r'data:image/gif;base64,([^"]+)', html)
+            self.assertIsNotNone(payload)
+            self.assertEqual(base64.b64decode(payload.group(1)), original_gif)
 
 
 if __name__ == "__main__":

@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import functools
 import re
-from PIL import ImageFont
+from PIL import Image, ImageFont
 from bidi.algorithm import get_display
 from .common import ASSETS
 
@@ -48,8 +48,16 @@ def textbox(text, x, y, w, h, size=32, bold=False, color=WHITE, align="right", d
                 rtl=bool(re.search(r"[\u0590-\u05ff]", text)))
 
 
-def image(name, x, y, w, h, delay=0):
-    return dict(kind="image", src=name, x=x, y=y, w=w, h=h, delay=delay)
+def image(name, x, y, w, h, delay=0, crop=None, preview_frame=0):
+    if crop:
+        with Image.open(ASSETS / name) as source:
+            visible_w = source.width * (1-crop.get("left", 0)-crop.get("right", 0))
+            visible_h = source.height * (1-crop.get("top", 0)-crop.get("bottom", 0))
+        ratio = min(w/visible_w, h/visible_h)
+        x, y = x+(w-visible_w*ratio)/2, y+(h-visible_h*ratio)/2
+        w, h = visible_w*ratio, visible_h*ratio
+    return dict(kind="image", src=name, x=x, y=y, w=w, h=h, delay=delay,
+                crop=crop or {}, preview_frame=preview_frame)
 
 
 def line(x, y, x2, y2, color=BLUE, delay=0):
@@ -63,6 +71,10 @@ def elements(scene, index, total):
                 dict(kind="play", x=552, y=272, w=176, h=176, color=GOLD, delay=.3),
                 textbox("לחצו לניגון הסרטון במסך מלא", 280, 465, 720, 75, 30, color=BLUE, align="center", delay=.5)]
     if layout == "cover":
+        if scene.get("brand_as_subtitle"):
+            return [image("brand/logo.png", 100, 195, 290, 292, .2),
+                    textbox(scene["title"], 450, 180, 730, 115, 66, True, delay=.4),
+                    image("brand/wordmark.png", 570, 315, 610, 88, .8)]
         return [image("brand/logo.png", 100, 195, 290, 292, .2),
                 textbox(scene["title"], 450, 115, 730, 205, 66, True, delay=.4),
                 textbox(scene.get("subtitle", ""), 450, 330, 730, 125, 32, color=GOLD, delay=.8),
@@ -76,7 +88,24 @@ def elements(scene, index, total):
         out += [textbox(scene.get("subtitle", ""), 180, 230, 920, 185, 60, True, GOLD, "center", .4),
                 textbox(scene.get("body", ""), 200, 440, 880, 150, 34, align="center", delay=.8)]
     elif layout == "photo":
-        out.append(image(scene["image"], 95, 216, 525, 350, .3))
+        if scene.get("items"):
+            media = scene.get("images") or [{"image": scene["image"], "crop": scene.get("image_crop", {}),
+                                             "preview_frame": scene.get("image_preview_frame", 0)}]
+            slot = 400/len(media)
+            for i, entry in enumerate(media):
+                out.append(image(entry["image"], 95, 216+i*slot, 440, slot-(16 if len(media)>1 else 0),
+                                 .3+i*.15, crop=entry.get("crop"), preview_frame=entry.get("preview_frame", 0)))
+            n = len(scene["items"])
+            row_height = 435/n
+            for i, item in enumerate(scene["items"]):
+                y = 210+i*row_height
+                out += [textbox(item["heading"], 600, y, 575, 48 if n==3 else 65, 31 if n==3 else 39,
+                                True, GOLD, delay=.45+i*.3),
+                        textbox(item.get("body", ""), 600, y+(54 if n==3 else 80), 575,
+                                row_height-(62 if n==3 else 90), 25 if n==3 else 31, delay=.65+i*.3)]
+            return out
+        out.append(image(scene["image"], 95, 216, 525, 350, .3,
+                         crop=scene.get("image_crop"), preview_frame=scene.get("image_preview_frame", 0)))
         out.append(textbox(scene.get("body", ""), 680, 230, 485, 335, 34, delay=.6))
         if scene.get("subtitle"):
             out.append(textbox(scene["subtitle"], 100, 588, 1060, 50, 25, color=GOLD, delay=1))
