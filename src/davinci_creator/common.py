@@ -7,7 +7,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 ASSETS = ROOT / "assets"
-LAYOUTS = {"cover", "cards", "timeline", "photo", "statement"}
+LAYOUTS = {"cover", "cards", "timeline", "photo", "statement", "video"}
 
 
 def write_json(path: Path, value):
@@ -68,13 +68,19 @@ def validate(doc):
         items = scene.get("items", [])
         if not isinstance(items, list) or any(not isinstance(item, dict) for item in items):
             raise ValueError(f"{label}: items must be a list of objects")
-        if layout in {"cards", "timeline"} and not 1 <= len(items) <= (4 if layout == "timeline" else 6):
-            raise ValueError(f"{label}: {layout} requires 1–{4 if layout == 'timeline' else 6} items")
+        if layout in {"cards", "timeline"} and not 1 <= len(items) <= (8 if layout == "timeline" else 6):
+            raise ValueError(f"{label}: {layout} requires 1–{8 if layout == 'timeline' else 6} items")
         for item in items:
             if not isinstance(item.get("heading", ""), str) or not isinstance(item.get("body", ""), str):
                 raise ValueError(f"{label}: item heading and body must be strings")
+            if not isinstance(item.get("label", ""), str):
+                raise ValueError(f"{label}: item label must be text")
+            if item.get("image"):
+                local_file(ASSETS, item["image"])
         if layout == "photo":
             local_file(ASSETS, scene.get("image", ""))
+        if layout == "video" and (not isinstance(scene.get("youtube"), str) or not re.fullmatch(r"[A-Za-z0-9_-]{11}", scene["youtube"])):
+            raise ValueError(f"{label}: video needs a YouTube video ID")
         quiz = scene.get("quiz")
         if quiz is not None:
             options = quiz.get("options", []) if isinstance(quiz, dict) else []

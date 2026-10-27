@@ -10,7 +10,7 @@ from davinci_creator.deck import build, html_deck, pptx_deck
 class ImportedDeckTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.doc = load(ROOT / "projects/recruitment/content.json")
+        cls.doc = load(ROOT / "projects/recruitment/source/imported-content.json")
 
     def test_original_editable_powerpoint_is_preserved_byte_for_byte(self):
         with tempfile.TemporaryDirectory() as temporary:

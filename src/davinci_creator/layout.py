@@ -58,6 +58,10 @@ def line(x, y, x2, y2, color=BLUE, delay=0):
 
 def elements(scene, index, total):
     layout = scene.get("layout", "cards")
+    if layout == "video":
+        return [textbox(scene["title"], 150, 115, 980, 110, 50, True, align="center", delay=.1),
+                dict(kind="play", x=552, y=272, w=176, h=176, color=GOLD, delay=.3),
+                textbox("לחצו לניגון הסרטון במסך מלא", 280, 465, 720, 75, 30, color=BLUE, align="center", delay=.5)]
     if layout == "cover":
         return [image("brand/logo.png", 100, 195, 290, 292, .2),
                 textbox(scene["title"], 450, 115, 730, 205, 66, True, delay=.4),
@@ -79,6 +83,18 @@ def elements(scene, index, total):
     elif layout == "timeline":
         items = scene["items"]
         n = len(items)
+        if n > 4:
+            for row in range(2):
+                group = items[row*4:(row+1)*4]
+                top = 205 + row*220
+                out.append(line(125, top+45, 1155, top+45, GOLD, .2+row*.4))
+                for col, item in enumerate(group):
+                    cx = 1085 - col*290
+                    delay = .3 + (row*4+col)*.12
+                    out += [textbox(item.get("label", ""), cx-125, top, 250, 38, 23, True, GOLD, "center", delay),
+                            textbox(item["heading"], cx-125, top+65, 250, 65, 28, True, align="center", delay=delay+.1),
+                            textbox(item.get("body", ""), cx-125, top+133, 250, 75, 23, color=BLUE, align="center", delay=delay+.2)]
+            return out
         centers = [1140 - (i+.5) * (1000/n) for i in range(n)]
         out.append(line(centers[-1], 286, centers[0], 286, GOLD, .2))
         for i, (item, cx) in enumerate(zip(items, centers)):
@@ -97,7 +113,12 @@ def elements(scene, index, total):
             x, y = 1140-(col+1)*cw, 210+row*rh
             if col:
                 out.append(line(x+cw+16, y+4, x+cw+16, y+rh-27, color=BLUE))
-            out += [textbox(item["heading"], x+20, y, cw-35, 80 if rows==1 else 72, 39 if rows==1 else 32,
+            heading_width = cw-35
+            if item.get("image"):
+                icon_size = 66 if rows > 1 else 78
+                out.append(image(item["image"], x+cw-icon_size-20, y+2, icon_size, icon_size, .25+i*.35))
+                heading_width -= icon_size+15
+            out += [textbox(item["heading"], x+20, y, heading_width, 80 if rows==1 else 72, 39 if rows==1 else 32,
                             True, GOLD, delay=.35+i*.35),
                     textbox(item.get("body", ""), x+20, y+(100 if rows==1 else 82), cw-35,
                             rh-(115 if rows==1 else 95), 31 if rows==1 else 27, delay=.55+i*.35)]

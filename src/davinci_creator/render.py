@@ -34,6 +34,10 @@ def draw_element(im, item, progress=1):
     if item["kind"] == "line":
         d.line((item["x"], item["y"], item["x"]+(item["x2"]-item["x"])*progress,
                 item["y"]+(item["y2"]-item["y"])*progress), fill="#"+item["color"], width=1)
+    elif item["kind"] == "play":
+        x, y, w, h = item["x"], item["y"]+dy, item["w"], item["h"]
+        d.ellipse((x, y, x+w, y+h), outline="#"+item["color"], width=3)
+        d.polygon([(x+w*.4, y+h*.28), (x+w*.4, y+h*.72), (x+w*.73, y+h*.5)], fill="#"+item["color"])
     elif item["kind"] == "image":
         src = picture(item["src"])
         ratio = min(item["w"]/src.width, item["h"]/src.height)
@@ -59,7 +63,7 @@ STARS = [(_rng.uniform(0,W), _rng.uniform(0,H), _rng.uniform(.5,1.5), _rng.rando
 
 
 def frame(scene, index, total, t=None, caption=None):
-    im = background(scene.get("layout")=="cover").copy()
+    im = Image.new("RGBA", (W, H), "#000000") if scene.get("layout") == "video" else background(scene.get("layout")=="cover").copy()
     if t is not None:
         layer = Image.new("RGBA", im.size)
         d = ImageDraw.Draw(layer)
