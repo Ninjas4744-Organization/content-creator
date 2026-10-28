@@ -3,6 +3,7 @@ import { observer } from "mobx-react-lite";
 import styled, { useTheme } from "styled-components/native";
 import type { CatalogStore } from "../features/catalog/CatalogStore";
 import { LibraryCard, durationLabel } from "../features/catalog/LibraryCard";
+import { galleries } from "../features/catalog/galleries";
 import type { LearningItem, MediaKind } from "../models/catalog";
 import {
 	Body,
@@ -186,14 +187,15 @@ export const LibraryScreen = observer(function LibraryScreen({
 	const theme = useTheme();
 	const compact = width < 720;
 	const columns = width < 720 ? 1 : width < 1100 ? 2 : 3;
-	const team = store.gallery === "team";
-	const item = (team ? store.listedItems : store.items).find((entry) => entry.id === selectedId);
+	const study = store.gallery === "study";
+	const details = galleries[store.gallery];
+	const item = store.viewableItems.find((entry) => entry.id === selectedId);
 	const featured = store.featured;
 	return (
 		<Page>
 			<Header>
 				<Container $compact={compact}>
-					<Row style={{ justifyContent: "space-between" }}>
+					<Row style={{ justifyContent: "space-between", flexWrap: "wrap" }}>
 						<Row style={{ gap: 13 }}>
 							<Image
 								source={{ uri: "library/brand/logo.png" }}
@@ -215,9 +217,7 @@ export const LibraryScreen = observer(function LibraryScreen({
 						</Row>
 						<Row style={{ gap: 9 }}>
 							<Icon name="library" size={18} />
-							<Label style={{ fontSize: 12 }}>
-								{team ? "ספריית הקבוצה" : "ספריית למידה"}
-							</Label>
+							<Label style={{ fontSize: 12 }}>{details.title}</Label>
 						</Row>
 					</Row>
 				</Container>
@@ -273,13 +273,9 @@ export const LibraryScreen = observer(function LibraryScreen({
 								gap: 23,
 							}}
 						>
-							<Eyebrow>
-								{team ? "לומדים יחד בדה וינצ׳י 4744" : "הידע של הקבוצה, פתוח לכולם"}
-							</Eyebrow>
+							<Eyebrow>{details.eyebrow}</Eyebrow>
 							<HeroTitle $compact={compact} accessibilityRole="header">
-								{team
-									? "התכנים של הקבוצה,\nבמקום אחד."
-									: "כל רעיון גדול\nמתחיל בלמידה."}
+								{details.hero}
 							</HeroTitle>
 							<Body
 								style={{
@@ -288,9 +284,7 @@ export const LibraryScreen = observer(function LibraryScreen({
 									lineHeight: 30,
 								}}
 							>
-								{team
-									? "מצגות וסרטונים לפעילות הקבוצה, להכשרות ולמפגשים.\nבוחרים נושא ולומדים בקצב שלכם."
-									: "מהצעד הראשון בסדנה ועד לרגע שעל המגרש.\nמצגות וסרטונים שאפשר ללמוד איתם, בקצב שלכם."}
+								{details.description}
 							</Body>
 							<Row style={{ gap: 24, paddingTop: 6, flexWrap: "wrap" }}>
 								<Row style={{ gap: 8 }}>
@@ -388,7 +382,7 @@ export const LibraryScreen = observer(function LibraryScreen({
 									<Icon name="search" size={19} color={theme.muted} />
 									<Search
 										accessibilityLabel="חיפוש בספרייה"
-										placeholder="חיפוש נושא, פרק או מילת מפתח"
+										placeholder={details.searchPlaceholder}
 										placeholderTextColor={theme.muted}
 										value={store.query}
 										onChangeText={store.setQuery}
@@ -472,7 +466,29 @@ export const LibraryScreen = observer(function LibraryScreen({
 								</View>
 							))}
 						</View>
-						{store.visibleItems.length === 0 && (
+						{study && store.listedItems.length === 0 ? (
+							<View
+								style={{
+									paddingVertical: 46,
+									paddingHorizontal: compact ? 22 : 40,
+									gap: 14,
+									alignItems: "center",
+									backgroundColor: theme.surface,
+									borderWidth: 1,
+									borderColor: theme.border,
+									borderRadius: 14,
+								}}
+							>
+								<Icon name="book" size={38} color={theme.primary} />
+								<Heading $compact style={{ textAlign: "center" }}>
+									התוכן הראשון בדרך
+								</Heading>
+								<Body style={{ textAlign: "center", maxWidth: 510 }}>
+									כאן יופיעו חומרי לימוד ותרגול למקצועות בית הספר.
+									{"\n"}כשהתוכן הראשון יעלה, תוכלו לבחור נושא ולהתחיל ללמוד.
+								</Body>
+							</View>
+						) : store.visibleItems.length === 0 ? (
 							<View style={{ paddingVertical: 55, gap: 16, alignItems: "center" }}>
 								<Icon name="search" size={32} />
 								<Heading $compact>לא נמצאו נושאים מתאימים</Heading>
@@ -483,14 +499,15 @@ export const LibraryScreen = observer(function LibraryScreen({
 									<ButtonText $secondary>ניקוי החיפוש והסינון</ButtonText>
 								</Button>
 							</View>
-						)}
+						) : null}
 						<View style={{ paddingTop: 50, paddingBottom: 42, gap: 12 }}>
 							<Rule />
 							<Row style={{ paddingTop: 20, gap: 14 }}>
 								<Icon name="check" size={20} color={theme.success} />
 								<Body style={{ fontSize: 13 }}>
-									לא רק צופים — משתתפים. בסרטונים תמצאו פרקים, כתוביות ושאלות
-									למחשבה.
+									{study
+										? "לומדים בקצב שלכם: חוזרים להסבר, מתרגלים ומגיעים מוכנים למבחן."
+										: "לא רק צופים — משתתפים. בסרטונים תמצאו פרקים, כתוביות ושאלות למחשבה."}
 								</Body>
 							</Row>
 						</View>

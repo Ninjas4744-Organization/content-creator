@@ -1,4 +1,5 @@
 import { makeAutoObservable, observable, runInAction } from "mobx";
+import { itemGallery } from "../../models/catalog";
 import type {
 	CatalogRepository,
 	GalleryScope,
@@ -27,9 +28,13 @@ export class CatalogStore {
 	}
 
 	get listedItems() {
-		return this.items.filter((item) =>
-			this.gallery === "team" ? item.unlisted : !item.unlisted,
-		);
+		return this.items.filter((item) => itemGallery(item) === this.gallery);
+	}
+	get viewableItems() {
+		// Preserve existing direct links to team content from the public root.
+		return this.gallery === "public"
+			? this.items.filter((item) => itemGallery(item) !== "study")
+			: this.listedItems;
 	}
 	get categories() {
 		return ["הכול", ...new Set(this.listedItems.map((item) => item.category))];

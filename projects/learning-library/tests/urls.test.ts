@@ -11,19 +11,21 @@ test("nested gallery routes resolve media and downloads against the HTML base", 
 		});
 	}
 	for (const prefix of ["/", "/content-creator/"]) {
-		const root = `https://learning.example${prefix}`;
-		Object.defineProperty(globalThis, "window", {
-			configurable: true,
-			value: { location: { href: `${root}team-library/?item=recruitment&view=deck` } },
-		});
-		Object.defineProperty(globalThis, "document", {
-			configurable: true,
-			value: { baseURI: root },
-		});
-		assert.equal(publicUrl("library/catalog.json"), `${root}library/catalog.json`);
-		assert.equal(
-			publicUrl("library/exports/recruitment/slides.zip"),
-			`${root}library/exports/recruitment/slides.zip`,
-		);
+		for (const gallery of ["team-library", "study-library"]) {
+			const root = `https://learning.example${prefix}`;
+			Object.defineProperty(globalThis, "window", {
+				configurable: true,
+				value: { location: { href: `${root}${gallery}/?item=recruitment&view=deck` } },
+			});
+			Object.defineProperty(globalThis, "document", {
+				configurable: true,
+				value: { baseURI: root },
+			});
+			assert.equal(publicUrl("library/catalog.json"), `${root}library/catalog.json`);
+			assert.equal(
+				publicUrl("library/exports/recruitment/slides.zip"),
+				`${root}library/exports/recruitment/slides.zip`,
+			);
+		}
 	}
 });

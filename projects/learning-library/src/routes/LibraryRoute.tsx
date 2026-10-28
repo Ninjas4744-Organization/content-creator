@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import Head from "expo-router/head";
 import { CatalogStore } from "../features/catalog/CatalogStore";
+import { galleries } from "../features/catalog/galleries";
 import { createBrowserRepository } from "../core/browserRepository";
 import { LibraryScreen } from "../screens/LibraryScreen";
 import type { GalleryScope, MediaKind } from "../models/catalog";
@@ -18,7 +19,8 @@ import { Body, Button, ButtonText, Heading } from "../ui/primitives";
 
 export function LibraryRoute({ gallery = "public" }: { gallery?: GalleryScope }) {
 	const [store] = useState(() => new CatalogStore(createBrowserRepository(), gallery));
-	const pathname = gallery === "team" ? "/team-library" : "/";
+	const details = galleries[gallery];
+	const pathname = details.pathname;
 	const router = useRouter();
 	const params = useLocalSearchParams<{ item?: string; view?: string; lti?: string }>();
 	const [lti, setLti] = useState<LtiSession | null>(null);
@@ -113,10 +115,8 @@ export function LibraryRoute({ gallery = "public" }: { gallery?: GalleryScope })
 	return (
 		<>
 			<Head>
-				<title>
-					{gallery === "team" ? "ספריית הקבוצה" : "ספריית למידה"} · דה וינצ׳י 4744
-				</title>
-				{gallery === "team" && <meta name="robots" content="noindex,nofollow" />}
+				<title>{details.title} · דה וינצ׳י 4744</title>
+				{gallery !== "public" && <meta name="robots" content="noindex,nofollow" />}
 			</Head>
 			<LibraryScreen
 				store={store}
