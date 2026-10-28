@@ -12,6 +12,16 @@
 
 ערכו קודם את הבריף והתוכן. פקודת `new` מסרבת לדרוס פרויקט קיים. `check` בודקת גם התאמת טקסט לפריסה. `deck` מפיקה PPTX, HTML ותיקיית previews; השקפים ניתנים להדפסה ל־PDF מתוך HTML דרך הדפדפן. בהצגה: חץ שמאלה/רווח לשקף הבא, חץ ימינה לקודם, N להערות.
 
+## תמונות מאלבומי הקבוצה
+
+```sh
+.venv/bin/python -m davinci_creator photos albums
+.venv/bin/python -m davinci_creator photos catalog season-2026
+.venv/bin/python -m davinci_creator photos import season-2026 --limit 12
+```
+
+אפשר גם להעביר קישור Google Photos משותף במקום מזהה אלבום. הקטלוג מאפשר בחירה חזותית; הייבוא שומר תמונות מקומיות, פרטי מקור ו־storyboard. בחירה לפי מזהה, הגדרות איכות ושימוש בשדה `image`: [מדריך אלבומי התמונות](photos.md).
+
 ## סרטון דוגמה עם הקריינות שכבר קיימת
 
 ```sh

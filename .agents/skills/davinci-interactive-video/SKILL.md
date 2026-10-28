@@ -17,3 +17,5 @@ Work from the repository root, three directories above this file. Read `docs/bra
 8. Deliver MP4 and interactive-player links. Keep the full `interactive/` folder together for sharing. Include the content source and explain any missing narration or unverified playback.
 
 `examples/community/voices/` contains the previously generated Gemini narration for the community example. Pass `--voices examples/community/voices` to reuse it offline. A changed transcript, voice, style or model invalidates its cache signature. The approved video in that example is the earlier hand-tuned render; generic new builds follow the reusable layouts. Never present a silent draft as a finished narrated video.
+
+For real team photos, consult `assets/photo-albums.json` and `docs/photos.md`. Browse with `photos catalog <album-id>`, import selected photos with `photos import <album-id> --photo-id <id>` (repeat as needed), and use the manifest's local `image` paths in scenes. Preserve source records and select images that support the narration; album titles do not establish accomplishments or identities.

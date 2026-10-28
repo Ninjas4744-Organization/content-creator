@@ -16,3 +16,5 @@ Work from the repository root, located three directories above this file. Read `
 7. Deliver links to the PPTX and HTML, with a concise account of what was created. Keep the editable JSON and brief in the project. Apply later corrections to the JSON and rebuild, so exports stay consistent.
 
 The repository includes `examples/community/content.json` and the supplied visual-reference PDF. Use them as design/content examples when relevant, not as a required topic for every presentation. See `docs/apps.md` for app-specific loading and `docs/commands.md` for preview and serving commands.
+
+For real team photos, consult `assets/photo-albums.json` and `docs/photos.md`. Use `photos catalog <album-id>` to select relevant images visually, then `photos import <album-id> --photo-id <id>` (repeat the flag for several). Put the imported manifest's `image` paths in the content JSON and preserve its source records. Download only the selection needed for the project; album titles do not establish accomplishments or identities.
