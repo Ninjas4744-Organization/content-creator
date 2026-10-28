@@ -34,6 +34,11 @@
       "title": "OpenStax — Hooke’s Law",
       "url": "https://openstax.org/books/college-physics-2e/pages/16-1-hookes-law-stress-and-strain-revisited",
       "use": "ליניאריות, כוח מחזיר, יחידות קבוע הקפיץ וגרף כוח מול התארכות"
+    },
+    {
+      "title": "OpenStax Precalculus 2e — Basic Functions and Identities",
+      "url": "https://openstax.org/books/precalculus-2e/pages/a-basic-functions-and-identities",
+      "use": "אימות זהות פיתגורית, טנגנס ויחסי זוויות משלימות; פתרונות ותרשימים מקוריים."
     }
   ],
   "visuals": "Original diagrams and animations authored in build_video.py. No textbook figures reproduced."

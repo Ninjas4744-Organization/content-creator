@@ -18,7 +18,7 @@
 
 | נכסים נוספים | מקור ושימוש |
 | --- | --- |
-| `illustrations/physics-forces-exam/*.png` | 18 תרשימי פיזיקה מקוריים שנוצרו בקוד `projects/physics-forces-exam/build_video.py` ב־28.10.2026: חצים, קפיצים, גרפים ותרשימי כוחות. משמשים בסרטון החזרה למבחן ובמצגת המלווה. אין העתקה של איורי הספר; נתוני הניסויים להמחשה בלבד. |
+| `illustrations/physics-forces-exam/*.png` | 24 תרשימי פיזיקה מקוריים שנוצרו בקוד `projects/physics-forces-exam/build_video.py` ב־28.10.2026: חצים, קפיצים, גרפים ותרשימי כוחות. משמשים בסרטון החזרה למבחן ובמצגת המלווה. אין העתקה של איורי הספר; נתוני הניסויים להמחשה בלבד. |
 | `training/library-guide/home.png`, `search.png`, `viewer.png`, `export.png` | צילומי ממשק מהספרייה הציבורית ב־https://knowledge.davinci4744.com/, בתצוגת חלון צר, 26.10.2026. משמשים בסרטון ההיכרות; הממשק והתוכן שייכים לפרויקט Da Vinci 4744. |
 | `recruitment/team.jpg`, `first.png`, `join-qr.png` | תמונת הקבוצה, סמל FIRST וקוד ההצטרפות שחולצו ממצגת הגיוסים שסיפק המשתמש. משמשים במצגת הגיוסים בלבד; המקור נשמר ב־`projects/recruitment/source/recruitment.pptx`. |
 | `recruitment/{software,field,electrical,leadership,mechanics,engineering,media}.{svg,png}` | סמלי התחומים מתוך קובצי ה־SVG במצגת המקורית. קובצי PNG רונדרו מה־SVG על רקע שקוף, ללא שינוי בצורות וללא יצירת סמלים חלופיים. לשימוש במצגות הקבוצה בהתאם לבקשת המשתמש. |

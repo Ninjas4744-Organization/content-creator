@@ -19,13 +19,14 @@ PROJECT = Path(__file__).resolve().parent
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--env-file", type=Path)
+    parser.add_argument("--folder", type=Path, default=PROJECT / "output/video")
     args = parser.parse_args()
     if args.env_file:
         load_environment(args.env_file)
     key = os.environ.get("GEMINI_API_KEY", "").strip()
     if not key:
         raise SystemExit("Configure GEMINI_API_KEY privately.")
-    folder = PROJECT / "output/video/audio"
+    folder = args.folder / "audio"
     listening = folder / "qa-listening.mp3"
     subprocess.run([
         ffmpeg(), "-hide_banner", "-loglevel", "error", "-y",
@@ -41,7 +42,14 @@ def main():
         "overall_pass. Two alternating synthetic voices should be clear, warm and easy to learn from. "
         "The lesson should explain forces, spring force and a Hooke experiment, operational measured "
         "weight versus gravity, vector sums, inertia, Newton third law, tension, two-body systems, "
-        "normal force, static friction and its experiment, and a 4-newton versus 6-newton practice example. "
+        "normal force, static friction and its experiment, and precise symbol meanings and SI units at first use. "
+        "The extended review includes force components, sine/cosine, the Pythagorean and tangent identities, "
+        "and complementary angles. Three worked examples should be audible: a 5 kg body on two ropes at "
+        "30 and 60 degrees (tensions 25 N and about 43.3 N); a 3 kg body on a 30 degree incline with "
+        "static coefficient 0.5 (normal about 25.98 N, required friction 15 N above the 12.99 N maximum, "
+        "critical angle about 26.6 degrees); and a 2 kg box pulled with 8 N upward at 30 degrees with "
+        "coefficient 0.5 (normal 16 N, friction about 6.93 N, maximum allowed pull about 8.96 N). "
+        "Compare these expected results with what is actually spoken; do not assume they were spoken correctly. "
         "In this Israeli textbook measured weight means the force on a weighing instrument, "
         "so free-fall measured weight zero with nonzero gravity is intentional. "
         "Kinetic friction is out of scope. Flag genuine audible errors, not imagined omissions. "

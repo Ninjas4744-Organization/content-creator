@@ -14,3 +14,12 @@
 - דוגמה משולבת וסיכום: `practice-question, practice-solution, remember`.
 
 לא נמסרו דפי מעבדה או מדידות. תיאור הניסויים הוא מודל הוראה כללי; ערכי המספרים להמחשה בלבד. חיכוך קינטי אינו נלמד. g≈10 N/kg בדוגמאות; משתמשים בערך שבמבחן.
+
+## הרחבת גרסה 2
+
+- רכיבי כוח ויחידות, זוויות ו־DEG: `trig-components`.
+- זהות פיתגורית, זהות טנגנס וזוויות משלימות: `trig-identities`.
+- שני חוטים בזוויות 30° ו־60°: `ropes-question`, `ropes-solution`.
+- מישור משופע ותנאי tanθ≤µ_s: `incline-question`, `incline-solution`.
+- משיכה בזווית, שינוי נורמל וכוח משיכה מרבי: `practice-question`, `practice-solution`.
+- הגדרת הסימונים, תפקידים ויחידות בהופעה ראשונה: `symbols.md`, שדה notation בקובץ התוכן.
