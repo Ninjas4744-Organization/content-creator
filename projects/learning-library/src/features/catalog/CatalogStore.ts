@@ -1,5 +1,10 @@
 import { makeAutoObservable, observable, runInAction } from "mobx";
-import type { CatalogRepository, LearningItem, MediaFilter } from "../../models/catalog";
+import type {
+	CatalogRepository,
+	GalleryScope,
+	LearningItem,
+	MediaFilter,
+} from "../../models/catalog";
 
 export class CatalogStore {
 	items: LearningItem[] = [];
@@ -10,16 +15,21 @@ export class CatalogStore {
 	error: string | null = null;
 	private generation = 0;
 
-	constructor(private readonly repository: CatalogRepository) {
+	constructor(
+		private readonly repository: CatalogRepository,
+		readonly gallery: GalleryScope = "public",
+	) {
 		makeAutoObservable<this, "repository" | "generation">(
 			this,
-			{ repository: false, generation: false, items: observable.ref },
+			{ repository: false, gallery: false, generation: false, items: observable.ref },
 			{ autoBind: true },
 		);
 	}
 
 	get listedItems() {
-		return this.items.filter((item) => !item.unlisted);
+		return this.items.filter((item) =>
+			this.gallery === "team" ? item.unlisted : !item.unlisted,
+		);
 	}
 	get categories() {
 		return ["הכול", ...new Set(this.listedItems.map((item) => item.category))];

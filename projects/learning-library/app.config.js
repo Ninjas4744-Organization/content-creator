@@ -11,7 +11,7 @@ module.exports = {
 		platforms: ["web"],
 		userInterfaceStyle: "dark",
 		web: { bundler: "metro", output: "static", favicon: "../../assets/brand/logo.png" },
-		plugins: ["expo-router"],
+		plugins: [["expo-router", { sitemap: false }]],
 		experiments: { ...(baseUrl ? { baseUrl } : {}) },
 	},
 };

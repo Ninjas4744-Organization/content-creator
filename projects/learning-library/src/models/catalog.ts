@@ -1,5 +1,6 @@
 export type MediaKind = "deck" | "video";
 export type MediaFilter = "all" | MediaKind;
+export type GalleryScope = "public" | "team";
 
 export interface LearningItem {
 	id: string;

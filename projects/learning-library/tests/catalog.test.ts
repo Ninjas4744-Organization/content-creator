@@ -123,3 +123,46 @@ test("failed loading can be retried", async () => {
 	assert.equal(store.loading, false);
 	assert.equal(store.items.length, 2);
 });
+
+test("team gallery searches and counts only unlisted content", async () => {
+	const hidden = [
+		{
+			...items[0]!,
+			id: "recruitment",
+			title: "מצגת גיוסים",
+			category: "היכרות עם התוכנית",
+			unlisted: true,
+		},
+		{
+			...items[1]!,
+			id: "team-selection",
+			title: "בחירת הצוותים",
+			category: "היכרות עם התוכנית",
+			unlisted: true,
+		},
+	];
+	const store = new CatalogStore(
+		repository(async () => [...items, ...hidden]),
+		"team",
+	);
+	await store.load();
+	assert.deepEqual(
+		store.visibleItems.map((item) => item.id),
+		["recruitment", "team-selection"],
+	);
+	assert.equal(store.featured?.id, "team-selection");
+	assert.equal(store.deckCount, 2);
+	assert.equal(store.videoCount, 1);
+	assert.deepEqual(store.categories, ["הכול", "היכרות עם התוכנית"]);
+	store.setQuery("קהילה");
+	assert.equal(store.visibleItems.length, 0);
+	store.setQuery("צוותים");
+	store.setFilter("video");
+	store.setCategory("היכרות עם התוכנית");
+	assert.deepEqual(
+		store.visibleItems.map((item) => item.id),
+		["team-selection"],
+	);
+	store.reset();
+	assert.equal(store.visibleItems.length, 2);
+});

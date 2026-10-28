@@ -1,9 +1,14 @@
 import type { CatalogRepository, LearningItem } from "../models/catalog";
 
-// Query-string routes stay at the export root, including on repository Pages sites.
+// The HTML base keeps catalog and media URLs at the export root on every route.
 export function publicUrl(path: string): string {
 	if (typeof window === "undefined") return path;
-	return new URL(path, window.location.href.split("?")[0]!.split("#")[0]).href;
+	return new URL(
+		path,
+		typeof document === "undefined"
+			? new URL("/", window.location.href).href
+			: document.baseURI,
+	).href;
 }
 
 export function createBrowserRepository(): CatalogRepository {

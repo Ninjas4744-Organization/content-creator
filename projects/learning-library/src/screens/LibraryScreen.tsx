@@ -186,7 +186,8 @@ export const LibraryScreen = observer(function LibraryScreen({
 	const theme = useTheme();
 	const compact = width < 720;
 	const columns = width < 720 ? 1 : width < 1100 ? 2 : 3;
-	const item = store.items.find((entry) => entry.id === selectedId);
+	const team = store.gallery === "team";
+	const item = (team ? store.listedItems : store.items).find((entry) => entry.id === selectedId);
 	const featured = store.featured;
 	return (
 		<Page>
@@ -214,7 +215,9 @@ export const LibraryScreen = observer(function LibraryScreen({
 						</Row>
 						<Row style={{ gap: 9 }}>
 							<Icon name="library" size={18} />
-							<Label style={{ fontSize: 12 }}>ספריית למידה</Label>
+							<Label style={{ fontSize: 12 }}>
+								{team ? "ספריית הקבוצה" : "ספריית למידה"}
+							</Label>
 						</Row>
 					</Row>
 				</Container>
@@ -270,9 +273,13 @@ export const LibraryScreen = observer(function LibraryScreen({
 								gap: 23,
 							}}
 						>
-							<Eyebrow>הידע של הקבוצה, פתוח לכולם</Eyebrow>
+							<Eyebrow>
+								{team ? "לומדים יחד בדה וינצ׳י 4744" : "הידע של הקבוצה, פתוח לכולם"}
+							</Eyebrow>
 							<HeroTitle $compact={compact} accessibilityRole="header">
-								כל רעיון גדול{"\n"}מתחיל בלמידה.
+								{team
+									? "התכנים של הקבוצה,\nבמקום אחד."
+									: "כל רעיון גדול\nמתחיל בלמידה."}
 							</HeroTitle>
 							<Body
 								style={{
@@ -281,8 +288,9 @@ export const LibraryScreen = observer(function LibraryScreen({
 									lineHeight: 30,
 								}}
 							>
-								מהצעד הראשון בסדנה ועד לרגע שעל המגרש.{"\n"}מצגות וסרטונים שאפשר
-								ללמוד איתם, בקצב שלכם.
+								{team
+									? "מצגות וסרטונים לפעילות הקבוצה, להכשרות ולמפגשים.\nבוחרים נושא ולומדים בקצב שלכם."
+									: "מהצעד הראשון בסדנה ועד לרגע שעל המגרש.\nמצגות וסרטונים שאפשר ללמוד איתם, בקצב שלכם."}
 							</Body>
 							<Row style={{ gap: 24, paddingTop: 6, flexWrap: "wrap" }}>
 								<Row style={{ gap: 8 }}>
