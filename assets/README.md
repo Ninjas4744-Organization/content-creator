@@ -20,3 +20,4 @@
 | `recruitment/team.jpg`, `first.png`, `join-qr.png` | תמונת הקבוצה, סמל FIRST וקוד ההצטרפות שחולצו ממצגת הגיוסים שסיפק המשתמש. משמשים במצגת הגיוסים בלבד; המקור נשמר ב־`projects/recruitment/source/recruitment.pptx`. |
 | `recruitment/{software,field,electrical,leadership,mechanics,engineering,media}.{svg,png}` | סמלי התחומים מתוך קובצי ה־SVG במצגת המקורית. קובצי PNG רונדרו מה־SVG על רקע שקוף, ללא שינוי בצורות וללא יצירת סמלים חלופיים. לשימוש במצגות הקבוצה בהתאם לבקשת המשתמש. |
 | `recruitment/technology-unit-{1,2,3}.png`, `learning.gif` | שלושת סמלי היחידות והאנימציה בת 20 השניות מתוך מצגת הגיוסים המקורית. הקבצים נשמרו ללא שינוי; החיתוך של האנימציה מוגדר בפריסה, כפי שהיה במקור. |
+| `team-selection/questionnaire-qr.png` | קוד QR שנוצר מקומית עבור קישור השאלון שסיפק המשתמש ב־28.10.2026. משתמש בלוגו וב־wordmark המקומיים, באותו עיצוב של מצגת הגיוסים. המקור והאימות נמצאים ב־`projects/team-selection/output/qr/`; לשימוש במצגת בחירת הצוותים. |

@@ -134,6 +134,20 @@ def elements(scene, index, total):
     else:
         items = scene["items"]
         n = len(items)
+        if scene.get("icon_layout") == "columns":
+            if n > 4:
+                raise ValueError("Icon columns support up to four items")
+            cw = 1080/n
+            for i, item in enumerate(items):
+                cx = 1180-(i+.5)*cw
+                delay = .25+i*.2
+                if item.get("image"):
+                    out.append(image(item["image"], cx-66, 225, 132, 132, delay))
+                out += [textbox(item["heading"], cx-cw/2+12, 385, cw-24, 64, 38,
+                                True, GOLD, "center", delay+.15),
+                        textbox(item.get("body", ""), cx-cw/2+12, 468, cw-24, 135, 29,
+                                align="center", delay=delay+.3)]
+            return out
         cols = n if n <= 3 else (2 if n == 4 else 3)
         rows = (n+cols-1)//cols
         cw, rh = 1080/cols, 440/rows
