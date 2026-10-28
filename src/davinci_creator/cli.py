@@ -30,6 +30,18 @@ def main():
     parser=argparse.ArgumentParser(description="Da Vinci 4744: presentations and interactive video")
     sub=parser.add_subparsers(dest="command",required=True)
     sub.add_parser("doctor",help="Check local fonts, assets and FFmpeg")
+    photos=sub.add_parser("photos",help="Browse and import link-shared Google Photos team albums")
+    photo_commands=photos.add_subparsers(dest="photos_command",required=True)
+    photo_commands.add_parser("albums",help="List registered team albums (offline)")
+    for operation in ["catalog","import"]:
+        photo_command=photo_commands.add_parser(operation)
+        photo_command.add_argument("album",help="Registered album id or shared Google Photos URL")
+        photo_command.add_argument("--out",type=Path,help="Selection/preview output folder")
+        if operation=="import":
+            photo_command.add_argument("--limit",type=int,default=12,help="Photo count; 0 imports all photos")
+            photo_command.add_argument("--offset",type=int,default=0,help="Skip this many photos (zero-based)")
+            photo_command.add_argument("--photo-id",action="append",help="Import a specific photo; repeat to select several")
+            photo_command.add_argument("--size",type=int,default=2400,help="Maximum image edge in pixels (320–8000)")
     new=sub.add_parser("new",help="Create an editable project brief and content document")
     new.add_argument("name");new.add_argument("--title",default="המצגת החדשה שלנו")
     for name in ["check","deck","tts","video","player"]:
@@ -60,6 +72,9 @@ def main():
     args=parser.parse_args()
     try:
         if args.command=="doctor":doctor();return
+        if args.command=="photos":
+            from .photos import run
+            run(args);return
         if args.command in {"lti-keygen","lti-serve"}:
             try:
                 if args.command=="lti-keygen":

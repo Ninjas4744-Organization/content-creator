@@ -56,6 +56,7 @@ Open `outputs/community-deck/presentation.html`, or edit `presentation.pptx`. In
 - **Videos**: Python animation and transitions, original music and sound effects generated in code, automatic music ducking during speech, Gemini narration using Kore and Puck, and Hebrew captions.
 - **Interactive player**: chapters, transcript search, playback speed, locally saved progress, and questions with feedback. The MP4 provides continuous playback; the HTML player adds interactivity.
 - **Ready-to-use example**: Introduction to Community in FIRST, including the approved video and its cached narration. You can build the example without sending a request to Gemini.
+- **Team photo albums**: browse the three registered Google Photos albums, select photos visually, and import local images with source records for slides and videos. See the [photo album guide](docs/photos.md).
 
 ## Generate new narration
 

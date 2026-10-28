@@ -15,6 +15,7 @@ lti.local.json
 lti.platform.local.json
 credentials*.json
 outputs/
+assets/photos/albums/
 build/
 dist/
 projects/*/output/
