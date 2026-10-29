@@ -1,0 +1,92 @@
+{
+  "project": "trello-team-basics",
+  "title": "Trello בקבוצה — ממשימה להתקדמות",
+  "publication_date": "2026-10-29",
+  "meeting_date": "2026-10-30",
+  "url": "https://knowledge.davinci4744.com/team-library?item=trello-team-basics&view=video",
+  "release": "6768b56a75c541fe99284b939b71e6fb",
+  "source_version": "c9761d86eff5f4955a77663287a3c3d2d86eaa0636ed4cd621c551664943a0ba",
+  "duration_seconds": 236.5,
+  "resolution": [
+    1920,
+    1080
+  ],
+  "fps": 24,
+  "chapters": 13,
+  "checkpoints": 0,
+  "gallery": "team",
+  "unlisted": true,
+  "changes": [
+    "Continuous Hebrew Trello tutorial for the team meeting, with original interface diagrams, Gemini narration, captions and original background music.",
+    "No questions or playback interruptions, as requested. Chapter navigation and transcript search remain available.",
+    "Editable project sources and original diagrams saved and restore-verified in R2."
+  ],
+  "verification": {
+    "full_mp4_decode": "passed without errors",
+    "rendered_frames": "visually reviewed",
+    "published_player": "opened in team gallery; video and chapter navigation loaded",
+    "previous_catalog_entries": "all 11 preserved",
+    "clipped_samples": 0,
+    "final_lufs": -16.1,
+    "final_true_peak_dbtp": -1.79,
+    "audio_review": "automated decoding and levels only; direct auditory review unavailable",
+    "captions": "approximate phrase timing"
+  },
+  "assets": [
+    {
+      "key": "library/releases/6768b56a75c541fe99284b939b71e6fb/exports/trello-team-basics/slides.zip",
+      "sha256": "f206ad3e4b90295ba533f67afae8eacd1ded24d2d9782c5062d41cf6fc8bab11",
+      "bytes": 6081713
+    },
+    {
+      "key": "library/releases/6768b56a75c541fe99284b939b71e6fb/exports/trello-team-basics/video.zip",
+      "sha256": "54afffcf202520cc3d72d1603315c780671a92b23a2fc5dc5cd39eb7f3ad8fb6",
+      "bytes": 21880148
+    },
+    {
+      "key": "library/releases/6768b56a75c541fe99284b939b71e6fb/media/trello-team-basics/interactive/Rubik-Bold.ttf",
+      "sha256": "b1c36dfcbc5fe5011c552c76725c84d989a71d56440e8bfbfa0cb68b593dbad6",
+      "bytes": 140396
+    },
+    {
+      "key": "library/releases/6768b56a75c541fe99284b939b71e6fb/media/trello-team-basics/interactive/Rubik-Regular.ttf",
+      "sha256": "bd1490f4314d27ca1ac5d8869fdda068852edd623318c9bee13e812b793b301b",
+      "bytes": 136624
+    },
+    {
+      "key": "library/releases/6768b56a75c541fe99284b939b71e6fb/media/trello-team-basics/interactive/captions.vtt",
+      "sha256": "abf0c937b1a85d8b226fa8191ddd39cd49611c46314c530bdb9a8bc16193dac9",
+      "bytes": 7344
+    },
+    {
+      "key": "library/releases/6768b56a75c541fe99284b939b71e6fb/media/trello-team-basics/interactive/index.html",
+      "sha256": "3aad38bb0abcb0869dec9ffdeb31820907c5ec264b778a8eae3d15920c0b6068",
+      "bytes": 24735
+    },
+    {
+      "key": "library/releases/6768b56a75c541fe99284b939b71e6fb/media/trello-team-basics/interactive/poster.jpg",
+      "sha256": "e7999236e9f2840084de8a7b5b1e0799da4470d3f6da4bfad6293cbca42f44f6",
+      "bytes": 149361
+    },
+    {
+      "key": "library/releases/6768b56a75c541fe99284b939b71e6fb/media/trello-team-basics/interactive/video.mp4",
+      "sha256": "3c5fbf43bf6b49b6561c3d26dac4ddbe4f94180730454f9aef58cda0f2f86c26",
+      "bytes": 21405794
+    },
+    {
+      "key": "library/releases/6768b56a75c541fe99284b939b71e6fb/media/trello-team-basics/poster.jpg",
+      "sha256": "e7999236e9f2840084de8a7b5b1e0799da4470d3f6da4bfad6293cbca42f44f6",
+      "bytes": 149361
+    },
+    {
+      "key": "library/releases/6768b56a75c541fe99284b939b71e6fb/media/trello-team-basics/presentation.html",
+      "sha256": "a70c5015f7a9b261a65206fda452f6bec3c7db79382892eb0d87987fee6d72a7",
+      "bytes": 7917157
+    },
+    {
+      "key": "library/releases/6768b56a75c541fe99284b939b71e6fb/media/trello-team-basics/presentation.pptx",
+      "sha256": "dbe19061a3160ed920afa2a31d70b489d2ad156cd15f549563204fdd5b2acd27",
+      "bytes": 2628972
+    }
+  ]
+}
