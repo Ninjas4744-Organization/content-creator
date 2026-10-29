@@ -89,6 +89,21 @@ for recovery and existing open lessons. Old releases consume storage until an op
 explicitly removes unreferenced versions. The publisher performs no automatic deletion.
 Successful uploads write a local receipt under `learning-library/output/r2/`.
 
+With an existing Wrangler login, a prepared package can also be published without
+creating or exporting S3 credentials:
+
+```sh
+.venv/bin/python scripts/publish_library.py --dry-run
+.venv/bin/python scripts/publish_library_wrangler.py
+```
+
+This route verifies uploaded bytes, preserves unrelated lessons and the previous
+catalog, and checks that the catalog has not changed before promotion. Run only
+one catalog publisher at a time: Wrangler does not expose an atomic conditional
+object write. Use the S3 publisher above when concurrent publication is needed.
+Both publishers accept `--directory` for an explicitly prepared package, including
+already reviewed HTML and PowerPoint files with custom project layouts.
+
 ## Existing media migration
 
 The initial migration uploaded and verified 9 lessons and 96 assets. Existing published
