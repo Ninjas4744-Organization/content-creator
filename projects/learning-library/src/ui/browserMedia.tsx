@@ -1,61 +1,20 @@
-import { useEffect, useRef, type ReactNode } from "react";
+import type { ReactNode } from "react";
 import { useTheme } from "styled-components/native";
 import { publicUrl } from "../core/browserRepository";
-import type { LearningProgress } from "../features/lti/LtiClient";
 
 // Browser media is kept at this boundary; feature state and screens use semantic props.
 export function MediaFrame({
 	path,
 	title,
 	kind,
-	onProgress,
 }: {
 	path: string;
 	title: string;
 	kind: "deck" | "video";
-	onProgress?(event: LearningProgress): void;
 }) {
 	const theme = useTheme();
-	const frame = useRef<HTMLIFrameElement>(null);
-	useEffect(() => {
-		if (!onProgress) return;
-		const receive = (event: MessageEvent) => {
-			if (
-				event.origin !== window.location.origin ||
-				event.source !== frame.current?.contentWindow
-			)
-				return;
-			const data = event.data;
-			if (data?.type !== "davinci-learning") return;
-			if (kind === "deck" && data.event === "slide" && Number.isInteger(data.index)) {
-				onProgress({ event: "slide", index: data.index });
-			} else if (
-				kind === "video" &&
-				data.event === "video" &&
-				Number.isFinite(data.position) &&
-				Number.isFinite(data.rate) &&
-				typeof data.playing === "boolean"
-			) {
-				onProgress({
-					event: "video",
-					position: data.position,
-					rate: data.rate,
-					playing: data.playing,
-				});
-			}
-		};
-		window.addEventListener("message", receive);
-		return () => window.removeEventListener("message", receive);
-	}, [kind, onProgress]);
 	return (
 		<iframe
-			ref={frame}
-			onLoad={() =>
-				frame.current?.contentWindow?.postMessage(
-					{ type: "davinci-progress-request" },
-					window.location.origin,
-				)
-			}
 			key={path}
 			src={publicUrl(path)}
 			title={title}

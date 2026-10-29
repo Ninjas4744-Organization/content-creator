@@ -27,6 +27,7 @@ test("stale browser-bound session references are removed from public redirects",
 
 test("retired LTI endpoints and POST bodies never redirect to the active service", async () => {
 	for (const path of [
+		"/lti",
 		"/lti/login",
 		"/lti/launch",
 		"/lti/jwks",

@@ -124,7 +124,6 @@ def prepare():
     target = LIBRARY / "public/library"
     shutil.rmtree(target, ignore_errors=True)
     target.mkdir(parents=True)
-    shutil.copy2(ROOT / "src/davinci_creator/learning_bridge.js", target / "learning-bridge.js")
     brand = target / "brand"
     brand.mkdir()
     for name in ("logo.png", "wordmark.png", "space-hero.png", "Rubik-Regular.ttf", "Rubik-Bold.ttf", "Rubik-OFL.txt"):
@@ -142,7 +141,6 @@ def prepare():
         build(doc, deck)
         for name in ("presentation.html", "presentation.pptx"):
             shutil.copy2(deck / name, output / name)
-        instrument_media(output / "presentation.html", "../../learning-bridge.js")
         previews = sorted((deck / "previews").glob("*.png"))
         if not previews:
             raise ValueError(f"No poster generated for {project_id}")
@@ -155,7 +153,6 @@ def prepare():
         duration = None
         if has_video:
             package_player(player, output / "interactive")
-            instrument_media(output / "interactive/index.html", "../../../learning-bridge.js")
             shutil.copy2(player / "poster.jpg", output / "poster.jpg")
             parser = re.search(r'<script[^>]*id="content"[^>]*>(.*?)</script>', (player / "index.html").read_text(encoding="utf-8"), re.S)
             if not parser:
@@ -198,14 +195,6 @@ def scorm_timeline(doc: dict, rendered: dict) -> dict:
         raise ValueError("Video scene IDs do not match the source document; render it again before exporting")
     fields = {"start", "duration", "voice_offset", "voice_duration", "captions"}
     return {**doc, "scenes": [{**scene, **{key: value for key, value in timings[scene["id"]].items() if key in fields}} for scene in doc["scenes"]]}
-
-
-def instrument_media(path: Path, bridge: str) -> None:
-    """Add library-only progress events without changing retained/offline originals."""
-    content = path.read_text(encoding="utf-8")
-    script = f'<script src="{bridge}"></script>'
-    content = content.replace("</body>", script + "</body>") if "</body>" in content else content + script
-    path.write_text(content, encoding="utf-8")
 
 
 def main():

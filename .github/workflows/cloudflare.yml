@@ -19,8 +19,6 @@ jobs:
         timeout-minutes: 25
         env:
             WRANGLER_SEND_METRICS: "false"
-            PLATFORM_ISSUER: ${{ secrets.LTI_PLATFORM_ISSUER }}
-            OUTCOME_EXTENSION: ${{ secrets.LTI_OUTCOME_EXTENSION }}
         steps:
             - uses: actions/checkout@v6
             - uses: actions/setup-python@v6
@@ -36,7 +34,7 @@ jobs:
             - name: Install content tools
               run: |
                   python -m venv .venv
-                  .venv/bin/python -m pip install -e '.[lti]'
+                  .venv/bin/python -m pip install -e .
             - name: Check content tools and packaging
               run: .venv/bin/python -m unittest discover -s tests
             - name: Install website
@@ -52,7 +50,7 @@ jobs:
               run: npm --prefix projects/learning-library run build
             - name: Install Cloudflare tools
               run: npm --prefix projects/learning-library/cloudflare ci --no-audit --no-fund
-            - name: Stage public assets and backend assessments
+            - name: Stage public assets and video metadata
               run: npm --prefix projects/learning-library/cloudflare run prepare:content
             - name: Check Worker and deployment bundle
               run: |
@@ -85,18 +83,12 @@ jobs:
         env:
             CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
             WRANGLER_SEND_METRICS: "false"
-            PLATFORM_ISSUER: ${{ secrets.LTI_PLATFORM_ISSUER }}
-            OUTCOME_EXTENSION: ${{ secrets.LTI_OUTCOME_EXTENSION }}
         steps:
             - uses: actions/checkout@v6
             - name: Check deployment credential
               run: |
                   if [ -z "$CLOUDFLARE_API_TOKEN" ]; then
                       echo "::error::Add the CLOUDFLARE_API_TOKEN Actions secret to enable Cloudflare deployments."
-                      exit 1
-                  fi
-                  if [ -z "$PLATFORM_ISSUER" ]; then
-                      echo "::error::Configure the private LTI_PLATFORM_ISSUER Actions secret before deploying."
                       exit 1
                   fi
             - uses: actions/setup-node@v6
@@ -110,20 +102,16 @@ jobs:
               with:
                   name: cloudflare-library
                   path: projects/learning-library/output
-            - name: Apply database migrations
-              run: node_modules/.bin/wrangler d1 migrations apply DB --remote
             - name: Deploy verified library to Cloudflare
-              run: |
-                  umask 077
-                  trap 'rm -f ../output/platform-secrets.json' EXIT
-                  python3 -c 'import json, os; json.dump({name: os.environ[name] for name in ("PLATFORM_ISSUER", "OUTCOME_EXTENSION")}, open("../output/platform-secrets.json", "w"))'
-                  node_modules/.bin/wrangler deploy --secrets-file ../output/platform-secrets.json
+              run: node_modules/.bin/wrangler deploy
             - name: Deploy retired-domain redirect
               run: node_modules/.bin/wrangler deploy --config wrangler.redirect.jsonc
-            - name: Verify public site and LTI configuration
+            - name: Verify public site and retired integrations
               run: |
                   curl --fail --silent --show-error --retry 5 --retry-delay 3 https://knowledge.davinci4744.com/ -o /dev/null
                   curl --fail --silent --show-error --retry 5 --retry-delay 3 https://knowledge.davinci4744.com/health |
-                      python3 -c 'import json,sys; status=json.load(sys.stdin); assert status.get("status")=="ok" and status.get("lti")=="configured", "LTI setup is incomplete"'
+                      python3 -c 'import json,sys; status=json.load(sys.stdin); assert status=={"status":"ok"}, "Library health check failed"'
+                  integration_status=$(curl --silent --show-error --output /dev/null --write-out '%{http_code}' https://knowledge.davinci4744.com/lti/jwks)
+                  test "$integration_status" = "410"
                   retired_status=$(curl --silent --show-error --retry 5 --retry-delay 3 --output /dev/null --write-out '%{http_code}' https://learn.davinci4744.com/lti/jwks)
                   test "$retired_status" = "410"

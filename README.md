@@ -22,13 +22,13 @@ The assistant reads `AGENTS.md` and the relevant skill. In Claude Code, you can 
 
 An Expo website under `projects/learning-library/` brings the presentations and interactive videos together in a responsive Hebrew library. It includes topic and format filters, chapter search, embedded viewing, shareable links, and PowerPoint downloads.
 
-After Python setup, run `npm ci` and `npm start` in that directory. `npm run build` exports the website to `projects/learning-library/output/site/`. GitHub Actions checks the project and deploys the public library and LTI service to Cloudflare at [knowledge.davinci4744.com](https://knowledge.davinci4744.com/). See the [library guide](docs/gallery.md) for adding content and retaining videos for publication.
+After Python setup, run `npm ci` and `npm start` in that directory. `npm run build` exports the website to `projects/learning-library/output/site/`. GitHub Actions checks the project and deploys the public library to Cloudflare at [knowledge.davinci4744.com](https://knowledge.davinci4744.com/). See the [library guide](docs/gallery.md) for adding content and retaining videos for publication.
 
-The library is open for everyone to browse and use. It also offers an optional **LTI 1.3 integration**: instructors select lessons for their courses, and learners submit scores and completion to their learning platform. Public browsing and LTI use the same website. A Python service is also available for local use and conventional server hosting. See the [LTI setup guide](docs/lti.md) for supported reporting, registration and verification.
+The library is open for everyone to browse and use. Learning-platform integration uses SCORM exports.
 
 For installation inside a learning platform, export a lesson as a self-contained **SCORM 1.2 ZIP**. Slides and interactive videos support a final knowledge check, scores, completion and progress saved in the LMS. See the [SCORM export guide](docs/scorm.md) and [pilot brief](projects/scorm-pilot/brief.md).
 
-The [Cloudflare deployment guide](docs/cloudflare.md) covers Workers, D1 and GitHub Actions credentials. The retired `learn.davinci4744.com` hostname redirects public bookmarks; all LTI connections use `knowledge.davinci4744.com`. The current videos fit static hosting, so R2 is optional.
+The [Cloudflare deployment guide](docs/cloudflare.md) covers Workers and GitHub Actions credentials. The retired `learn.davinci4744.com` hostname redirects public bookmarks to `knowledge.davinci4744.com`. The current videos fit static hosting, so R2 is optional.
 
 ## First-time setup
 
@@ -73,6 +73,6 @@ Narration is cached by transcript, voice, model, and delivery style. Changing an
 
 Each project has a `brief.md` and `content.json` under `projects/`. Edit the content through your assistant or manually, then export again. The [content format](docs/content-format.md) and [brand guide](docs/brand.md) explain the available options.
 
-To share a generated player, keep its entire `interactive/` folder together. Open `index.html`; if the browser restricts local captions or media, use the `serve` command in the command guide. Standalone players use no external service and send no viewing data. In LTI mode, the library records progress and reports the submitted result to the learner's course.
+To share a generated player, keep its entire `interactive/` folder together. Open `index.html`; if the browser restricts local captions or media, use the `serve` command in the command guide. Standalone players use no external service and send no viewing data. SCORM packages save progress and report results through the learning platform hosting the package.
 
 Generated working outputs, virtual environments, and API keys are excluded from Git. Intentionally retained gallery videos under `projects/learning-library/output/published/` are included so that the deployment workflow can publish them. [Asset sources and rights](assets/README.md) are documented alongside the files.

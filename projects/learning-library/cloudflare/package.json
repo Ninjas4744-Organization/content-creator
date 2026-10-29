@@ -13,10 +13,6 @@
 		"format": "prettier --write src tests *.json *.jsonc *.ts",
 		"format:check": "prettier --check src tests *.json *.jsonc *.ts"
 	},
-	"dependencies": {
-		"fast-xml-parser": "5.11.2",
-		"jose": "6.2.13"
-	},
 	"devDependencies": {
 		"@cloudflare/vitest-plugin": "1.4.7",
 		"@cloudflare/workers-types": "5.20261026.1",

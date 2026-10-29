@@ -1,10 +1,8 @@
 import importlib.util
 import json
-import os
 import tempfile
 import unittest
 from pathlib import Path
-from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[1]
 spec = importlib.util.spec_from_file_location("prepare_cloudflare", ROOT / "scripts/prepare_cloudflare.py")
@@ -13,39 +11,24 @@ spec.loader.exec_module(package)
 
 
 class CloudflarePackageTests(unittest.TestCase):
-    def setUp(self):
-        environment = patch.dict(os.environ, {"PLATFORM_ISSUER": "", "OUTCOME_EXTENSION": "", "LTI_PLATFORM_CONFIG": ""})
-        environment.start()
-        self.addCleanup(environment.stop)
-
-    def test_assessment_module_stays_outside_public_assets(self):
+    def test_public_assets_and_video_metadata_need_no_lms_or_content_sources(self):
         with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory)
-            library = root / "projects/learning-library"
+            library = Path(directory)
             site = library / "output/site"
-            (site / "library").mkdir(parents=True)
+            site.mkdir(parents=True)
             (site / "index.html").write_text("public library")
-            source = root / "projects/demo/content.json"
-            source.parent.mkdir(parents=True)
-            source.write_text(json.dumps({"version": 1, "title": "Demo", "scenes": [
-                {"id": "one", "layout": "cover", "title": "One", "quiz": {"question": "Pick", "options": ["A", "B"], "correct": 1}},
-            ]}))
-            (site / "library/catalog.json").write_text(json.dumps([{
-                "id": "demo", "title": "Demo", "description": "Test", "slides": 1,
-                "duration": None, "deck": "deck.html", "video": None,
-            }]))
             (site / "example.mp4").write_bytes(b"test media")
-            (library / "lti.platform.local.json").write_text(json.dumps({"platform_issuer": "https://platform.example/lms"}))
-            package.prepare(library, root)
-            bank = json.loads((library / "output/cloudflare-data/lessons.json").read_text())
-            self.assertEqual(bank["demo"]["questions"][0]["correct"], 1)
+            (site / "lesson.zip").write_bytes(b"PK SCORM archive")
+            data = library / "output/cloudflare-data"
+            data.mkdir(parents=True)
+            (data / "lessons.json").write_text("stale private assessments")
+            package.prepare(library)
             public = library / "output/cloudflare-assets"
             self.assertEqual((public / "index.html").read_text(), "public library")
-            self.assertFalse((public / "lessons.json").exists())
-            self.assertIn("frame-ancestors 'self' https://platform.example;", (public / "_headers").read_text())
-            self.assertFalse((public / "lti.platform.local.json").exists())
-            self.assertEqual(json.loads((library / "output/cloudflare-data/media.json").read_text()), {"/example.mp4": 10})
-            self.assertNotIn('"correct"', "".join(path.read_text() for path in public.rglob("*.json")))
+            self.assertEqual((public / "lesson.zip").read_bytes(), b"PK SCORM archive")
+            self.assertIn("frame-ancestors 'self';", (public / "_headers").read_text())
+            self.assertEqual(json.loads((data / "media.json").read_text()), {"/example.mp4": 10})
+            self.assertEqual({path.name for path in data.iterdir()}, {"media.json"})
 
     def test_oversized_assets_fail_before_a_deployment_can_start(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -56,7 +39,7 @@ class CloudflarePackageTests(unittest.TestCase):
             with (site / "large.mp4").open("wb") as stream:
                 stream.truncate(25 * 1024 * 1024 + 1)
             with self.assertRaisesRegex(ValueError, "25 MiB"):
-                package.prepare(library, library)
+                package.prepare(library)
 
     def test_private_files_and_directory_symlinks_are_rejected(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -64,19 +47,17 @@ class CloudflarePackageTests(unittest.TestCase):
             site = library / "output/site"
             site.mkdir(parents=True)
             (site / "index.html").write_text("public")
-            (site / "signing.private.pem").write_text("private")
-            with self.assertRaisesRegex(ValueError, "private"):
-                package.prepare(library, library)
-            (site / "signing.private.pem").unlink()
-            (site / "lti.platform.local.json").write_text("{}")
-            with self.assertRaisesRegex(ValueError, "private"):
-                package.prepare(library, library)
-            (site / "lti.platform.local.json").unlink()
+            for name in ["signing.private.pem", "integration.local.json", "platform-secrets.json"]:
+                path = site / name
+                path.write_text("private")
+                with self.assertRaisesRegex(ValueError, "private"):
+                    package.prepare(library)
+                path.unlink()
             outside = library / "private"
             outside.mkdir()
             (site / "outside").symlink_to(outside, target_is_directory=True)
             with self.assertRaisesRegex(ValueError, "symlink"):
-                package.prepare(library, library)
+                package.prepare(library)
 
 
 if __name__ == "__main__":

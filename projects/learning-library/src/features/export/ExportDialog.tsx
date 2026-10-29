@@ -1,12 +1,11 @@
 import { useState } from "react";
-import { TextInput, View } from "react-native";
+import { View } from "react-native";
 import { useTheme } from "styled-components/native";
 import type { LearningItem, MediaKind } from "../../models/catalog";
 import { Body, Button, ButtonText, Chip, ChipText, Label, Row } from "../../ui/primitives";
 import { WebLink } from "../../ui/browserMedia";
 import { Icon } from "../../ui/Icon";
 import { ModalDialog } from "../../ui/ModalDialog";
-import { ltiResourceUrl } from "./links";
 
 export function ExportDialog({
 	item,
@@ -18,9 +17,6 @@ export function ExportDialog({
 	const theme = useTheme();
 	const [open, setOpen] = useState(false);
 	const [kind, setKind] = useState(initialKind);
-	const [message, setMessage] = useState("");
-	const link =
-		typeof window === "undefined" ? "" : ltiResourceUrl(window.location.href, item.id, kind);
 	const archive = item.scorm?.[kind];
 	const card = {
 		gap: 12,
@@ -30,26 +26,11 @@ export function ExportDialog({
 		borderRadius: 14,
 		backgroundColor: theme.background,
 	};
-	async function copyLink() {
-		try {
-			await navigator.clipboard.writeText(link);
-			setMessage("הקישור הועתק. אפשר להדביק אותו בקורס.");
-		} catch {
-			setMessage("אפשר לסמן ולהעתיק את הקישור מהשדה.");
-		}
-	}
-	function close() {
-		setOpen(false);
-		setMessage("");
-	}
 	return (
 		<>
 			<Button
 				$secondary
-				onPress={() => {
-					setMessage("");
-					setOpen(true);
-				}}
+				onPress={() => setOpen(true)}
 				accessibilityRole="button"
 				aria-haspopup="dialog"
 				accessibilityState={{ expanded: open }}
@@ -57,7 +38,12 @@ export function ExportDialog({
 				<Icon name="export" size={17} />
 				<ButtonText $secondary>ייצוא</ButtonText>
 			</Button>
-			<ModalDialog open={open} onClose={close} title="ייצוא ההדרכה" description={item.title}>
+			<ModalDialog
+				open={open}
+				onClose={() => setOpen(false)}
+				title="ייצוא ל־SCORM"
+				description={item.title}
+			>
 				<View style={{ padding: 20, gap: 16 }}>
 					<View style={{ gap: 10 }}>
 						<Label>מה מייצאים?</Label>
@@ -75,10 +61,7 @@ export function ExportDialog({
 										$selected={kind === value}
 										accessibilityRole="button"
 										accessibilityState={{ selected: kind === value }}
-										onPress={() => {
-											setKind(value);
-											setMessage("");
-										}}
+										onPress={() => setKind(value)}
 										style={{ flex: 1, alignItems: "center" }}
 									>
 										<Row style={{ gap: 9 }}>
@@ -117,47 +100,6 @@ export function ExportDialog({
 						) : (
 							<Body>חבילת הייצוא לפורמט זה עדיין אינה זמינה.</Body>
 						)}
-					</View>
-					<View style={card}>
-						<Row style={{ justifyContent: "space-between" }}>
-							<Label style={{ fontSize: 17 }}>קישור LTI</Label>
-							<Icon name="external" size={20} color={theme.blue} />
-						</Row>
-						<Body style={{ fontSize: 13, lineHeight: 22 }}>
-							הדרכה שמתעדכנת מהספרייה. נדרש חיבור LTI 1.3 במערכת הלמידה.
-						</Body>
-						<TextInput
-							value={link}
-							editable={false}
-							selectTextOnFocus
-							accessibilityLabel="קישור LTI לקורס"
-							style={{
-								fontFamily: theme.font,
-								fontSize: 12,
-								color: theme.muted,
-								borderColor: theme.border,
-								borderWidth: 1,
-								borderRadius: 8,
-								padding: 12,
-								direction: "ltr",
-								textAlign: "left",
-							}}
-						/>
-						<Button $secondary onPress={copyLink} accessibilityRole="button">
-							<Icon name="copy" size={17} />
-							<ButtonText $secondary>העתקת קישור</ButtonText>
-						</Button>
-						<Body
-							accessibilityLiveRegion="polite"
-							style={{
-								fontSize: 12,
-								lineHeight: 18,
-								minHeight: 18,
-								color: theme.success,
-							}}
-						>
-							{message}
-						</Body>
 					</View>
 				</View>
 			</ModalDialog>

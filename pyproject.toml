@@ -15,9 +15,6 @@ dependencies = [
   "imageio-ffmpeg==0.6.0",
 ]
 
-[project.optional-dependencies]
-lti = ["Flask>=3.1,<4", "PyJWT[crypto]>=2.10,<3", "waitress>=3,<4"]
-
 [project.scripts]
 davinci = "davinci_creator.cli:main"
 

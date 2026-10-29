@@ -15,28 +15,8 @@
 	"assets": {
 		"directory": "../output/cloudflare-assets",
 		"binding": "ASSETS",
-		"run_worker_first": ["/lti/*", "/health", "/library/media/*.mp4"],
+		"run_worker_first": ["/lti", "/lti/*", "/health", "/library/media/*.mp4"],
 		"html_handling": "auto-trailing-slash",
-	},
-	"vars": {
-		"TOOL_URL": "https://knowledge.davinci4744.com",
-		"CLIENT_ID": "davinci-learning-library",
-		"DEPLOYMENT_ID": "na",
-		"KEY_ID": "davinci-lti-1",
-		"PASS_SCORE": "0.8",
-		"SESSION_SECONDS": "28800",
-		"RETENTION_DAYS": "90",
-	},
-	"d1_databases": [
-		{
-			"binding": "DB",
-			"database_name": "davinci-library-lti",
-			"database_id": "0b93643c-fd00-413d-b3f2-c28afb41b19f",
-			"migrations_dir": "migrations",
-		},
-	],
-	"triggers": {
-		"crons": ["17 * * * *"],
 	},
 	"observability": {
 		"enabled": true,

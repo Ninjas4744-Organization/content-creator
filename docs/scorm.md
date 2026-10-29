@@ -4,10 +4,7 @@ Export a lesson as one self-contained SCO for a compatible learning platform. Sl
 
 ## Export from the library
 
-Open a lesson and choose **ייצוא**. A modal dialog opens with the format and export options. Select slides or video, then:
-
-- **הורדת SCORM ZIP** downloads the prebuilt package for installation in a course.
-- **העתקת קישור** copies the format-specific resource URL. Register the library as an LTI 1.3 tool before adding this link to a course. This link contains no learner session or login token.
+Open a lesson and choose **ייצוא**. The **ייצוא ל־SCORM** dialog lets you select slides or video. Choose **הורדת ZIP** to download the prebuilt package, then upload it to your course as SCORM content. No tool registration or connection to the library is required.
 
 The library build generates packages from current source documents and retained local video timelines. Missing or mismatched timelines fail the build rather than producing an invalid video lesson. Packages are static assets; no export service or account is required. The default passing score is 80, and required video coverage is 90%.
 
