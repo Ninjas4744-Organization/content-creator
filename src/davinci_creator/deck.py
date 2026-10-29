@@ -31,6 +31,7 @@ nav{position:fixed;bottom:8px;left:50%;translate:-50% 0;display:flex;align-items
 #count{direction:ltr;unicode-bidi:isolate}#notes{display:none;position:fixed;bottom:55px;right:5%;width:90%;padding:20px;background:#08152bf5;direction:rtl;border:1px solid #a9d8f6;border-radius:12px;max-height:35vh;overflow:auto}
 .source-snapshot{position:absolute;inset:0;width:100%;height:100%;object-fit:contain}.source-overlay,.source-link{position:absolute}.source-overlay{object-fit:fill}.source-link:focus-visible{outline:4px solid #ffda9d}.source-video{position:absolute;inset:180px 120px 95px;display:grid;place-items:center}.youtube-play{display:grid;place-items:center;gap:16px;font-size:28px;background:#08152be8;border:2px solid #ffda9d;padding:24px 48px;border-radius:20px}.play-icon{font-size:64px;color:#ffda9d}.source-video iframe{position:absolute;inset:0;width:100%;height:100%;border:0;background:#000}.youtube-external{position:absolute;bottom:48px;right:80px;color:#fafcff;font-size:21px}.youtube-play[hidden]{display:none}
 .slide.video-slide{background:#000}.video-slide .source-video{inset:0}.video-slide .youtube-play{position:absolute;inset:0;width:100%;height:100%;border:0;background:transparent;padding:0}.video-slide .youtube-play:focus-visible{outline:3px solid #ffda9d;outline-offset:-6px}.video-slide.playing .youtube-external{display:none}
+.embedded-video{position:absolute;inset:0}.local-video{width:100%;height:100%;object-fit:contain;background:#000}.local-play{position:absolute;inset:0;width:100%;height:100%;border:0;background:transparent;padding:0}.local-play:focus-visible{outline:3px solid #ffda9d;outline-offset:-6px}.local-play[hidden]{display:none}
 @media(prefers-reduced-motion:reduce){.slide.active .el{animation:none}}
 @media print{@page{size:13.333in 7.5in;margin:0}body{overflow:visible}#stage{position:static;transform:none!important}nav,#notes{display:none!important}.slide{position:relative;display:block!important;width:1280px;height:720px;break-after:page;print-color-adjust:exact}.el{animation:none!important}}
 """.replace("REGULAR",data_url("brand/Rubik-Regular.ttf")).replace("BOLD",data_url("brand/Rubik-Bold.ttf"))
@@ -61,20 +62,27 @@ nav{position:fixed;bottom:8px;left:50%;translate:-50% 0;display:flex;align-items
                 parts.append(f'<p dir="{direction}" class="el" style="{style}width:{el["w"]}px;height:{el["h"]}px;font-size:{el["size"]}px;font-weight:{700 if el["bold"] else 400};text-align:{el["align"]};color:#{el["color"]}">{html.escape(el["text"])}</p>')
         if scene.get("layout") == "video":
             title = html.escape(scene["title"], quote=True)
-            video = scene["youtube"]
-            parts.append(f'<div class="source-video" data-youtube="{video}" data-title="{title}" data-fullscreen="true"><button class="youtube-play" aria-label="ניגון {title} במסך מלא"></button></div><a class="youtube-external" dir="rtl" href="https://www.youtube.com/watch?v={video}" target="_blank" rel="noopener noreferrer">פתיחה ב־<bdi dir="ltr">YouTube</bdi> ↗</a>')
+            if scene.get("video_file"):
+                track = f'<track kind="captions" src="{data_url(scene["captions"])}" srclang="he" label="עברית">' if scene.get("captions") else ""
+                parts.append(f'<div class="embedded-video"><video class="local-video" controls preload="none" playsinline aria-label="{title}" poster="{data_url(scene["poster"])}" src="{data_url(scene["video_file"])}">{track}</video><button class="local-play" aria-label="ניגון {title}"></button></div>')
+            else:
+                video = scene["youtube"]
+                parts.append(f'<div class="source-video" data-youtube="{video}" data-title="{title}" data-fullscreen="true"><button class="youtube-play" aria-label="ניגון {title} במסך מלא"></button></div><a class="youtube-external" dir="rtl" href="https://www.youtube.com/watch?v={video}" target="_blank" rel="noopener noreferrer">פתיחה ב־<bdi dir="ltr">YouTube</bdi> ↗</a>')
         sections.append(f'<section class="slide{" active" if i==0 else ""}{" hero" if scene.get("layout")=="cover" else ""}{" video-slide" if scene.get("layout")=="video" else ""}" aria-label="{html.escape(scene["title"],quote=True)}">'+"".join(parts)+"</section>")
     notes=json.dumps([s.get("notes",s.get("narration","")) for s in doc["scenes"]],ensure_ascii=False).replace("<","\\u003c")
     js="""
 const slides=[...document.querySelectorAll('.slide')],notes=NOTES;let index=0;
 function resize(){document.querySelector('#stage').style.transform=`translate(-50%,-50%) scale(${Math.min(innerWidth/1280,innerHeight/720)})`}
-function show(n){index=Math.max(0,Math.min(slides.length-1,Number.isFinite(n)?Math.trunc(n):0));slides.forEach((s,i)=>{s.classList.toggle('active',i===index);s.setAttribute('aria-hidden',String(i!==index));if(i!==index){s.classList.remove('playing');s.querySelectorAll('.source-video iframe').forEach(frame=>frame.remove());s.querySelectorAll('.youtube-play').forEach(button=>button.hidden=false)}});document.querySelector('#count').textContent=`${index+1} / ${slides.length}`;document.querySelector('#notes').textContent=notes[index];location.hash=String(index+1)}
+function show(n){index=Math.max(0,Math.min(slides.length-1,Number.isFinite(n)?Math.trunc(n):0));slides.forEach((s,i)=>{s.classList.toggle('active',i===index);s.setAttribute('aria-hidden',String(i!==index));if(i!==index){s.classList.remove('playing');s.querySelectorAll('.source-video iframe').forEach(frame=>frame.remove());s.querySelectorAll('.youtube-play,.local-play').forEach(button=>button.hidden=false);s.querySelectorAll('video').forEach(video=>{video.pause();if(video.readyState)video.currentTime=0})}});document.querySelector('#count').textContent=`${index+1} / ${slides.length}`;document.querySelector('#notes').textContent=notes[index];location.hash=String(index+1)}
+document.querySelectorAll('.local-play').forEach(button=>{button.onclick=()=>{const video=button.closest('.embedded-video').querySelector('video');button.hidden=true;video.play().catch(()=>{button.hidden=false})}});
+function pauseLocalVideos(){document.querySelectorAll('.local-video').forEach(video=>video.pause())}
+document.addEventListener('visibilitychange',()=>{if(document.hidden)pauseLocalVideos()});addEventListener('pagehide',pauseLocalVideos);
 document.querySelectorAll('.youtube-play').forEach(button=>{button.onclick=()=>{const box=button.closest('.source-video'),frame=document.createElement('iframe');if(box.dataset.fullscreen==='true'&&!document.fullscreenElement)document.documentElement.requestFullscreen?.().catch(()=>{});frame.src=`https://www.youtube-nocookie.com/embed/${box.dataset.youtube}?autoplay=1&rel=0`;frame.title=box.dataset.title;frame.referrerPolicy='strict-origin-when-cross-origin';frame.allow='autoplay; encrypted-media; picture-in-picture; fullscreen';frame.allowFullscreen=true;button.hidden=true;box.closest('.slide').classList.add('playing');box.append(frame)}});
 document.querySelector('#next').onclick=()=>show(index+1);document.querySelector('#prev').onclick=()=>show(index-1);
 function toggleNotes(){const el=document.querySelector('#notes');el.style.display=el.style.display==='block'?'none':'block'}
 document.querySelector('#noteButton').onclick=toggleNotes;
 document.querySelector('#full').onclick=()=>document.fullscreenElement?document.exitFullscreen():document.documentElement.requestFullscreen?.();
-addEventListener('keydown',e=>{if(['ArrowLeft','PageDown',' '].includes(e.key)){e.preventDefault();show(index+1)}if(['ArrowRight','PageUp'].includes(e.key))show(index-1);if(e.key.toLowerCase()==='n')toggleNotes();if(e.key==='Home')show(0);if(e.key==='End')show(slides.length-1)});
+addEventListener('keydown',e=>{if(e.target?.tagName==='VIDEO')return;if(['ArrowLeft','PageDown',' '].includes(e.key)){e.preventDefault();show(index+1)}if(['ArrowRight','PageUp'].includes(e.key))show(index-1);if(e.key.toLowerCase()==='n')toggleNotes();if(e.key==='Home')show(0);if(e.key==='End')show(slides.length-1)});
 addEventListener('hashchange',()=>show(Number(location.hash.slice(1)||1)-1));addEventListener('resize',resize);resize();show(Number(location.hash.slice(1)||1)-1);
 """.replace("NOTES",notes)
     robots = '<meta name="robots" content="noindex,nofollow">' if doc.get("unlisted") else ""
@@ -98,18 +106,23 @@ def pptx_deck(doc,out):
         slide=prs.slides.add_slide(prs.slide_layouts[6])
         if scene.get("layout") == "video":
             from io import BytesIO
-            from .render import frame
             from pptx.oxml.ns import qn
-            poster = BytesIO()
-            frame(scene, i, len(doc["scenes"])).save(poster, format="PNG")
-            poster.seek(0)
-            picture = slide.shapes.add_picture(poster, 0, 0, prs.slide_width, prs.slide_height)
-            url = f'https://www.youtube.com/watch?v={scene["youtube"]}'
-            relation = slide.part.relate_to(url, "http://schemas.openxmlformats.org/officeDocument/2006/relationships/video", is_external=True)
-            video_file = OxmlElement("a:videoFile")
-            video_file.set(qn("r:link"), relation)
-            picture._element.nvPicPr.nvPr.append(video_file)
-            picture.click_action.hyperlink.address = url
+            if scene.get("video_file"):
+                slide.shapes.add_movie(str(local_file(ASSETS, scene["video_file"])), 0, 0,
+                    prs.slide_width, prs.slide_height,
+                    poster_frame_image=str(local_file(ASSETS, scene["poster"])), mime_type="video/mp4")
+            else:
+                from .render import frame
+                poster = BytesIO()
+                frame(scene, i, len(doc["scenes"])).save(poster, format="PNG")
+                poster.seek(0)
+                picture = slide.shapes.add_picture(poster, 0, 0, prs.slide_width, prs.slide_height)
+                url = f'https://www.youtube.com/watch?v={scene["youtube"]}'
+                relation = slide.part.relate_to(url, "http://schemas.openxmlformats.org/officeDocument/2006/relationships/video", is_external=True)
+                video_file = OxmlElement("a:videoFile")
+                video_file.set(qn("r:link"), relation)
+                picture._element.nvPicPr.nvPr.append(video_file)
+                picture.click_action.hyperlink.address = url
         else:
             bg=ASSETS/"brand"/("space-hero.png" if scene.get("layout")=="cover" else "space-content.png")
             slide.shapes.add_picture(str(bg),0,0,prs.slide_width,prs.slide_height)

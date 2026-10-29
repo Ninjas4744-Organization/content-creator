@@ -3,37 +3,76 @@
   "title": "יק״ם והכוח של הקבוצה",
   "publication_date": "2026-10-29",
   "url": "https://knowledge.davinci4744.com/team-library?item=yakam-team-meeting&view=deck",
-  "release": "74dabc2813c840a1811400d858029850",
-  "source_version": "2fd629cf256af7c1c957a7e9bff2600977043f2f65eba5f8c30594dbbea693c7",
+  "release": "b7538b065f924f578bc8992434ae4e58",
+  "source_version": "b7246ed0e9ed69799d7ce141a9a6c998cc9807a7a944338448f492792268ae38",
   "slides": 4,
-  "previous_slides": 30,
-  "speaking_minutes": 3.75,
+  "previous_slides": 4,
+  "speaking_minutes": 3.28,
   "gallery": "team",
   "unlisted": true,
   "changes": [
-    "Definition of Yakam, one Dropbox story, illustrative team calculations, and a brief transition to a separate Trello explanation.",
-    "Replace the 30-slide lesson using the same catalog ID and stable lesson URL."
+    "Replace the static Dropbox slide with an original 52-second animated Hebrew story, narrated by Gemini Kore and Puck.",
+    "Embed the MP4 and poster in both PowerPoint and offline HTML; pause and reset the movie when leaving its slide.",
+    "Keep the existing four-slide structure and stable lesson URL."
   ],
   "assets": [
     {
-      "key": "library/releases/74dabc2813c840a1811400d858029850/exports/yakam-team-meeting/slides.zip",
-      "sha256": "e008205e1c10f445246ac2f00e8e6e793be8179d5331170e0fcf9cbf98356475",
-      "bytes": 3639474
+      "key": "library/releases/b7538b065f924f578bc8992434ae4e58/exports/yakam-team-meeting/slides.zip",
+      "sha256": "5e9b9563961da65fa3774a96ba9ba83552144b9b126b7004db20c3e72fa5cbd9",
+      "bytes": 8837033
     },
     {
-      "key": "library/releases/74dabc2813c840a1811400d858029850/media/yakam-team-meeting/poster.jpg",
+      "key": "library/releases/b7538b065f924f578bc8992434ae4e58/media/yakam-team-meeting/dropbox-story/Rubik-Bold.ttf",
+      "sha256": "b1c36dfcbc5fe5011c552c76725c84d989a71d56440e8bfbfa0cb68b593dbad6",
+      "bytes": 140396
+    },
+    {
+      "key": "library/releases/b7538b065f924f578bc8992434ae4e58/media/yakam-team-meeting/dropbox-story/Rubik-Regular.ttf",
+      "sha256": "bd1490f4314d27ca1ac5d8869fdda068852edd623318c9bee13e812b793b301b",
+      "bytes": 136624
+    },
+    {
+      "key": "library/releases/b7538b065f924f578bc8992434ae4e58/media/yakam-team-meeting/dropbox-story/captions.vtt",
+      "sha256": "92855456e54d9821a1acdc37bb5dee5bbcc43f668f713de4b3eb6180a06524c5",
+      "bytes": 1557
+    },
+    {
+      "key": "library/releases/b7538b065f924f578bc8992434ae4e58/media/yakam-team-meeting/dropbox-story/index.html",
+      "sha256": "984518e0175113a69b55d777b4fdd636c5de5687f05b57bcf559ffe63913ce19",
+      "bytes": 13130
+    },
+    {
+      "key": "library/releases/b7538b065f924f578bc8992434ae4e58/media/yakam-team-meeting/dropbox-story/poster.jpg",
+      "sha256": "aad978288a5f9da0f687c833b26605a233285dfc00d4a7bde3ff3ffeccd042e2",
+      "bytes": 117579
+    },
+    {
+      "key": "library/releases/b7538b065f924f578bc8992434ae4e58/media/yakam-team-meeting/dropbox-story/video.mp4",
+      "sha256": "ec3e2b84e12b23095291d0eb02dd8e53cdf58e6c6abe0c0ea77aaaf13184058d",
+      "bytes": 4023938
+    },
+    {
+      "key": "library/releases/b7538b065f924f578bc8992434ae4e58/media/yakam-team-meeting/poster.jpg",
       "sha256": "6cfe53447cb889449822caef1a05c9d082cd48aa5dd386a2e660028e625c1447",
       "bytes": 87928
     },
     {
-      "key": "library/releases/74dabc2813c840a1811400d858029850/media/yakam-team-meeting/presentation.html",
-      "sha256": "32da9e035104169d8fc222c7d5f2a6d637bb8c4cce88a46355d19e4d44c4eedb",
-      "bytes": 4590703
+      "key": "library/releases/b7538b065f924f578bc8992434ae4e58/media/yakam-team-meeting/presentation.html",
+      "sha256": "1c864d51466f5df1dbce43a4b33c2e8377f7dbd1170abf6b401f094f4cf809da",
+      "bytes": 11518788
     },
     {
-      "key": "library/releases/74dabc2813c840a1811400d858029850/media/yakam-team-meeting/presentation.pptx",
-      "sha256": "c7ee8abe7dd2f2e89ce18b49e4ac189f1c9c9f8554555c0dcbf08f3154bbbff9",
-      "bytes": 1272202
+      "key": "library/releases/b7538b065f924f578bc8992434ae4e58/media/yakam-team-meeting/presentation.pptx",
+      "sha256": "a2d417c1b1d0b1762c7d118ee0912f5c48cf37b12ffa39ad54cef53a762eb5d0",
+      "bytes": 5955667
     }
-  ]
+  ],
+  "previous_release": "74dabc2813c840a1811400d858029850",
+  "story": {
+    "slide": 2,
+    "seconds": 51.9166666667,
+    "video": "library/releases/b7538b065f924f578bc8992434ae4e58/media/yakam-team-meeting/dropbox-story/video.mp4",
+    "player": "library/releases/b7538b065f924f578bc8992434ae4e58/media/yakam-team-meeting/dropbox-story/index.html",
+    "audio_review": "Gemini audio review: clear alternating voices, correct transcript and no overpowering music or audible clipped words."
+  }
 }

@@ -67,6 +67,8 @@ def line(x, y, x2, y2, color=BLUE, delay=0):
 def elements(scene, index, total):
     layout = scene.get("layout", "cards")
     if layout == "video":
+        if scene.get("video_file"):
+            return [image(scene["poster"], 0, 0, W, H)]
         return [textbox(scene["title"], 150, 115, 980, 110, 50, True, align="center", delay=.1),
                 dict(kind="play", x=552, y=272, w=176, h=176, color=GOLD, delay=.3),
                 textbox("לחצו לניגון הסרטון במסך מלא", 280, 465, 720, 75, 30, color=BLUE, align="center", delay=.5)]

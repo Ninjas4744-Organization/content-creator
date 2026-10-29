@@ -98,8 +98,27 @@ def validate(doc):
                     raise ValueError(f"{label}: image crop removes the entire image")
                 if type(entry.get("preview_frame", 0)) is not int or entry.get("preview_frame", 0) < 0:
                     raise ValueError(f"{label}: image preview frame must be a nonnegative integer")
-        if layout == "video" and (not isinstance(scene.get("youtube"), str) or not re.fullmatch(r"[A-Za-z0-9_-]{11}", scene["youtube"])):
-            raise ValueError(f"{label}: video needs a YouTube video ID")
+        if layout == "video":
+            youtube, video_file = scene.get("youtube"), scene.get("video_file")
+            if (youtube is not None) == (video_file is not None):
+                raise ValueError(f"{label}: video needs exactly one YouTube ID or local MP4")
+            if youtube is not None:
+                if not isinstance(youtube, str) or not re.fullmatch(r"[A-Za-z0-9_-]{11}", youtube):
+                    raise ValueError(f"{label}: video needs a YouTube video ID")
+            else:
+                if not isinstance(video_file, str) or Path(video_file).suffix.lower() != ".mp4":
+                    raise ValueError(f"{label}: local video must be an MP4 asset")
+                local_file(ASSETS, video_file)
+                poster = scene.get("poster")
+                if not isinstance(poster, str) or Path(poster).suffix.lower() not in {".png", ".jpg", ".jpeg"}:
+                    raise ValueError(f"{label}: local video needs a PNG or JPEG poster")
+                local_file(ASSETS, poster)
+                if scene.get("captions") is not None:
+                    captions = scene["captions"]
+                    if not isinstance(captions, str) or Path(captions).suffix.lower() != ".vtt":
+                        raise ValueError(f"{label}: video captions must be a VTT asset")
+                    if not local_file(ASSETS, captions).read_text(encoding="utf-8-sig").startswith("WEBVTT"):
+                        raise ValueError(f"{label}: video captions need a WEBVTT header")
         quiz = scene.get("quiz")
         if quiz is not None:
             options = quiz.get("options", []) if isinstance(quiz, dict) else []
