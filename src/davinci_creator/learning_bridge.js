@@ -1,4 +1,4 @@
-// Progress only. The host verifies the frame, and the LTI service calculates results.
+// Progress and resume events for the embedded SCORM slide player.
 (() => {
   if (window.parent === window) return;
   const send = (detail) => window.parent.postMessage({ type: "davinci-learning", ...detail }, location.origin);

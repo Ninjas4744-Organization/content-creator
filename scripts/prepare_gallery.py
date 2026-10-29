@@ -1,4 +1,4 @@
-"""Build the static learning catalog and retain selected, portable video packages.
+"""Build selected learning packages for publication to R2.
 
 Uses only local content and an explicit asset allowlist; never reads credentials.
 Run with the repository venv, or from npm with the installed project environment.
@@ -16,7 +16,7 @@ from urllib.parse import unquote, urlsplit
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
-LIBRARY = ROOT / "projects/learning-library"
+LIBRARY = ROOT / "learning-library"
 PUBLISHED = LIBRARY / "output/published"
 ALLOWED = {".html", ".css", ".js", ".jpg", ".jpeg", ".png", ".webp", ".svg", ".ttf", ".woff", ".woff2", ".vtt", ".mp4", ".txt"}
 
@@ -115,22 +115,27 @@ def publish_video(project_id, source):
         shutil.rmtree(staging, ignore_errors=True)
 
 
-def prepare():
+def prepare(project_ids=None):
     from davinci_creator.common import load
     from davinci_creator.deck import build
     from davinci_creator.scorm import build_scorm
 
-    settings = json.loads((LIBRARY / "library.json").read_text(encoding="utf-8"))
-    target = LIBRARY / "public/library"
+    settings = json.loads((ROOT / "projects/library.json").read_text(encoding="utf-8"))
+    sources = content_sources()
+    selected = set(project_ids) if project_ids else set(sources)
+    if selected - sources.keys():
+        raise ValueError("Unknown projects: " + ", ".join(sorted(selected - sources.keys())))
+    target = LIBRARY / "output/content/library"
     shutil.rmtree(target, ignore_errors=True)
     target.mkdir(parents=True)
-    shutil.copy2(ROOT / "src/davinci_creator/learning_bridge.js", target / "learning-bridge.js")
     brand = target / "brand"
     brand.mkdir()
     for name in ("logo.png", "wordmark.png", "space-hero.png", "Rubik-Regular.ttf", "Rubik-Bold.ttf", "Rubik-OFL.txt"):
         shutil.copy2(ROOT / "assets/brand" / name, brand / name)
     catalog = []
     for project_id, content in content_sources().items():
+        if project_id not in selected:
+            continue
         doc = load(content)
         metadata = settings.get(project_id, {})
         output = target / "media" / project_id
@@ -139,7 +144,6 @@ def prepare():
         build(doc, deck)
         for name in ("presentation.html", "presentation.pptx"):
             shutil.copy2(deck / name, output / name)
-        instrument_media(output / "presentation.html", "../../learning-bridge.js")
         previews = sorted((deck / "previews").glob("*.png"))
         if not previews:
             raise ValueError(f"No poster generated for {project_id}")
@@ -152,7 +156,6 @@ def prepare():
         duration = None
         if has_video:
             package_player(player, output / "interactive")
-            instrument_media(output / "interactive/index.html", "../../../learning-bridge.js")
             shutil.copy2(player / "poster.jpg", output / "poster.jpg")
             parser = re.search(r'<script[^>]*id="content"[^>]*>(.*?)</script>', (player / "index.html").read_text(encoding="utf-8"), re.S)
             if not parser:
@@ -183,8 +186,8 @@ def prepare():
             "scorm": scorm,
         })
     (target / "catalog.json").write_text(json.dumps(catalog, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
-    (LIBRARY / "public/.nojekyll").touch()
     print(f"Gallery ready: {len(catalog)} topics, {sum(bool(i['video']) for i in catalog)} videos")
+    return target
 
 
 def scorm_timeline(doc: dict, rendered: dict) -> dict:
@@ -196,26 +199,22 @@ def scorm_timeline(doc: dict, rendered: dict) -> dict:
     return {**doc, "scenes": [{**scene, **{key: value for key, value in timings[scene["id"]].items() if key in fields}} for scene in doc["scenes"]]}
 
 
-def instrument_media(path: Path, bridge: str) -> None:
-    """Add library-only progress events without changing retained/offline originals."""
-    content = path.read_text(encoding="utf-8")
-    script = f'<script src="{bridge}"></script>'
-    content = content.replace("</body>", script + "</body>") if "</body>" in content else content + script
-    path.write_text(content, encoding="utf-8")
-
-
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--publish-video", metavar="PROJECT_ID")
     parser.add_argument("--from", dest="player", type=Path, help="Rendered interactive/ directory")
     parser.add_argument("--publish-only", action="store_true")
+    parser.add_argument("--project", action="append", help="Project to package; repeat to select several")
+    parser.add_argument("--all", action="store_true", help="Package every local project for the initial migration")
     args = parser.parse_args()
     if args.publish_video:
         if not args.player:
             parser.error("--publish-video requires --from <interactive-directory>")
         publish_video(args.publish_video, args.player.resolve())
     if not args.publish_only:
-        prepare()
+        if not args.project and not args.all and not args.publish_video:
+            parser.error("Choose --project <id> or --all; website builds do not scan local projects")
+        prepare(args.project or ([args.publish_video] if args.publish_video else None))
 
 
 if __name__ == "__main__":

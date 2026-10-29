@@ -28,7 +28,7 @@
 
 ## תוצרים ופרסום
 
-לפי בקשת המשתמש, המצגת מוגדרת לפרסום בקישור ישיר בלבד. `projects/learning-library/library.json` מגדיר `unlisted: true`, כך שהמצגת זמינה באתר אך אינה מופיעה בגלריה, בחיפוש או בהמלצות. `unlisted: true` בתוכן מוסיף גם noindex ל־HTML.
+לפי בקשת המשתמש, המצגת מוגדרת לפרסום בקישור ישיר בלבד. `learning-library/library.json` מגדיר `unlisted: true`, כך שהמצגת זמינה באתר אך אינה מופיעה בגלריה, בחיפוש או בהמלצות. `unlisted: true` בתוכן מוסיף גם noindex ל־HTML.
 
 קישור: https://knowledge.davinci4744.com/?item=team-selection&view=deck
 

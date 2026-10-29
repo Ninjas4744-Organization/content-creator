@@ -1,4 +1,8 @@
 import importlib.util
+import json
+import os
+import shutil
+import subprocess
 import tempfile
 import unittest
 from pathlib import Path
@@ -10,6 +14,27 @@ spec.loader.exec_module(gallery)
 
 
 class GalleryTests(unittest.TestCase):
+    @unittest.skipUnless(shutil.which("node"), "Node is required for website asset preparation")
+    def test_website_preparation_does_not_read_or_publish_local_projects(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / "scripts").mkdir()
+            script = root / "scripts/prepare-gallery.mjs"
+            shutil.copy2(SCRIPT.with_name("prepare-gallery.mjs"), script)
+            brand = root / "assets/brand"
+            brand.mkdir(parents=True)
+            for name in ("logo.png", "wordmark.png", "space-hero.png", "Rubik-Regular.ttf", "Rubik-Bold.ttf", "Rubik-OFL.txt"):
+                (brand / name).write_bytes(b"brand fixture")
+            project = root / "projects/unpublished"
+            project.mkdir(parents=True)
+            (project / "content.json").write_text("invalid JSON that must not be read")
+            (project / "private-video.mp4").write_bytes(b"unpublished video")
+            environment = {key: value for key, value in os.environ.items() if key != "LIBRARY_PREVIEW_DIR"}
+            subprocess.run(["node", str(script)], check=True, env=environment)
+            public = root / "learning-library/public/library"
+            self.assertEqual(json.loads((public / "catalog.json").read_text()), [])
+            self.assertEqual({path.name for path in public.iterdir()}, {"brand", "catalog.json"})
+
     def test_scorm_timeline_keeps_current_questions_and_validates_scene_identity(self):
         doc = {"title": "Lesson", "scenes": [{"id": "one", "title": "One", "quiz": {"question": "Current"}}]}
         rendered = {"scenes": [{"id": "one", "start": 0, "duration": 12, "quiz": {"question": "Old"}}]}
@@ -18,14 +43,6 @@ class GalleryTests(unittest.TestCase):
         self.assertEqual(timeline["scenes"][0]["duration"], 12)
         with self.assertRaisesRegex(ValueError, "scene IDs"):
             gallery.scorm_timeline(doc, {"scenes": []})
-
-    def test_learning_bridge_is_added_only_to_the_library_copy(self):
-        with tempfile.TemporaryDirectory() as temp:
-            path = Path(temp) / "index.html"
-            path.write_text("<html><body>Lesson</body></html>")
-            gallery.instrument_media(path, "../../../learning-bridge.js")
-            content = path.read_text()
-            self.assertIn('<script src="../../../learning-bridge.js"></script></body>', content)
 
     def test_linked_video_is_normalized_and_only_referenced_assets_are_copied(self):
         with tempfile.TemporaryDirectory() as temp:

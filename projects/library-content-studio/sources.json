@@ -8,7 +8,7 @@
     "docs/brand.md",
     "docs/scorm.md",
     "scripts/prepare_gallery.py",
-    "projects/learning-library/src/screens/LibraryScreen.tsx",
+    "learning-library/src/screens/LibraryScreen.tsx",
     ".github/workflows/cloudflare.yml",
     "docs/apps.md",
     "README.md",
