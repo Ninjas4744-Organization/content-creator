@@ -30,6 +30,8 @@ def main():
     parser=argparse.ArgumentParser(description="Da Vinci 4744: presentations and interactive video")
     sub=parser.add_subparsers(dest="command",required=True)
     sub.add_parser("doctor",help="Check local fonts, assets and FFmpeg")
+    from .project_store import configure_parser as project_arguments
+    project_arguments(sub.add_parser("projects",help="Save and restore editable project sources in R2"))
     photos=sub.add_parser("photos",help="Browse and import link-shared Google Photos team albums")
     photo_commands=photos.add_subparsers(dest="photos_command",required=True)
     photo_commands.add_parser("albums",help="List registered team albums (offline)")
@@ -67,6 +69,9 @@ def main():
     args=parser.parse_args()
     try:
         if args.command=="doctor":doctor();return
+        if args.command=="projects":
+            from .project_store import run as project_sources
+            project_sources(args);return
         if args.command=="photos":
             from .photos import run
             run(args);return

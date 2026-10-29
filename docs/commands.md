@@ -76,3 +76,15 @@ python3 scripts/sync_skills.py --check
 ```
 
 `doctor` בודקת גופנים, תמונות והפעלת FFmpeg. אם יש FFmpeg מקומי מותאם, הגדירו `FFMPEG_PATH`. הכתוביות מקבלות תזמון משוער לפי קבוצות מילים ואורך ההקלטה, ויש לדייק אותן ידנית כשנדרש תזמון מדויק. ספריית תמונות המצגת וה־storyboard הן בדיקת פריסה משותפת; רצוי לבדוק PPTX גם ביישום ההקרנה עצמו.
+
+## הורדה ושמירת מקורות ב־R2
+
+`projects/` היא תיקיית עבודה מקומית מוחרגת מ־Git. לעריכת פרויקט קיים:
+
+```sh
+.venv/bin/python -m davinci_creator projects list
+.venv/bin/python -m davinci_creator projects pull my-training
+.venv/bin/python -m davinci_creator projects push my-training
+```
+
+הוראות לגרסאות, נכסי מקור ומניעת דריסת עריכות נמצאות ב־[מדריך המקורות](project-sources.md).

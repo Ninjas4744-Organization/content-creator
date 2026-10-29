@@ -75,8 +75,7 @@ Prepare selected lessons, check the package, then publish:
 ```
 
 Repeat `--project` to select several lessons. `--all` explicitly packages all local projects
-for migration; inspect that selection before publication. Source JSON stays under
-`projects/<id>/`; gallery titles and descriptions live in `projects/library.json`.
+for migration; inspect that selection before publication. Editable source archives live separately under `project-sources/` in R2 and are not served publicly. Restore them with `scripts/project_store.py pull <id>` into the ignored local `projects/<id>/` workspace; gallery metadata travels with each project in `publication.json`. See [source editing and recovery](project-sources.md).
 Generated packages stay under ignored `learning-library/output/content/`.
 
 The publisher preflights files and links, uploads a unique immutable release, downloads

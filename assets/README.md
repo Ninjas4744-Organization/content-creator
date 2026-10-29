@@ -25,3 +25,6 @@
 | `recruitment/{software,field,electrical,leadership,mechanics,engineering,media}.{svg,png}` | סמלי התחומים מתוך קובצי ה־SVG במצגת המקורית. קובצי PNG רונדרו מה־SVG על רקע שקוף, ללא שינוי בצורות וללא יצירת סמלים חלופיים. לשימוש במצגות הקבוצה בהתאם לבקשת המשתמש. |
 | `recruitment/technology-unit-{1,2,3}.png`, `learning.gif` | שלושת סמלי היחידות והאנימציה בת 20 השניות מתוך מצגת הגיוסים המקורית. הקבצים נשמרו ללא שינוי; החיתוך של האנימציה מוגדר בפריסה, כפי שהיה במקור. |
 | `team-selection/questionnaire-qr.png` | קוד QR שנוצר מקומית עבור קישור השאלון שסיפק המשתמש ב־28.10.2026. משתמש בלוגו וב־wordmark המקומיים, באותו עיצוב של מצגת הגיוסים. המקור והאימות נמצאים ב־`projects/team-selection/output/qr/`; לשימוש במצגת בחירת הצוותים. |
+# Project source assets
+
+Project-specific images and source attachments are stored with their editable project archives in R2. Restore them with `scripts/project_store.py pull <id>`; they remain in ignored local asset folders. Shared brand assets and example photos stay in Git. Project archives retain source attribution records alongside their files. See [project source recovery](../docs/project-sources.md).

@@ -120,11 +120,10 @@ def prepare(project_ids=None):
     from davinci_creator.deck import build
     from davinci_creator.scorm import build_scorm
 
-    settings = json.loads((ROOT / "projects/library.json").read_text(encoding="utf-8"))
     sources = content_sources()
     selected = set(project_ids) if project_ids else set(sources)
     if selected - sources.keys():
-        raise ValueError("Unknown projects: " + ", ".join(sorted(selected - sources.keys())))
+        raise ValueError("Download missing sources first with project_store.py pull <id>: " + ", ".join(sorted(selected - sources.keys())))
     target = LIBRARY / "output/content/library"
     shutil.rmtree(target, ignore_errors=True)
     target.mkdir(parents=True)
@@ -133,11 +132,12 @@ def prepare(project_ids=None):
     for name in ("logo.png", "wordmark.png", "space-hero.png", "Rubik-Regular.ttf", "Rubik-Bold.ttf", "Rubik-OFL.txt"):
         shutil.copy2(ROOT / "assets/brand" / name, brand / name)
     catalog = []
-    for project_id, content in content_sources().items():
+    for project_id, content in sources.items():
         if project_id not in selected:
             continue
         doc = load(content)
-        metadata = settings.get(project_id, {})
+        settings = content.parent / "publication.json"
+        metadata = json.loads(settings.read_text(encoding="utf-8")) if settings.is_file() else {}
         gallery = metadata.get("gallery", "team" if metadata.get("unlisted") else "public")
         if gallery not in {"public", "team", "study"}:
             raise ValueError(f"Unknown gallery for {project_id}: {gallery}")

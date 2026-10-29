@@ -5,6 +5,20 @@ const bucket = (env as unknown as Env).CONTENT;
 
 const origin = "https://knowledge.davinci4744.com";
 
+test("editable source archives are never exposed by the public website", async () => {
+	await bucket.put("project-sources/catalog.json", "private-editable-source-fixture");
+	await bucket.put("project-sources/demo/archive.zip", "private-editable-source-fixture");
+	for (const path of [
+		"/project-sources/catalog.json",
+		"/project-sources/demo/archive.zip",
+		"/library/project-sources/catalog.json",
+	]) {
+		const response = await SELF.fetch(origin + path);
+		expect(response.status).toBe(404);
+		expect(await response.text()).not.toContain("private-editable-source-fixture");
+	}
+});
+
 test("health works without an LMS registration, signing keys or database", async () => {
 	const response = await SELF.fetch(origin + "/health");
 	expect(response.status).toBe(200);

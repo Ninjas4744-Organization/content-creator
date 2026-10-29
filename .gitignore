@@ -18,8 +18,12 @@ outputs/
 assets/photos/albums/
 build/
 dist/
-projects/*/output/
-projects/*/audio/
+/projects/
+/assets/projects/
+/assets/recruitment/
+/assets/team-selection/
+/assets/training/library-guide/
+/assets/illustrations/physics-forces-exam/
 node_modules/
 .expo/
 .wrangler/

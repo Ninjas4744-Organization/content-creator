@@ -7,6 +7,8 @@ description: "Create or revise an animated Hebrew explainer video or interactive
 
 Work from the repository root, three directories above this file. Read `docs/brand.md`, `docs/content-format.md` and the video commands in `docs/commands.md` as needed.
 
+`projects/` is a local workspace excluded from Git. Restore missing existing sources with `.venv/bin/python scripts/project_store.py pull <name>` before editing. Save completed source changes with `project_store.py push <name>` when saving the requested work. The source archive includes project assets and scripts, while rendered outputs and narration caches remain local or in their published R2 release. See `docs/project-sources.md`.
+
 1. Infer the topic, audience, outcome and length from the user's brief. Create `projects/<name>/` using the `new` command if needed. Reuse an existing presentation's `content.json` when adapting it into a video; simplify visible text and write a spoken explanation rather than reading slide bullets verbatim.
 2. Write a scene sequence with a hook, clear explanation, visual examples and a useful next step. Every scene has a short visual title, layout, optional items/photo, Hebrew `narration` and `speaker` set to `female` or `male`. Alternate Kore and Puck unless the user prefers otherwise. Keep the narration natural and pronounceable. Preserve Gracious Professionalism® in visible text; the spoken transcript need not read the symbol.
 3. Add meaningful optional `quiz` objects to selected scenes. Interactive HTML supports chapter jumping, transcript search, playback speed, resumable progress and optional pauses for questions. A plain MP4 is the linear version of the same story.

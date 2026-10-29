@@ -28,7 +28,7 @@ The gallery loads `library/catalog.json` from a dedicated Cloudflare R2 bucket. 
 
 The library is open for everyone to browse and use. Learning-platform integration uses SCORM exports.
 
-For installation inside a learning platform, export a lesson as a self-contained **SCORM 1.2 ZIP**. Slides and interactive videos support a final knowledge check, scores, completion and progress saved in the LMS. See the [SCORM export guide](docs/scorm.md) and [pilot brief](projects/scorm-pilot/brief.md).
+For installation inside a learning platform, export a lesson as a self-contained **SCORM 1.2 ZIP**. Slides and interactive videos support a final knowledge check, scores, completion and progress saved in the LMS. See the [SCORM export guide](docs/scorm.md). Restore the pilot brief with `scripts/project_store.py pull scorm-pilot` when needed.
 
 The [Cloudflare deployment guide](docs/cloudflare.md) covers Workers and GitHub Actions credentials. The retired `learn.davinci4744.com` hostname redirects public bookmarks to `knowledge.davinci4744.com`. The website uses Workers Static Assets; published learning content uses R2.
 
@@ -73,7 +73,7 @@ Narration is cached by transcript, voice, model, and delivery style. Changing an
 
 ## Edit and share
 
-Each project has a `brief.md` and `content.json` under `projects/`. Edit the content through your assistant or manually, then export again. The [content format](docs/content-format.md) and [brand guide](docs/brand.md) explain the available options.
+Project sources live in R2. List them with `.venv/bin/python scripts/project_store.py list`, restore one with `pull <id>`, and save an edited version with `push <id>`. The local `projects/` workspace is excluded from Git. Source archives include briefs, JSON, original attachments, custom scripts and referenced assets; [source editing and recovery](docs/project-sources.md) covers version history. Edit through your assistant or manually, then export again. The [content format](docs/content-format.md) and [brand guide](docs/brand.md) explain the available options.
 
 To share a generated player, keep its entire `interactive/` folder together. Open `index.html`; if the browser restricts local captions or media, use the `serve` command in the command guide. Standalone players use no external service and send no viewing data. SCORM packages save progress and report results through the learning platform hosting the package.
 

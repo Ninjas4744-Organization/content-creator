@@ -31,8 +31,8 @@ LIBRARY_PREVIEW_DIR="$PWD/learning-library/output/content/library" npm --prefix 
 
 ## יצירה ופרסום תוכן
 
-מקורות השיעורים נשמרים ב־`projects/<id>/content.json`. כותרות תצוגה, תיאורים,
-קטגוריות וסימון `featured` או `unlisted` נשמרים ב־`projects/library.json`.
+מורידים את מקורות השיעור מ־R2 באמצעות `scripts/project_store.py pull <id>`. המקורות המשוחזרים נשמרים מקומית ב־`projects/<id>/content.json`, ומוחרגים מ־Git. כותרות תצוגה, תיאורים,
+קטגוריות וסימון `featured` או `unlisted` נשמרים ב־`projects/<id>/publication.json`.
 קבצים חדשים ב־R2 אינם הופכים אוטומטית לכרטיס: כלי הפרסום מוסיף רשומה לקטלוג רק אחרי
 שהקבצים הדרושים קיימים ונבדקו. אפשר לפרסם גם תכנים שנוצרו מחוץ לריפו, באמצעות חבילת
 פרסום שתואמת למבנה `catalog.json`, `media/` ו־`exports/`.
@@ -51,7 +51,7 @@ LIBRARY_PREVIEW_DIR="$PWD/learning-library/output/content/library" npm --prefix 
 
 חבילות נגן נשמרות במטמון מקומי תחת `learning-library/output/published/`, שמוחרג מ־Git.
 תוצרי הפרסום נוצרים ב־`learning-library/output/content/`.
-יש לבדוק את התוכן, הווידאו והקריינות לפני הפרסום. פרטי ההתקנה וההרשאות במדריך
+יש לבדוק את התוכן, הווידאו והקריינות לפני הפרסום. שומרים גם גרסת מקורות באמצעות `scripts/project_store.py push <id>`; הוראות שחזור ב־[מדריך המקורות](project-sources.md). פרטי ההתקנה וההרשאות במדריך
 [Cloudflare ו־R2](cloudflare.md).
 
 כל פרסום מעלה גרסה חדשה, מאמת את הקבצים ומעדכן את הקטלוג בסיום. עדכון שיעור קיים
@@ -82,4 +82,4 @@ LIBRARY_PREVIEW_DIR="$PWD/learning-library/output/content/library" npm --prefix 
 
 ## גלריית לימודים
 
-הנתיב `/study-library/` מציג חומרי לימוד לבית הספר. ברשומת השיעור ב־`projects/library.json` מגדירים `"gallery": "study"`; כלי הפרסום שומר את הבחירה בקטלוג R2. התוכן אינו מופיע בגלריה הציבורית או בגלריית הקבוצה. הנתיב אינו מקושר מתוכן, ומסומן `noindex,nofollow`. קישורים ישירים ושאלות החזרה נשמרים כמו בשאר הגלריות.
+הנתיב `/study-library/` מציג חומרי לימוד לבית הספר. ברשומת השיעור ב־`projects/<id>/publication.json` מגדירים `"gallery": "study"`; כלי הפרסום שומר את הבחירה בקטלוג R2. התוכן אינו מופיע בגלריה הציבורית או בגלריית הקבוצה. הנתיב אינו מקושר מתוכן, ומסומן `noindex,nofollow`. קישורים ישירים ושאלות החזרה נשמרים כמו בשאר הגלריות.

@@ -7,6 +7,8 @@ description: "Create or revise a Da Vinci 4744 branded Hebrew presentation, slid
 
 Work from the repository root, located three directories above this file. Read `docs/brand.md` and `docs/content-format.md` as needed. Use the user's language; default to Hebrew and RTL for this team.
 
+`projects/` is a local workspace excluded from Git. For an existing project whose sources are absent, restore it with `.venv/bin/python scripts/project_store.py pull <name>`. Sources and project assets are versioned in R2; see `docs/project-sources.md`. Save completed source changes with `project_store.py push <name>` when saving the requested work. Website publication is a separate operation.
+
 1. Establish the topic, audience, desired outcome and approximate duration from the conversation or `projects/<name>/brief.md`. Ask only for genuinely blocking gaps; otherwise state reasonable assumptions and continue.
 2. Create a project with `.venv/bin/python -m davinci_creator new <name> --title "..."`. If `.venv` is missing, run `python3 scripts/setup.py`. On Windows use `.venv\Scripts\python.exe`.
 3. Write a coherent outline and then edit `projects/<name>/content.json`. Start with a clear promise, explain the concepts with concrete examples, and finish with a practical next step. Use speaker notes for detail. Source current or specialist factual claims from primary references. Never invent team accomplishments or statistics.
