@@ -20,6 +20,7 @@
 | --- | --- |
 | `illustrations/physics-forces-exam/*.png` | 24 תרשימי פיזיקה מקוריים שנוצרו בקוד `projects/physics-forces-exam/build_video.py` ב־28.10.2026: חצים, קפיצים, גרפים ותרשימי כוחות. משמשים בסרטון החזרה למבחן ובמצגת המלווה. אין העתקה של איורי הספר; נתוני הניסויים להמחשה בלבד. |
 | `training/library-guide/home.png`, `search.png`, `viewer.png`, `export.png` | צילומי ממשק מהספרייה הציבורית ב־https://knowledge.davinci4744.com/, בתצוגת חלון צר, 26.10.2026. משמשים בסרטון ההיכרות; הממשק והתוכן שייכים לפרויקט Da Vinci 4744. |
+| `training/library-guide/export-scorm.jpg` | צילום חלון ייצוא SCORM באתר knowledge.davinci4744.com ב־29.10.2026, עבור עדכון סרטון ההיכרות. צילום ממשק הפרויקט, עם פורמט סרטון נבחר. |
 | `recruitment/team.jpg`, `first.png`, `join-qr.png` | תמונת הקבוצה, סמל FIRST וקוד ההצטרפות שחולצו ממצגת הגיוסים שסיפק המשתמש. משמשים במצגת הגיוסים בלבד; המקור נשמר ב־`projects/recruitment/source/recruitment.pptx`. |
 | `recruitment/{software,field,electrical,leadership,mechanics,engineering,media}.{svg,png}` | סמלי התחומים מתוך קובצי ה־SVG במצגת המקורית. קובצי PNG רונדרו מה־SVG על רקע שקוף, ללא שינוי בצורות וללא יצירת סמלים חלופיים. לשימוש במצגות הקבוצה בהתאם לבקשת המשתמש. |
 | `recruitment/technology-unit-{1,2,3}.png`, `learning.gif` | שלושת סמלי היחידות והאנימציה בת 20 השניות מתוך מצגת הגיוסים המקורית. הקבצים נשמרו ללא שינוי; החיתוך של האנימציה מוגדר בפריסה, כפי שהיה במקור. |
