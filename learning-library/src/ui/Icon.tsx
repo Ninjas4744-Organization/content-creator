@@ -10,6 +10,7 @@ const paths = {
 	clock: "M12 7v5l3 2 M22 12a10 10 0 1 1-20 0 10 10 0 0 1 20 0",
 	check: "m5 12 4 4L19 6",
 	library: "M4 4v16 M9 4v16 M14 4v16 M18 4l3 16",
+	book: "M12 5v16 M3 3h3a6 6 0 0 1 6 3 6 6 0 0 1 6-3h3v16h-3a6 6 0 0 0-6 2 6 6 0 0 0-6-2H3V3Z",
 	download: "M12 3v12 M7 10l5 5 5-5 M4 17v4h16v-4",
 	export: "M12 16V3 M7 8l5-5 5 5 M5 13v8h14v-8",
 	copy: "M9 9h12v12H9z M15 9V3H3v12h6",

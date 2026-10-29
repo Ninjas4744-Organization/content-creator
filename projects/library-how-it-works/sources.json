@@ -1,5 +1,5 @@
 {
-  "checked_on": "2026-10-26",
+  "checked_on": "2026-10-29",
   "public_site": "https://knowledge.davinci4744.com/",
   "local_sources": [
     "docs/gallery.md",
@@ -16,5 +16,13 @@
     "female": "Kore",
     "male": "Puck"
   },
-  "notes": "Screenshots show the public library UI at capture time. No live deployment was performed."
+  "notes": "Export screenshot and narration revised for the current SCORM-only flow. The export scene uses newly generated Gemini Puck narration; the other eleven recordings are unchanged.",
+  "screenshots": {
+    "export": {
+      "file": "training/library-guide/export-scorm.jpg",
+      "captured_on": "2026-10-29",
+      "url": "https://knowledge.davinci4744.com/?item=frc-electrical-basics&view=video",
+      "description": "Current SCORM-only export dialog; video format selected."
+    }
+  }
 }

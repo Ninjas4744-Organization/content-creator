@@ -1,6 +1,6 @@
 export type MediaKind = "deck" | "video";
 export type MediaFilter = "all" | MediaKind;
-export type GalleryScope = "public" | "team";
+export type GalleryScope = "public" | "team" | "study";
 
 export interface LearningItem {
 	id: string;
@@ -9,6 +9,7 @@ export interface LearningItem {
 	category: string;
 	featured: boolean;
 	unlisted?: boolean;
+	gallery?: GalleryScope;
 	poster: string;
 	slides: number;
 	duration: number | null;
@@ -23,4 +24,8 @@ export interface LearningItem {
 export interface CatalogRepository {
 	list(): Promise<LearningItem[]>;
 	dispose(): void;
+}
+
+export function itemGallery(item: LearningItem): GalleryScope {
+	return item.gallery ?? (item.unlisted ? "team" : "public");
 }

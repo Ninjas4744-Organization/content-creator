@@ -79,3 +79,7 @@ LIBRARY_PREVIEW_DIR="$PWD/learning-library/output/content/library" npm --prefix 
 
 בדיקות: `npm --prefix learning-library test`, בדיקות TypeScript ופורמט, בדיקות Worker
 ובדיקות Python. הוראות פריסה מלאות מופיעות במדריך Cloudflare.
+
+## גלריית לימודים
+
+הנתיב `/study-library/` מציג חומרי לימוד לבית הספר. ברשומת השיעור ב־`projects/library.json` מגדירים `"gallery": "study"`; כלי הפרסום שומר את הבחירה בקטלוג R2. התוכן אינו מופיע בגלריה הציבורית או בגלריית הקבוצה. הנתיב אינו מקושר מתוכן, ומסומן `noindex,nofollow`. קישורים ישירים ושאלות החזרה נשמרים כמו בשאר הגלריות.

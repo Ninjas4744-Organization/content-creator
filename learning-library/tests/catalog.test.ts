@@ -166,3 +166,79 @@ test("team gallery searches and counts only unlisted content", async () => {
 	store.reset();
 	assert.equal(store.visibleItems.length, 2);
 });
+
+test("study content has its own discovery, filters and viewer without entering other galleries", async () => {
+	const study: LearningItem[] = [
+		{
+			...items[1]!,
+			id: "math-review",
+			title: "חזרה למבחן במתמטיקה",
+			description: "תרגול משוואות",
+			chapters: ["משוואה ריבועית"],
+			category: "מתמטיקה",
+			gallery: "study",
+		},
+		{
+			...items[0]!,
+			id: "history-review",
+			title: "חזרה בהיסטוריה",
+			category: "היסטוריה",
+			gallery: "study",
+			unlisted: true,
+		},
+	];
+	const team: LearningItem = { ...items[0]!, id: "recruitment", unlisted: true };
+	const all = repository(async () => [...items, team, ...study]);
+	const store = new CatalogStore(all, "study");
+	await store.load();
+	assert.deepEqual(
+		store.visibleItems.map((item) => item.id),
+		["math-review", "history-review"],
+	);
+	assert.equal(store.featured?.id, "math-review");
+	assert.equal(store.deckCount, 2);
+	assert.equal(store.videoCount, 1);
+	assert.deepEqual(store.categories, ["הכול", "מתמטיקה", "היסטוריה"]);
+	assert.deepEqual(store.viewableItems, store.listedItems);
+	store.setQuery("מבחן ריבועית");
+	store.setCategory("מתמטיקה");
+	store.setFilter("video");
+	assert.deepEqual(
+		store.visibleItems.map((item) => item.id),
+		["math-review"],
+	);
+	store.setCategory("היסטוריה");
+	assert.equal(store.visibleItems.length, 0);
+	store.reset();
+	assert.equal(store.visibleItems.length, 2);
+
+	for (const scope of ["public", "team"] as const) {
+		const other = new CatalogStore(all, scope);
+		await other.load();
+		assert.ok(other.listedItems.every((item) => !study.includes(item)));
+		assert.ok(other.viewableItems.every((item) => !study.includes(item)));
+		assert.ok(!other.categories.includes("מתמטיקה"));
+		assert.ok(!other.categories.includes("היסטוריה"));
+		assert.equal(other.deckCount, scope === "public" ? 2 : 1);
+		assert.equal(other.videoCount, scope === "public" ? 1 : 0);
+		assert.equal(other.featured?.id, scope === "public" ? "community" : "recruitment");
+		other.setQuery("מבחן");
+		assert.equal(other.visibleItems.length, 0);
+		if (scope === "public") {
+			assert.ok(other.viewableItems.includes(team));
+		}
+	}
+});
+
+test("study gallery stays empty until school content is added", async () => {
+	const store = new CatalogStore(repository(), "study");
+	await store.load();
+	assert.equal(store.loading, false);
+	assert.equal(store.error, null);
+	assert.deepEqual(store.visibleItems, []);
+	assert.deepEqual(store.viewableItems, []);
+	assert.deepEqual(store.categories, ["הכול"]);
+	assert.equal(store.featured, undefined);
+	assert.equal(store.deckCount, 0);
+	assert.equal(store.videoCount, 0);
+});

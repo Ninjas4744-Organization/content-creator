@@ -138,6 +138,9 @@ def prepare(project_ids=None):
             continue
         doc = load(content)
         metadata = settings.get(project_id, {})
+        gallery = metadata.get("gallery", "team" if metadata.get("unlisted") else "public")
+        if gallery not in {"public", "team", "study"}:
+            raise ValueError(f"Unknown gallery for {project_id}: {gallery}")
         output = target / "media" / project_id
         output.mkdir(parents=True)
         deck = LIBRARY / "output/decks" / project_id
@@ -178,6 +181,7 @@ def prepare(project_ids=None):
             "description": metadata.get("description", doc["scenes"][0].get("subtitle", "מצגת מבית דה וינצ׳י 4744")),
             "category": metadata.get("category", "עוד מהקבוצה"), "featured": metadata.get("featured", False),
             "unlisted": metadata.get("unlisted", False),
+            "gallery": gallery,
             "poster": f"{prefix}/poster.jpg", "slides": len(doc["scenes"]), "duration": duration,
             "checkpoints": sum(bool(s.get("quiz")) for s in doc["scenes"]),
             "chapters": [s.get("chapter", s["title"]) for s in doc["scenes"]],

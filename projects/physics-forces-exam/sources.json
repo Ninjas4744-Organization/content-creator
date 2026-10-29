@@ -1,0 +1,45 @@
+{
+  "checked_on": "2026-10-28",
+  "references": [
+    {
+      "title": "רשימת הנושאים והודעת המורה",
+      "type": "user-provided",
+      "files": [
+        "source/topics-force.jpg",
+        "source/topics-newton.jpg"
+      ],
+      "teacher_message": "בנוסף עליכם להכיר את הניסויים שביצענו (חוק הוק וחיכוך סטטי), והמבחן לא יכלול חיכוך קינטי."
+    },
+    {
+      "title": "עדי רוזן, מכניקה ניוטונית א — פרק ג",
+      "url": "https://meyda.education.gov.il/files/katalog_hinuchi/books/mehanika_nyutonit_a.pdf",
+      "use": "אימות המונח משקל לפי סעיפים 4.3–4.6 והגדרת מערכת דו־גופית. הטקסט אומת בתוצאות החיפוש; פתיחה ישירה של ה־PDF החזירה 403. אין העתקת עמודים."
+    },
+    {
+      "title": "OpenStax — Newton’s First Law",
+      "url": "https://openstax.org/books/university-physics-volume-1/pages/5-2-newtons-first-law",
+      "use": "התמדה ומערכת ייחוס"
+    },
+    {
+      "title": "OpenStax — Normal, Tension, and Other Examples of Forces",
+      "url": "https://openstax.org/books/college-physics-2e/pages/4-5-normal-tension-and-other-examples-of-forces",
+      "use": "כיווני נורמל ומתיחות; אין אימוץ של הגדרת משקל השונה מזו של ספר המורה."
+    },
+    {
+      "title": "OpenStax — Friction",
+      "url": "https://openstax.org/books/college-physics/pages/5-1-friction",
+      "use": "מודל חיכוך סטטי בלבד; כוח בפועל מול כוח מרבי"
+    },
+    {
+      "title": "OpenStax — Hooke’s Law",
+      "url": "https://openstax.org/books/college-physics-2e/pages/16-1-hookes-law-stress-and-strain-revisited",
+      "use": "ליניאריות, כוח מחזיר, יחידות קבוע הקפיץ וגרף כוח מול התארכות"
+    },
+    {
+      "title": "OpenStax Precalculus 2e — Basic Functions and Identities",
+      "url": "https://openstax.org/books/precalculus-2e/pages/a-basic-functions-and-identities",
+      "use": "אימות זהות פיתגורית, טנגנס ויחסי זוויות משלימות; פתרונות ותרשימים מקוריים."
+    }
+  ],
+  "visuals": "Original diagrams and animations authored in build_video.py. No textbook figures reproduced."
+}
