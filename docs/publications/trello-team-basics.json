@@ -4,8 +4,8 @@
   "publication_date": "2026-10-30",
   "meeting_date": "2026-10-30",
   "url": "https://knowledge.davinci4744.com/team-library?item=trello-team-basics&view=video",
-  "release": "00d5f855e5914438ab2babae331e32db",
-  "source_version": "3032f5dbb34a95bad65e784c490f5e39c6164dda70093b2590a2d91d4ec2a979",
+  "release": "341d04e55e6449b98847c68355301d94",
+  "source_version": "198e90e3e59db0c0a4ee9cc9992556a3809df01fdd4ee2f655327febb4e7196c",
   "duration_seconds": 211.9333333333333,
   "resolution": [
     1920,
@@ -17,95 +17,89 @@
   "gallery": "team",
   "unlisted": true,
   "changes": [
-    "Replace the general interface illustrations with genuine narrated Android screen recordings, preserving the personal task-management scope.",
-    "Add private board creation, list creation, moving the same personal Inbox card to the board and dragging it between To do, Doing and Done.",
-    "Add the requested closing explanation of dependencies, early blocker communication and a useful team-meeting work habit.",
-    "Keep the stable team-gallery URL, 3–4 minute duration and continuous playback with no questions. Preserve previous releases and all other lessons."
+    "Add 35 animated gold action indicators covering primary taps, long presses, drag paths and releases on the recorded phone UI.",
+    "Replace equal-duration captions with 69 cues aligned locally to all 425 words of the approved Hebrew narration. Embed correctly directed Hebrew captions in every MP4 chapter, and keep player/SCORM VTT timing identical.",
+    "Pad the board-creation scene to its planned length, correcting a 2.8-second cumulative visual shift; verify all scene durations and the complete 6358-frame video against the narration timeline.",
+    "Copy the accepted soundtrack without re-encoding and verify an identical encoded audio hash. Keep the stable team-gallery URL, personal-board scope, 3:32 duration and no questions."
   ],
   "verification": {
-    "full_mp4_decode": "passed without errors",
-    "rendered_frames": "storyboard and representative phone/board frames visually reviewed",
+    "full_mp4_decode": "passed; 6358 frames at 30 fps",
+    "rendered_frames": "Final storyboard, RTL punctuation, tap targets, drag indicator and late scene timing reviewed",
     "personal_board_scope": "private demo board; only the agent-created demo card was moved; unrelated boards unchanged",
-    "local_player": {
-      "duration": 211.933,
-      "resolution": [
-        1920,
-        1080
-      ],
-      "playback": "advanced with sound enabled",
-      "chapters": "board chapter seek verified",
-      "search": "blocker transcript result verified",
-      "question_controls": "hidden; no question objects"
-    },
-    "published_player": "Published catalog and all 11 remote assets verified. Identical local player tested for chapter navigation, transcript search and unmuted playback. Public browser UI verification unavailable: in-app browser connection timeout and existing Chrome tab network suspension/reload timeout.",
-    "previous_catalog_entries": "all 11 preserved",
+    "local_player": "Unmuted playback advances, 1920×1080, 211.933 seconds; late chapter seek verified; optional VTT track disabled by default",
+    "published_player": "Verified in the stable team-gallery URL: new description, current release iframe, 1920×1080 video, 211.933 seconds, unmuted playback advancing without video errors. Screenshot saved.",
+    "previous_catalog_entries": "all 12 other lessons preserved",
     "clipped_samples": 0,
     "final_lufs": -16.34,
     "final_true_peak_dbtp": -1.2,
-    "audio_review": "automated decoding and levels plus browser playback with sound enabled; direct auditory review unavailable",
-    "captions": "approximate phrase timing"
+    "audio_review": "previously accepted soundtrack preserved byte-for-byte; synchronization checked by local word alignment, duration checks, decoded frames and browser playback; direct auditory review unavailable",
+    "captions": "All 425 words matched to the approved transcript, 69 cues; no overlap or out-of-scene cue ranges",
+    "caption_method": "Local Whisper forced alignment with stable-ts; small",
+    "scorm_captions": "identical to the reviewed player VTT",
+    "visual_scene_lengths": "all match the narration timeline within 0.011 seconds",
+    "soundtrack_hash_matches_previous_release": true
   },
   "assets": [
     {
-      "key": "library/releases/00d5f855e5914438ab2babae331e32db/exports/trello-team-basics/slides.zip",
-      "sha256": "60775768d87ea8e7d197d310ccd6cb37abd0d3f111194bce33acc4faa9194635",
+      "key": "library/releases/341d04e55e6449b98847c68355301d94/exports/trello-team-basics/slides.zip",
+      "sha256": "d96c68602e99718b129d41d0d330fbd0daa54fc7733a2518d84c1dbd7594f429",
       "bytes": 7509137
     },
     {
-      "key": "library/releases/00d5f855e5914438ab2babae331e32db/exports/trello-team-basics/video.zip",
-      "sha256": "6218f1e995e7b2d95d28d41948687c75a74a38a293bc8a9cc09968621bff85ae",
-      "bytes": 14955370
+      "key": "library/releases/341d04e55e6449b98847c68355301d94/exports/trello-team-basics/video.zip",
+      "sha256": "1adb6dbdd427e7b616fabe27b5ea569515845acb9c3872480a37283fc002572c",
+      "bytes": 18107536
     },
     {
-      "key": "library/releases/00d5f855e5914438ab2babae331e32db/media/trello-team-basics/interactive/Rubik-Bold.ttf",
+      "key": "library/releases/341d04e55e6449b98847c68355301d94/media/trello-team-basics/interactive/Rubik-Bold.ttf",
       "sha256": "b1c36dfcbc5fe5011c552c76725c84d989a71d56440e8bfbfa0cb68b593dbad6",
       "bytes": 140396
     },
     {
-      "key": "library/releases/00d5f855e5914438ab2babae331e32db/media/trello-team-basics/interactive/Rubik-Regular.ttf",
+      "key": "library/releases/341d04e55e6449b98847c68355301d94/media/trello-team-basics/interactive/Rubik-Regular.ttf",
       "sha256": "bd1490f4314d27ca1ac5d8869fdda068852edd623318c9bee13e812b793b301b",
       "bytes": 136624
     },
     {
-      "key": "library/releases/00d5f855e5914438ab2babae331e32db/media/trello-team-basics/interactive/captions.vtt",
-      "sha256": "693ef1d7e298f084922300bcf484872cdd11dcb33c529a29faabb46f0c3749e4",
-      "bytes": 6218
+      "key": "library/releases/341d04e55e6449b98847c68355301d94/media/trello-team-basics/interactive/captions.vtt",
+      "sha256": "ad6d0bd3e8becacc9233ac923e94f1403ade8f573fedd1e52015cdaacf0a6ea1",
+      "bytes": 6559
     },
     {
-      "key": "library/releases/00d5f855e5914438ab2babae331e32db/media/trello-team-basics/interactive/index.html",
-      "sha256": "3348079fc5fa1294219f176851c27ab1536a959453294960907a3449c8bb9c7b",
-      "bytes": 24065
+      "key": "library/releases/341d04e55e6449b98847c68355301d94/media/trello-team-basics/interactive/index.html",
+      "sha256": "df8b5cf32f6e747b46b09ac11fed3d3f3e6d39c68e95d05081aefc776eb1edaa",
+      "bytes": 34007
     },
     {
-      "key": "library/releases/00d5f855e5914438ab2babae331e32db/media/trello-team-basics/interactive/poster.jpg",
+      "key": "library/releases/341d04e55e6449b98847c68355301d94/media/trello-team-basics/interactive/poster.jpg",
       "sha256": "9a1376ee4d32349b49f71ea43412b4034a25ef01396f9e9e3efe71a948b967bd",
       "bytes": 147638
     },
     {
-      "key": "library/releases/00d5f855e5914438ab2babae331e32db/media/trello-team-basics/interactive/video.mp4",
-      "sha256": "51fe0f625710c01df2b79d9151f68f299f61059f1b96d3d75954a6883ef78e03",
-      "bytes": 14483088
+      "key": "library/releases/341d04e55e6449b98847c68355301d94/media/trello-team-basics/interactive/video.mp4",
+      "sha256": "b349816f0b435b9c4effde428cb907b49827433a56942a4a0e7945f666caec8a",
+      "bytes": 17635122
     },
     {
-      "key": "library/releases/00d5f855e5914438ab2babae331e32db/media/trello-team-basics/poster.jpg",
+      "key": "library/releases/341d04e55e6449b98847c68355301d94/media/trello-team-basics/poster.jpg",
       "sha256": "9a1376ee4d32349b49f71ea43412b4034a25ef01396f9e9e3efe71a948b967bd",
       "bytes": 147638
     },
     {
-      "key": "library/releases/00d5f855e5914438ab2babae331e32db/media/trello-team-basics/presentation.html",
+      "key": "library/releases/341d04e55e6449b98847c68355301d94/media/trello-team-basics/presentation.html",
       "sha256": "1850c10ed080e0f0046b15ac23330394e9c185c10b3450b71fa5cb3c98b72a9f",
       "bytes": 9891463
     },
     {
-      "key": "library/releases/00d5f855e5914438ab2babae331e32db/media/trello-team-basics/presentation.pptx",
-      "sha256": "231c4b2d4cb7824ca947532e20503fd73c63d8b07c032537b8317a35885cff87",
+      "key": "library/releases/341d04e55e6449b98847c68355301d94/media/trello-team-basics/presentation.pptx",
+      "sha256": "d042e7789c779161d19ecf1a0c50459bf0a13f66ee1fdf3cecd69472ff72f635",
       "bytes": 4269557
     }
   ],
   "first_publication_date": "2026-10-29",
-  "revision": "real-phone-v3",
-  "previous_release": "3bbb1c5c7bc744fe9da28547ebd1f96e",
-  "previous_source_version": "fa8c599aeae2fa317a02d835411c4cb358434bd04d90036a0fe6b5526aaa1992",
+  "revision": "real-phone-v4-clicks-aligned-captions",
+  "previous_release": "00d5f855e5914438ab2babae331e32db",
+  "previous_source_version": "3032f5dbb34a95bad65e784c490f5e39c6164dda70093b2590a2d91d4ec2a979",
   "publication_history": [
     {
       "release": "6768b56a75c541fe99284b939b71e6fb",
@@ -116,6 +110,11 @@
       "release": "3bbb1c5c7bc744fe9da28547ebd1f96e",
       "source_version": "fa8c599aeae2fa317a02d835411c4cb358434bd04d90036a0fe6b5526aaa1992",
       "revision": "personal-v2"
+    },
+    {
+      "release": "00d5f855e5914438ab2babae331e32db",
+      "source_version": "3032f5dbb34a95bad65e784c490f5e39c6164dda70093b2590a2d91d4ec2a979",
+      "revision": "real-phone-v3"
     }
   ]
 }
