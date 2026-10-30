@@ -8,7 +8,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 ASSETS = ROOT / "assets"
-LAYOUTS = {"cover", "cards", "timeline", "photo", "statement", "video"}
+LAYOUTS = {"cover", "cards", "timeline", "photo", "statement", "video", "blank", "qr"}
 
 
 def write_json(path: Path, value):
@@ -78,6 +78,10 @@ def validate(doc):
                 raise ValueError(f"{label}: item label must be text")
             if item.get("image"):
                 local_file(ASSETS, item["image"])
+        if layout == "qr":
+            if not isinstance(scene.get("image"), str):
+                raise ValueError(f"{label}: qr requires an image asset")
+            local_file(ASSETS, scene["image"])
         if layout == "photo":
             media = scene.get("images") or [{"image": scene.get("image", ""), "crop": scene.get("image_crop", {}),
                                              "preview_frame": scene.get("image_preview_frame", 0)}]

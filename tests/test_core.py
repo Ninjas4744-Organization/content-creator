@@ -66,6 +66,36 @@ class CoreTests(unittest.TestCase):
             self.assertNotIn("<script>alert(1)",content)
             self.assertIn("data:image/png;base64,",content)
 
+    def test_blank_and_qr_exports_preserve_requested_content(self):
+        from pptx import Presentation
+        title = "סרקו אותי אם אתם חושבים מחוץ לקופסא"
+        doc = validate({"version": 1, "title": title, "scenes": [
+            {"id": "blank", "layout": "blank", "title": "שקופית ריקה"},
+            {"id": "scan", "layout": "qr", "title": title, "image": "brand/logo.png"},
+        ]})
+        with tempfile.TemporaryDirectory() as temp:
+            pptx = Path(temp) / "deck.pptx"
+            html = Path(temp) / "deck.html"
+            pptx_deck(doc, pptx)
+            html_deck(doc, html)
+            slides = Presentation(pptx).slides
+            self.assertEqual(len(slides), 2)
+            self.assertEqual(len(slides[0].shapes), 1)  # Background only.
+            visible = " ".join(s.text.replace("\n", " ") for s in slides[1].shapes if s.has_text_frame)
+            self.assertIn(title, visible)
+            content = html.read_text()
+            first = content.split('<section class="slide active"', 1)[1].split('</section>', 1)[0]
+            self.assertNotIn('class="el"', first)
+            self.assertIn('width:460px;height:460px;object-fit:contain', content)
+
+    def test_qr_rejects_missing_or_escaping_image(self):
+        for image in (None, "../pyproject.toml"):
+            doc = {"version": 1, "title": "QR", "scenes": [
+                {"id": "scan", "layout": "qr", "title": "Scan", "image": image},
+            ]}
+            with self.assertRaises(ValueError):
+                validate(doc)
+
     def test_gemini_response_extraction(self):
         audio=b"RIFF"+b"example"*8
         response={"steps":[{"type":"model_output","content":[{"type":"audio","data":base64.b64encode(audio).decode()}]}]}

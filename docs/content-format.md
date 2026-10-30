@@ -37,6 +37,8 @@
 | `timeline` | 1–8 שלבים ב־`items`; מעל ארבעה שלבים מוצגים בשתי שורות. `label` אופציונלי לתאריך |
 | `photo` | `image` יחסי ל־`assets/`, `body`, ו־`subtitle` אופציונלי; אפשר גם 1–3 מקטעי טקסט ב־`items` מול תמונה או ערימת `images` |
 | `statement` | `subtitle` כמשפט בולט ו־`body` כהסבר קצר |
+| `blank` | רקע המותג בלבד, ללא כותרת, לוגו נוסף או מספר שקף. `title` נשמר כמידע לפרקים ולנגישות |
+| `qr` | `title` וכרטיס QR גדול וממורכז מתוך `image`; יש לייצר מראש QR עם שוליים בהירים ולבדוק שהוא נסרק בגודל ההקרנה |
 | `video` | `youtube` כמזהה סרטון, או `video_file` לקובץ MP4 מקומי תחת `assets/` עם `poster` כתמונת PNG/JPEG. `captions` אופציונלי לקובץ VTT. הנגן ממלא את השקף |
 
 ב־`cover`, האפשרות `brand_as_subtitle: true` מציבה את ה־wordmark הגדול כשורה השנייה של הכותרת, בלי כותרת משנה קטנה. ב־`photo` אפשר להגדיר `images` כרשימת אובייקטים עם `image` לערימת סמלים. `image_crop` מחזיק שברי חיתוך `left/top/right/bottom`, ו־`image_preview_frame` בוחר פריים לתצוגה המקדימה בלבד. תמונת GIF נשמרת מונפשת ב־HTML ובקובץ ה־PowerPoint.

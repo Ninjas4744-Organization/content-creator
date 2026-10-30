@@ -66,6 +66,15 @@ def line(x, y, x2, y2, color=BLUE, delay=0):
 
 def elements(scene, index, total):
     layout = scene.get("layout", "cards")
+    if layout == "blank":
+        return []
+    if layout == "qr":
+        return [image("brand/logo.png", 47, 39, 54, 55),
+                textbox(scene["title"], 145, 52, 1030, 100, 50, True, align="center"),
+                line(105, 174, 1175, 174),
+                image(scene["image"], 410, 192, 460, 460, .2),
+                image("brand/wordmark.png", 44, 666, 215, 31),
+                textbox(f"{index+1:02d} / {total:02d}", 1085, 670, 95, 30, 18, color=BLUE, align="left")]
     if layout == "video":
         if scene.get("video_file"):
             return [image(scene["poster"], 0, 0, W, H)]
