@@ -1,0 +1,81 @@
+{
+  "project": "outside-the-box-qr",
+  "title": "סרקו אותי אם אתם חושבים מחוץ לקופסא",
+  "publication_date": "2026-10-30",
+  "url": "https://knowledge.davinci4744.com/team-library?item=outside-the-box-qr&view=deck",
+  "release": "8bade1bcbbf6422bb074f1fe82dfb481",
+  "source_version": "86d9801cb82958a0204c537390d57dbd9c3d06d540e36a9fb82506f13686b18e",
+  "slides": 2,
+  "gallery": "team",
+  "unlisted": true,
+  "qr": {
+    "url": "https://knowledge.davinci4744.com/library/media/outside-the-box-qr/image.jpg",
+    "error_correction": "H",
+    "version": 8,
+    "logo": "Supplied Da Vinci 4744 logo",
+    "verified_widths_px": [
+      1368,
+      460,
+      360,
+      280
+    ]
+  },
+  "changes": [
+    "Add a brand-background-only opening slide.",
+    "Add an editable Hebrew QR slide using the exact requested heading.",
+    "Publish the unchanged user-supplied image as the QR target and retain a stable media URL."
+  ],
+  "verification": {
+    "public_playback": true,
+    "browser_slide_navigation": true,
+    "qr_target_opens_attached_image": true,
+    "uploaded_assets_verified_by_sha256": true,
+    "qr_decodes_from_shared_preview": true,
+    "qr_decodes_from_native_libreoffice_render": true,
+    "blank_slide_has_no_visible_text_or_additional_logos": true,
+    "unrelated_lessons_unchanged": 12,
+    "native_powerpoint": "Not checked in Microsoft PowerPoint; checked through LibreOffice PDF rendering.",
+    "tests": {
+      "core": 19,
+      "gallery": 5,
+      "scorm": 5
+    }
+  },
+  "assets": [
+    {
+      "key": "library/releases/8bade1bcbbf6422bb074f1fe82dfb481/exports/outside-the-box-qr/slides.zip",
+      "sha256": "dcaff62a59ff86e5baf660cabd30c416ca24b201fde081727d01807a608c8909",
+      "bytes": 2904266
+    },
+    {
+      "key": "library/releases/8bade1bcbbf6422bb074f1fe82dfb481/media/outside-the-box-qr/davinci-qr.png",
+      "sha256": "94aed4ab3e68951f6b676881b0e0d01f073f2fcace122cb580a3735ed11a7643",
+      "bytes": 27321
+    },
+    {
+      "key": "library/releases/8bade1bcbbf6422bb074f1fe82dfb481/media/outside-the-box-qr/davinci-qr.svg",
+      "sha256": "e7b3912fdfb44617078aca7ac283f8190e472b7e3180205e4fef06a66962bc1e",
+      "bytes": 298428
+    },
+    {
+      "key": "library/releases/8bade1bcbbf6422bb074f1fe82dfb481/media/outside-the-box-qr/image.jpg",
+      "sha256": "127f2226cad959416f44603b4cdf466b252e03e54089375e9027f1c6afea339f",
+      "bytes": 173470
+    },
+    {
+      "key": "library/releases/8bade1bcbbf6422bb074f1fe82dfb481/media/outside-the-box-qr/poster.jpg",
+      "sha256": "74af52fee87d58109965154cd5d3e827be5349298d7c3ae36247cc3163434c7c",
+      "bytes": 170074
+    },
+    {
+      "key": "library/releases/8bade1bcbbf6422bb074f1fe82dfb481/media/outside-the-box-qr/presentation.html",
+      "sha256": "8face8a28dfdb95583cfc14b776e19bf5fab7c08a4dbccb54b4cd1a920ab62f2",
+      "bytes": 3601983
+    },
+    {
+      "key": "library/releases/8bade1bcbbf6422bb074f1fe82dfb481/media/outside-the-box-qr/presentation.pptx",
+      "sha256": "f18825c6bcdb15df9d3416c5ab74a6fd95ae30205ea50e6e34b7cb4335d86d11",
+      "bytes": 1282120
+    }
+  ]
+}
