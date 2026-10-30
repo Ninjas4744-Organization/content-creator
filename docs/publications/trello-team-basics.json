@@ -1,97 +1,121 @@
 {
   "project": "trello-team-basics",
-  "title": "Trello אישי — עושים סדר במשימות",
+  "title": "Trello אישי בטלפון — ממשימה להתקדמות",
   "publication_date": "2026-10-30",
   "meeting_date": "2026-10-30",
   "url": "https://knowledge.davinci4744.com/team-library?item=trello-team-basics&view=video",
-  "release": "3bbb1c5c7bc744fe9da28547ebd1f96e",
-  "source_version": "fa8c599aeae2fa317a02d835411c4cb358434bd04d90036a0fe6b5526aaa1992",
-  "duration_seconds": 230.33333333333334,
+  "release": "00d5f855e5914438ab2babae331e32db",
+  "source_version": "3032f5dbb34a95bad65e784c490f5e39c6164dda70093b2590a2d91d4ec2a979",
+  "duration_seconds": 211.9333333333333,
   "resolution": [
     1920,
     1080
   ],
-  "fps": 24,
-  "chapters": 13,
+  "fps": 30,
+  "chapters": 12,
   "checkpoints": 0,
   "gallery": "team",
   "unlisted": true,
   "changes": [
-    "Correct the tutorial to use each member's personal task board, as clarified by the user.",
-    "Replace member assignment and tagging with personal priorities, planning, self notes and next steps. Update narration, original interface diagrams, captions and gallery metadata.",
-    "Keep the stable lesson URL and continuous playback without questions; preserve the previous source and media releases."
+    "Replace the general interface illustrations with genuine narrated Android screen recordings, preserving the personal task-management scope.",
+    "Add private board creation, list creation, moving the same personal Inbox card to the board and dragging it between To do, Doing and Done.",
+    "Add the requested closing explanation of dependencies, early blocker communication and a useful team-meeting work habit.",
+    "Keep the stable team-gallery URL, 3–4 minute duration and continuous playback with no questions. Preserve previous releases and all other lessons."
   ],
   "verification": {
     "full_mp4_decode": "passed without errors",
-    "rendered_frames": "visually reviewed",
-    "personal_board_scope": "checked; no shared board, member assignment or tagging instructions",
-    "published_player": "new title, personal transcript, chapter navigation, search and 1080p video verified in team gallery",
-    "previous_catalog_entries": "all 11 other lessons preserved",
+    "rendered_frames": "storyboard and representative phone/board frames visually reviewed",
+    "personal_board_scope": "private demo board; only the agent-created demo card was moved; unrelated boards unchanged",
+    "local_player": {
+      "duration": 211.933,
+      "resolution": [
+        1920,
+        1080
+      ],
+      "playback": "advanced with sound enabled",
+      "chapters": "board chapter seek verified",
+      "search": "blocker transcript result verified",
+      "question_controls": "hidden; no question objects"
+    },
+    "published_player": "Published catalog and all 11 remote assets verified. Identical local player tested for chapter navigation, transcript search and unmuted playback. Public browser UI verification unavailable: in-app browser connection timeout and existing Chrome tab network suspension/reload timeout.",
+    "previous_catalog_entries": "all 11 preserved",
     "clipped_samples": 0,
-    "final_lufs": -16.0,
-    "final_true_peak_dbtp": -1.78,
-    "audio_review": "automated decoding and levels only; direct auditory review unavailable",
+    "final_lufs": -16.34,
+    "final_true_peak_dbtp": -1.2,
+    "audio_review": "automated decoding and levels plus browser playback with sound enabled; direct auditory review unavailable",
     "captions": "approximate phrase timing"
   },
   "assets": [
     {
-      "key": "library/releases/3bbb1c5c7bc744fe9da28547ebd1f96e/exports/trello-team-basics/slides.zip",
-      "sha256": "4c83b625206655bdf3c3bfe74abe633b1c647db3abcac19354d743514e4b4193",
-      "bytes": 6074159
+      "key": "library/releases/00d5f855e5914438ab2babae331e32db/exports/trello-team-basics/slides.zip",
+      "sha256": "60775768d87ea8e7d197d310ccd6cb37abd0d3f111194bce33acc4faa9194635",
+      "bytes": 7509137
     },
     {
-      "key": "library/releases/3bbb1c5c7bc744fe9da28547ebd1f96e/exports/trello-team-basics/video.zip",
-      "sha256": "8e4709eff7c0f5d3d7a86d2affcab75fc5a75f16aeb829f1e56a71caa50f1ca9",
-      "bytes": 21601494
+      "key": "library/releases/00d5f855e5914438ab2babae331e32db/exports/trello-team-basics/video.zip",
+      "sha256": "6218f1e995e7b2d95d28d41948687c75a74a38a293bc8a9cc09968621bff85ae",
+      "bytes": 14955370
     },
     {
-      "key": "library/releases/3bbb1c5c7bc744fe9da28547ebd1f96e/media/trello-team-basics/interactive/Rubik-Bold.ttf",
+      "key": "library/releases/00d5f855e5914438ab2babae331e32db/media/trello-team-basics/interactive/Rubik-Bold.ttf",
       "sha256": "b1c36dfcbc5fe5011c552c76725c84d989a71d56440e8bfbfa0cb68b593dbad6",
       "bytes": 140396
     },
     {
-      "key": "library/releases/3bbb1c5c7bc744fe9da28547ebd1f96e/media/trello-team-basics/interactive/Rubik-Regular.ttf",
+      "key": "library/releases/00d5f855e5914438ab2babae331e32db/media/trello-team-basics/interactive/Rubik-Regular.ttf",
       "sha256": "bd1490f4314d27ca1ac5d8869fdda068852edd623318c9bee13e812b793b301b",
       "bytes": 136624
     },
     {
-      "key": "library/releases/3bbb1c5c7bc744fe9da28547ebd1f96e/media/trello-team-basics/interactive/captions.vtt",
-      "sha256": "0b40d8b30258690b90113b201b14972a9145a030717f01f6e9b29429a6a33621",
-      "bytes": 7041
+      "key": "library/releases/00d5f855e5914438ab2babae331e32db/media/trello-team-basics/interactive/captions.vtt",
+      "sha256": "693ef1d7e298f084922300bcf484872cdd11dcb33c529a29faabb46f0c3749e4",
+      "bytes": 6218
     },
     {
-      "key": "library/releases/3bbb1c5c7bc744fe9da28547ebd1f96e/media/trello-team-basics/interactive/index.html",
-      "sha256": "97f0e8f776a9f637cdd5a7f66bdb9547549e30b74ae14b34bb50ba131a493b8b",
-      "bytes": 24379
+      "key": "library/releases/00d5f855e5914438ab2babae331e32db/media/trello-team-basics/interactive/index.html",
+      "sha256": "3348079fc5fa1294219f176851c27ab1536a959453294960907a3449c8bb9c7b",
+      "bytes": 24065
     },
     {
-      "key": "library/releases/3bbb1c5c7bc744fe9da28547ebd1f96e/media/trello-team-basics/interactive/poster.jpg",
-      "sha256": "101b57a772cfa8245889130d588d8682832744f72ec591a033523b3cc0a1262f",
-      "bytes": 146849
+      "key": "library/releases/00d5f855e5914438ab2babae331e32db/media/trello-team-basics/interactive/poster.jpg",
+      "sha256": "9a1376ee4d32349b49f71ea43412b4034a25ef01396f9e9e3efe71a948b967bd",
+      "bytes": 147638
     },
     {
-      "key": "library/releases/3bbb1c5c7bc744fe9da28547ebd1f96e/media/trello-team-basics/interactive/video.mp4",
-      "sha256": "9c38fd68b748208dad546371d10014cca4b5a8c6eaaf6ecf377271fb06ec6972",
-      "bytes": 21129640
+      "key": "library/releases/00d5f855e5914438ab2babae331e32db/media/trello-team-basics/interactive/video.mp4",
+      "sha256": "51fe0f625710c01df2b79d9151f68f299f61059f1b96d3d75954a6883ef78e03",
+      "bytes": 14483088
     },
     {
-      "key": "library/releases/3bbb1c5c7bc744fe9da28547ebd1f96e/media/trello-team-basics/poster.jpg",
-      "sha256": "101b57a772cfa8245889130d588d8682832744f72ec591a033523b3cc0a1262f",
-      "bytes": 146849
+      "key": "library/releases/00d5f855e5914438ab2babae331e32db/media/trello-team-basics/poster.jpg",
+      "sha256": "9a1376ee4d32349b49f71ea43412b4034a25ef01396f9e9e3efe71a948b967bd",
+      "bytes": 147638
     },
     {
-      "key": "library/releases/3bbb1c5c7bc744fe9da28547ebd1f96e/media/trello-team-basics/presentation.html",
-      "sha256": "568117d4971b31a14b9e7281c692cfb0b2d3cb17871579af3b72375d52a19524",
-      "bytes": 7907931
+      "key": "library/releases/00d5f855e5914438ab2babae331e32db/media/trello-team-basics/presentation.html",
+      "sha256": "1850c10ed080e0f0046b15ac23330394e9c185c10b3450b71fa5cb3c98b72a9f",
+      "bytes": 9891463
     },
     {
-      "key": "library/releases/3bbb1c5c7bc744fe9da28547ebd1f96e/media/trello-team-basics/presentation.pptx",
-      "sha256": "4cf96719203829727558d208a38becf50150c84f419b2a6b439ea1c7762547b2",
-      "bytes": 2621815
+      "key": "library/releases/00d5f855e5914438ab2babae331e32db/media/trello-team-basics/presentation.pptx",
+      "sha256": "231c4b2d4cb7824ca947532e20503fd73c63d8b07c032537b8317a35885cff87",
+      "bytes": 4269557
     }
   ],
   "first_publication_date": "2026-10-29",
-  "revision": "personal-v2",
-  "previous_release": "6768b56a75c541fe99284b939b71e6fb",
-  "previous_source_version": "c9761d86eff5f4955a77663287a3c3d2d86eaa0636ed4cd621c551664943a0ba"
+  "revision": "real-phone-v3",
+  "previous_release": "3bbb1c5c7bc744fe9da28547ebd1f96e",
+  "previous_source_version": "fa8c599aeae2fa317a02d835411c4cb358434bd04d90036a0fe6b5526aaa1992",
+  "publication_history": [
+    {
+      "release": "6768b56a75c541fe99284b939b71e6fb",
+      "source_version": "c9761d86eff5f4955a77663287a3c3d2d86eaa0636ed4cd621c551664943a0ba",
+      "revision": "initial-shared-board-guide"
+    },
+    {
+      "release": "3bbb1c5c7bc744fe9da28547ebd1f96e",
+      "source_version": "fa8c599aeae2fa317a02d835411c4cb358434bd04d90036a0fe6b5526aaa1992",
+      "revision": "personal-v2"
+    }
+  ]
 }
