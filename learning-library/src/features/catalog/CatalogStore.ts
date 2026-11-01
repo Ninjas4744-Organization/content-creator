@@ -31,7 +31,7 @@ export class CatalogStore {
 		return this.items.filter((item) => itemGallery(item) === this.gallery);
 	}
 	get viewableItems() {
-		// Preserve existing direct links to team content from the public root.
+		// Preserve direct links to team and link-only content from the public root.
 		return this.gallery === "public"
 			? this.items.filter((item) => itemGallery(item) !== "study")
 			: this.listedItems;

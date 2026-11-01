@@ -9,7 +9,7 @@ export interface LearningItem {
 	category: string;
 	featured: boolean;
 	unlisted?: boolean;
-	gallery?: GalleryScope;
+	gallery?: GalleryScope | "none";
 	poster: string;
 	slides: number;
 	duration: number | null;
@@ -26,6 +26,6 @@ export interface CatalogRepository {
 	dispose(): void;
 }
 
-export function itemGallery(item: LearningItem): GalleryScope {
+export function itemGallery(item: LearningItem): GalleryScope | "none" {
 	return item.gallery ?? (item.unlisted ? "team" : "public");
 }

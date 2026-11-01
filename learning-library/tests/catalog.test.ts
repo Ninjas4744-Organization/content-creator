@@ -242,3 +242,33 @@ test("study gallery stays empty until school content is added", async () => {
 	assert.equal(store.deckCount, 0);
 	assert.equal(store.videoCount, 0);
 });
+
+test("a link-only lesson opens from the root without entering any gallery", async () => {
+	const linkOnly: LearningItem = {
+		...items[1]!,
+		id: "finance-snapshot",
+		title: "תמונת מצב לתכנון תקציבי",
+		category: "ניהול התוכנית",
+		gallery: "none",
+		unlisted: true,
+	};
+	const all = repository(async () => [linkOnly, ...items]);
+	for (const scope of ["public", "team", "study"] as const) {
+		const store = new CatalogStore(all, scope);
+		await store.load();
+		assert.ok(!store.listedItems.includes(linkOnly));
+		assert.ok(!store.visibleItems.includes(linkOnly));
+		assert.notEqual(store.featured, linkOnly);
+		assert.ok(!store.categories.includes(linkOnly.category));
+		assert.equal(store.deckCount, scope === "public" ? 2 : 0);
+		assert.equal(store.videoCount, scope === "public" ? 1 : 0);
+		store.setQuery("תקציבי");
+		assert.deepEqual(store.visibleItems, []);
+		if (scope === "public") {
+			assert.equal(
+				store.viewableItems.find((item) => item.id === linkOnly.id),
+				linkOnly,
+			);
+		}
+	}
+});

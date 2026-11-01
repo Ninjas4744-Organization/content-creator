@@ -139,7 +139,7 @@ def prepare(project_ids=None):
         settings = content.parent / "publication.json"
         metadata = json.loads(settings.read_text(encoding="utf-8")) if settings.is_file() else {}
         gallery = metadata.get("gallery", "team" if metadata.get("unlisted") else "public")
-        if gallery not in {"public", "team", "study"}:
+        if gallery not in {"public", "team", "study", "none"}:
             raise ValueError(f"Unknown gallery for {project_id}: {gallery}")
         output = target / "media" / project_id
         output.mkdir(parents=True)
