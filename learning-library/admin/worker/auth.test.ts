@@ -1,6 +1,6 @@
 import { env } from "cloudflare:test";
-import { beforeEach, expect, test } from "vitest";
-import { SignJWT } from "jose";
+import { beforeEach, expect, test, vi } from "vitest";
+import { SignJWT, generateKeyPair, exportJWK } from "jose";
 import worker from "../src/worker";
 import { authDigest, pkceChallenge, verifySsoIdentity } from "../src/admin-sso";
 import type { Env } from "../src/model";
@@ -115,6 +115,59 @@ beforeEach(async () => {
 		cursor = result.truncated ? result.cursor : undefined;
 	} while (cursor);
 	await bucket.put("library/catalog.json", JSON.stringify(seed));
+});
+
+test("migration retains verified Access logins even when SSO is unavailable, without letting agent bearer tokens escape scope checks", async () => {
+	const keys = await generateKeyPair("RS256");
+	const jwk = await exportJWK(keys.publicKey);
+	jwk.kid = "migration-key";
+	const config = {
+		...settings,
+		ADMIN_AUTH_MODE: "migration",
+		ADMIN_ACCESS_ISSUER: "https://migration-test.cloudflareaccess.com",
+		ADMIN_ACCESS_AUD: "migration-audience",
+	};
+	const access = await new SignJWT({ email: actor })
+		.setProtectedHeader({ alg: "RS256", kid: jwk.kid })
+		.setIssuer(config.ADMIN_ACCESS_ISSUER)
+		.setAudience(config.ADMIN_ACCESS_AUD)
+		.setSubject("existing-user")
+		.setIssuedAt()
+		.setExpirationTime("10m")
+		.sign(keys.privateKey);
+	const network = vi
+		.spyOn(globalThis, "fetch")
+		.mockImplementation(async () => Response.json({ keys: [jwk] }));
+	try {
+		const headers = { "Cf-Access-Jwt-Assertion": access };
+		for (const current of [config, { ...config, ADMIN_SSO_SECRET: undefined }]) {
+			const response = await call("/admin/api/catalog", { headers }, current);
+			expect(response.status).toBe(200);
+			await response.text();
+		}
+		expect(
+			(
+				await call(
+					"/admin/api/catalog",
+					{ headers: { ...headers, Authorization: "Bearer forged" } },
+					config,
+				)
+			).status,
+		).toBe(401);
+		const grant = await agent(await login());
+		expect(
+			(
+				await call(
+					"/admin/api/history",
+					{ headers: { ...headers, Authorization: "Bearer " + grant } },
+					config,
+				)
+			).status,
+		).toBe(403);
+		expect((await call("/admin/auth/login", {}, config)).status).toBe(200);
+	} finally {
+		network.mockRestore();
+	}
 });
 
 test("SSO validates actual numeric/string uid, email policy, algorithm, issuer, audience and short expiry", async () => {

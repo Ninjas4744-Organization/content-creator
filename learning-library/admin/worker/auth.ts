@@ -94,9 +94,9 @@ export async function pkceChallenge(verifier: string): Promise<string> {
 		.replace(/=+$/, "");
 }
 export function ssoEnabled(env: AuthEnv): boolean {
-	if (env.ADMIN_AUTH_MODE && !["access", "sso"].includes(env.ADMIN_AUTH_MODE))
+	if (env.ADMIN_AUTH_MODE && !["access", "migration", "sso"].includes(env.ADMIN_AUTH_MODE))
 		fail("הכניסה לניהול אינה מוגדרת.", 503);
-	return env.ADMIN_AUTH_MODE === "sso";
+	return env.ADMIN_AUTH_MODE === "sso" || env.ADMIN_AUTH_MODE === "migration";
 }
 async function settings(env: AuthEnv): Promise<Settings> {
 	try {

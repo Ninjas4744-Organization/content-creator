@@ -105,13 +105,21 @@ export async function admin(request: Request, env: Env): Promise<Response> {
 				email = (await authenticateSiteAdmin(request, env)).email;
 			} catch (error) {
 				if (
-					error instanceof CatalogError &&
-					error.status === 401 &&
-					["GET", "HEAD"].includes(request.method) &&
-					!new URL(request.url).pathname.startsWith("/admin/api/")
-				)
-					return loginRedirect(request);
-				throw error;
+					env.ADMIN_AUTH_MODE === "migration" &&
+					!request.headers.has("Authorization") &&
+					request.headers.has("Cf-Access-Jwt-Assertion")
+				) {
+					email = await authenticateAdmin(request, env);
+				} else {
+					if (
+						error instanceof CatalogError &&
+						error.status === 401 &&
+						["GET", "HEAD"].includes(request.method) &&
+						!new URL(request.url).pathname.startsWith("/admin/api/")
+					)
+						return loginRedirect(request);
+					throw error;
+				}
 			}
 		} else email = await authenticateAdmin(request, env);
 		const path = new URL(request.url).pathname;
