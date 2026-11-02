@@ -1,7 +1,8 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { CatalogStore } from "../src/features/catalog/CatalogStore";
-import type { CatalogRepository, LearningItem } from "../src/models/catalog";
+import { parseCatalog } from "../src/core/catalogDocument";
+import type { LearningItem } from "../src/models/catalog";
 
 const items: LearningItem[] = [
 	{
@@ -35,8 +36,8 @@ const items: LearningItem[] = [
 		video: "player.html",
 	},
 ];
-const repository = (list: CatalogRepository["list"] = async () => items): CatalogRepository => ({
-	list,
+const repository = (list: () => Promise<LearningItem[]> = async () => items) => ({
+	list: async () => parseCatalog(await list()),
 	dispose() {},
 });
 
@@ -187,7 +188,11 @@ test("study content has its own discovery, filters and viewer without entering o
 			unlisted: true,
 		},
 	];
-	const team: LearningItem = { ...items[0]!, id: "recruitment", unlisted: true };
+	const team: LearningItem = {
+		...items[0]!,
+		id: "recruitment",
+		unlisted: true,
+	};
 	const all = repository(async () => [...items, team, ...study]);
 	const store = new CatalogStore(all, "study");
 	await store.load();

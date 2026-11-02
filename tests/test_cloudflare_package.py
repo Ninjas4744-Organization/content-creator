@@ -28,6 +28,21 @@ class CloudflarePackageTests(unittest.TestCase):
             self.assertIn("frame-ancestors 'self';", (public / "_headers").read_text())
             self.assertFalse(data.exists())
 
+    def test_admin_assets_are_packaged_separately_and_private_files_are_rejected(self):
+        with tempfile.TemporaryDirectory() as directory:
+            library = Path(directory)
+            site = library / "output/site"
+            admin = library / "admin/output/production"
+            site.mkdir(parents=True)
+            admin.mkdir(parents=True)
+            (site / "index.html").write_text("library")
+            (admin / "index.html").write_text("admin")
+            package.prepare(library, admin)
+            self.assertEqual((library / "output/cloudflare-assets/admin/index.html").read_text(), "admin")
+            (admin / ".env").write_text("private")
+            with self.assertRaisesRegex(ValueError, "private"):
+                package.prepare(library, admin)
+
     def test_oversized_assets_fail_before_a_deployment_can_start(self):
         with tempfile.TemporaryDirectory() as directory:
             library = Path(directory)

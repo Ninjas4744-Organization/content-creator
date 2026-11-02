@@ -1,14 +1,17 @@
 import { makeAutoObservable, observable, runInAction } from "mobx";
+import { resolveGallery } from "../../core/galleryRouting";
 import { itemGallery } from "../../models/catalog";
 import type {
 	CatalogRepository,
 	GalleryScope,
+	GalleryDefinition,
 	LearningItem,
 	MediaFilter,
 } from "../../models/catalog";
 
 export class CatalogStore {
 	items: LearningItem[] = [];
+	galleries: GalleryDefinition[] = [];
 	query = "";
 	filter: MediaFilter = "all";
 	category = "הכול";
@@ -18,15 +21,31 @@ export class CatalogStore {
 
 	constructor(
 		private readonly repository: CatalogRepository,
-		readonly gallery: GalleryScope = "public",
+		readonly selector: GalleryScope = "public",
 	) {
 		makeAutoObservable<this, "repository" | "generation">(
 			this,
-			{ repository: false, gallery: false, generation: false, items: observable.ref },
+			{
+				repository: false,
+				selector: false,
+				galleries: observable.ref,
+				generation: false,
+				items: observable.ref,
+			},
 			{ autoBind: true },
 		);
 	}
 
+	get galleryDefinition() {
+		return (
+			this.galleries.find(
+				(gallery) => gallery.id === this.selector && gallery.id !== "none",
+			) ?? resolveGallery(this.galleries, this.selector)
+		);
+	}
+	get gallery() {
+		return this.galleryDefinition?.id ?? "missing";
+	}
 	get listedItems() {
 		return this.items.filter((item) => itemGallery(item) === this.gallery);
 	}
@@ -80,10 +99,13 @@ export class CatalogStore {
 		this.loading = true;
 		this.error = null;
 		try {
-			const items = await this.repository.list();
+			const catalog = await this.repository.list();
 			if (generation !== this.generation) return;
 			runInAction(() => {
-				this.items = items;
+				this.items = catalog.items;
+				this.galleries = catalog.galleries;
+				if (!this.galleryDefinition)
+					this.error = "הספרייה לא נמצאה. ייתכן שהקישור השתנה או שהספרייה נמחקה.";
 				this.loading = false;
 			});
 		} catch {

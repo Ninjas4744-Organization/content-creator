@@ -1,4 +1,5 @@
 import copy
+import sys
 import importlib.util
 import io
 import json
@@ -7,6 +8,7 @@ import unittest
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT / "scripts"))
 spec = importlib.util.spec_from_file_location("publish_library", ROOT / "scripts/publish_library.py")
 publisher = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(publisher)
@@ -65,21 +67,40 @@ class R2PublishTests(unittest.TestCase):
             other = {**item, "id": "other", "title": "Retained"}
             storage.objects[publisher.CATALOG] = json.dumps([other, item]).encode()
             receipt = publisher.publish(directory, storage, "test-bucket")
-            catalog = json.loads(storage.objects[publisher.CATALOG])
+            catalog = json.loads(storage.objects[publisher.CATALOG])["items"]
             self.assertEqual(catalog[0], other)
             self.assertEqual(catalog[1]["id"], "demo")
             for key in ("poster", "deck"):
                 self.assertIn("library/releases/" + receipt["release"], catalog[1][key])
                 self.assertIn(catalog[1][key], storage.objects)
             self.assertEqual(len(receipt["files"]), 3)
-            self.assertEqual(json.loads(storage.objects[f"library/history/{receipt['release']}.json"]), [other, item])
+            self.assertEqual(json.loads(storage.objects[f"library/history/{receipt['release']}.json"])["items"], [other, item])
+
+    def test_shared_catalog_settings_and_editorial_metadata_survive_media_publication(self):
+        with tempfile.TemporaryDirectory() as root:
+            directory, item = self.package(root)
+            storage = FakeStorage()
+            document = publisher.validate_catalog([item])
+            document["galleries"].append({"id": "robotics", "name": "Robotics", "url": "/robotics", "custom": True})
+            document["items"][0].update({"title": "Edited in admin", "gallery": "robotics", "chapters": ["Edited chapter"], "custom": {"retained": True}})
+            document["customCatalogMetadata"] = {"retained": True}
+            storage.objects[publisher.CATALOG] = json.dumps(document).encode()
+            publisher.publish(directory, storage, "test-bucket")
+            result = json.loads(storage.objects[publisher.CATALOG])
+            self.assertEqual(result["galleries"], document["galleries"])
+            self.assertEqual(result["customCatalogMetadata"], document["customCatalogMetadata"])
+            self.assertEqual(result["items"][0]["title"], "Edited in admin")
+            self.assertEqual(result["items"][0]["gallery"], "robotics")
+            self.assertEqual(result["items"][0]["chapters"], ["Edited chapter"])
+            self.assertEqual(result["items"][0]["custom"], {"retained": True})
+            self.assertIn("library/releases/", result["items"][0]["deck"])
 
     def test_initial_publication_creates_the_catalog(self):
         with tempfile.TemporaryDirectory() as root:
             directory, _ = self.package(root)
             storage = FakeStorage()
             publisher.publish(directory, storage, "test-bucket")
-            self.assertEqual(len(json.loads(storage.objects[publisher.CATALOG])), 1)
+            self.assertEqual(len(json.loads(storage.objects[publisher.CATALOG])["items"]), 1)
 
     def test_corrupt_remote_file_never_replaces_the_catalog(self):
         with tempfile.TemporaryDirectory() as root:

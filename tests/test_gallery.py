@@ -1,3 +1,4 @@
+import sys
 import importlib.util
 import json
 import os
@@ -8,6 +9,7 @@ import unittest
 from pathlib import Path
 
 SCRIPT = Path(__file__).resolve().parents[1] / "scripts/prepare_gallery.py"
+sys.path.insert(0, str(SCRIPT.parent))
 spec = importlib.util.spec_from_file_location("gallery", SCRIPT)
 gallery = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(gallery)
@@ -32,7 +34,7 @@ class GalleryTests(unittest.TestCase):
             environment = {key: value for key, value in os.environ.items() if key != "LIBRARY_PREVIEW_DIR"}
             subprocess.run(["node", str(script)], check=True, env=environment)
             public = root / "learning-library/public/library"
-            self.assertEqual(json.loads((public / "catalog.json").read_text()), [])
+            self.assertEqual(json.loads((public / "catalog.json").read_text())["items"], [])
             self.assertEqual({path.name for path in public.iterdir()}, {"brand", "catalog.json"})
 
     def test_scorm_timeline_keeps_current_questions_and_validates_scene_identity(self):

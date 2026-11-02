@@ -48,10 +48,26 @@ class WranglerPublishTests(unittest.TestCase):
             previous = [{"id": "other", "title": "Other", "chapters": []}]
             storage.objects[publisher.CATALOG] = json.dumps(previous).encode()
             receipt = publisher.publish(directory, storage)
-            result = json.loads(storage.objects[publisher.CATALOG])
+            result = json.loads(storage.objects[publisher.CATALOG])["items"]
             self.assertEqual(result[0], previous[0])
             self.assertEqual(storage.objects[result[1]["deck"]], b"verified deck")
-            self.assertEqual(json.loads(storage.objects[f"library/history/{receipt['release']}.json"]), previous)
+            self.assertEqual(json.loads(storage.objects[f"library/history/{receipt['release']}.json"])["items"], previous)
+
+    def test_shared_catalog_library_definitions_survive_wrangler_publication(self):
+        with tempfile.TemporaryDirectory() as root:
+            directory = self.package(root)
+            storage = MemoryStorage()
+            document = publisher.validate_catalog(json.loads((directory / "catalog.json").read_text()))
+            document["galleries"][1].update({"name": "Team edited in admin", "url": "/crew"})
+            document["items"][0].update({"title": "Edited title", "gallery": "none", "unlisted": True})
+            document["custom"] = {"retained": True}
+            storage.objects[publisher.CATALOG] = json.dumps(document).encode()
+            publisher.publish(directory, storage)
+            result = json.loads(storage.objects[publisher.CATALOG])
+            self.assertEqual(result["galleries"], document["galleries"])
+            self.assertEqual(result["items"][0]["title"], "Edited title")
+            self.assertEqual(result["items"][0]["gallery"], "none")
+            self.assertEqual(result["custom"], document["custom"])
 
     def test_corrupt_upload_or_changed_catalog_never_promotes_release(self):
         for options in ({"corrupt": True}, {"conflict": True}):

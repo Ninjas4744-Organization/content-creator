@@ -17,6 +17,7 @@ import subprocess
 import tempfile
 from uuid import uuid4
 
+from catalog_model import merge_publication
 from publish_library import CATALOG, ROOT, package_files, validate_catalog
 
 
@@ -60,7 +61,8 @@ class WranglerLibrary:
 def publish(directory: Path, storage) -> dict:
     selected, files = package_files(directory)
     before = storage.read(CATALOG)
-    previous = validate_catalog(json.loads(before)) if before is not None else []
+    previous = validate_catalog(json.loads(before)) if before is not None else None
+    merge_publication(previous, selected)  # Preflight before any upload.
     release = uuid4().hex
     prefix = f"library/releases/{release}/"
     verified = []
@@ -73,17 +75,16 @@ def publish(directory: Path, storage) -> dict:
         if remote is None or len(remote) != len(data) or hashlib.sha256(remote).hexdigest() != digest:
             raise ValueError(f"Remote verification failed: {key}")
         verified.append({"key": key, "sha256": digest, "bytes": len(data)})
-    updates = json.loads(json.dumps(selected))
+    updates = json.loads(json.dumps(selected["items"]))
     for item in updates:
         for name in ("poster", "deck", "powerpoint", "video"):
             if item.get(name):
                 item[name] = prefix + item[name].removeprefix("library/")
         item["scorm"] = {name: prefix + link.removeprefix("library/") for name, link in item.get("scorm", {}).items()}
-    incoming = {item["id"]: item for item in updates}
-    merged = [incoming.pop(item["id"], item) for item in previous] + list(incoming.values())
+    merged = merge_publication(previous, {**selected, "items": updates})
     if storage.read(CATALOG) != before:
         raise ValueError("Catalog changed during publication; existing lessons were not overwritten")
-    storage.write(f"library/history/{release}.json", json.dumps(previous, ensure_ascii=False).encode(), "application/json")
+    storage.write(f"library/history/{release}.json", json.dumps(previous if previous is not None else {**selected, "items": []}, ensure_ascii=False).encode(), "application/json")
     if storage.read(CATALOG) != before:
         raise ValueError("Catalog changed before promotion; existing lessons were not overwritten")
     promoted = json.dumps(merged, ensure_ascii=False, indent=2).encode()

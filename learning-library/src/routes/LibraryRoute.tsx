@@ -1,38 +1,51 @@
-import { useEffect, useState } from "react";
-import { useLocalSearchParams, useRouter } from "expo-router";
+import { useEffect, useMemo } from "react";
+import { observer } from "mobx-react-lite";
+import { useLocalSearchParams, usePathname, useRouter, type Href } from "expo-router";
 import Head from "expo-router/head";
 import { CatalogStore } from "../features/catalog/CatalogStore";
-import { galleries } from "../features/catalog/galleries";
+import { galleryDetails } from "../features/catalog/galleries";
 import { createBrowserRepository } from "../core/browserRepository";
+import { viewerHref } from "../core/galleryRouting";
 import { LibraryScreen } from "../screens/LibraryScreen";
-import type { GalleryScope, MediaKind } from "../models/catalog";
+import type { MediaKind } from "../models/catalog";
 
-export function LibraryRoute({ gallery = "public" }: { gallery?: GalleryScope }) {
-	const [store] = useState(() => new CatalogStore(createBrowserRepository(), gallery));
-	const details = galleries[gallery];
-	const pathname = details.pathname;
+export const LibraryRoute = observer(function LibraryRoute() {
+	const pathname = usePathname();
+	const params = useLocalSearchParams<{
+		item?: string;
+		view?: string;
+		gallery?: string;
+	}>();
+	const address = new URL(
+		typeof window === "undefined"
+			? `https://knowledge.davinci4744.com${pathname}`
+			: window.location.href,
+	);
+	address.searchParams.delete("item");
+	address.searchParams.delete("view");
+	const selector = address.href;
+	const store = useMemo(() => new CatalogStore(createBrowserRepository(), selector), [selector]);
+	const details = galleryDetails(store.galleryDefinition);
 	const router = useRouter();
-	const params = useLocalSearchParams<{ item?: string; view?: string }>();
 	useEffect(() => {
 		void store.load();
 		return store.dispose;
 	}, [store]);
-	const open = (id: string, kind: MediaKind) => {
-		router.push({ pathname, params: { item: id, view: kind } });
-	};
+	const open = (id: string, kind: MediaKind) =>
+		router.push(viewerHref(window.location.href, id, kind) as Href);
 	return (
 		<>
 			<Head>
 				<title>{details.title} · דה וינצ׳י 4744</title>
-				{gallery !== "public" && <meta name="robots" content="noindex,nofollow" />}
+				{store.gallery !== "public" && <meta name="robots" content="noindex,nofollow" />}
 			</Head>
 			<LibraryScreen
 				store={store}
 				selectedId={params.item}
 				selectedKind={params.view === "video" ? "video" : "deck"}
 				onOpen={open}
-				onClose={() => router.replace(pathname)}
+				onClose={() => router.replace(viewerHref(window.location.href) as Href)}
 			/>
 		</>
 	);
-}
+});

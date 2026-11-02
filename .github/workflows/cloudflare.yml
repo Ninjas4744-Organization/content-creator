@@ -30,6 +30,7 @@ jobs:
                   cache: npm
                   cache-dependency-path: |
                       learning-library/package-lock.json
+                      learning-library/admin/package-lock.json
                       learning-library/cloudflare/package-lock.json
             - name: Install content tools
               run: |
@@ -48,6 +49,13 @@ jobs:
               env:
                   EXPO_BASE_URL: ""
               run: npm --prefix learning-library run build
+            - name: Install and check admin
+              run: |
+                  npm --prefix learning-library/admin ci --no-audit --no-fund
+                  npm --prefix learning-library/admin run check
+                  npm --prefix learning-library/admin run format:check
+                  npm --prefix learning-library/admin test
+                  npm --prefix learning-library/admin run build:production
             - name: Install Cloudflare tools
               run: npm --prefix learning-library/cloudflare ci --no-audit --no-fund
             - name: Stage application assets
@@ -111,8 +119,14 @@ jobs:
                   curl --fail --silent --show-error --retry 5 --retry-delay 3 https://knowledge.davinci4744.com/health |
                       python3 -c 'import json,sys; status=json.load(sys.stdin); assert status=={"status":"ok"}, "Library health check failed"'
                   curl --fail --silent --show-error --retry 5 --retry-delay 3 https://knowledge.davinci4744.com/library/catalog.json |
-                      python3 -c 'import json,sys; assert isinstance(json.load(sys.stdin), list), "R2 catalog is unavailable"'
+                      python3 -c 'import json,sys; value=json.load(sys.stdin); assert isinstance(value, list) or (isinstance(value,dict) and value.get("schemaVersion")==1 and isinstance(value.get("galleries"),list) and isinstance(value.get("items"),list)), "R2 catalog is unavailable"'
                   integration_status=$(curl --silent --show-error --output /dev/null --write-out '%{http_code}' https://knowledge.davinci4744.com/lti/jwks)
                   test "$integration_status" = "410"
                   retired_status=$(curl --silent --show-error --retry 5 --retry-delay 3 --output /dev/null --write-out '%{http_code}' https://learn.davinci4744.com/lti/jwks)
                   test "$retired_status" = "410"
+
+                  admin_status=$(curl --silent --show-error --output /dev/null --write-out '%{http_code}' https://knowledge.davinci4744.com/admin/api/catalog)
+                  case "$admin_status" in
+                      302|401|403) ;;
+                      *) echo "Admin access control is unavailable or not enforced ($admin_status)"; exit 1 ;;
+                  esac

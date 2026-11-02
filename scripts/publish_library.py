@@ -10,37 +10,23 @@ import hashlib
 import json
 import mimetypes
 import os
-import re
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from uuid import uuid4
+
+from catalog_model import normalize_catalog as validate_catalog, merge_publication
 
 ROOT = Path(__file__).resolve().parents[1]
 CATALOG = "library/catalog.json"
 ALLOWED = {".html", ".css", ".js", ".jpg", ".jpeg", ".png", ".webp", ".svg", ".ttf", ".woff", ".woff2", ".vtt", ".mp4", ".txt", ".pptx", ".zip"}
 
 
-def validate_catalog(value: object) -> list[dict]:
-    if not isinstance(value, list):
-        raise ValueError("Catalog must be an array")
-    ids = set()
-    for item in value:
-        if not isinstance(item, dict) or not re.fullmatch(r"[a-zA-Z0-9_-]+", item.get("id", "")):
-            raise ValueError("Invalid catalog project ID")
-        if item["id"] in ids:
-            raise ValueError("Duplicate catalog project ID")
-        ids.add(item["id"])
-        if not isinstance(item.get("title"), str) or not isinstance(item.get("chapters"), list):
-            raise ValueError("Invalid catalog metadata")
-    return value
-
-
-def package_files(directory: Path) -> tuple[list[dict], list[Path]]:
+def package_files(directory: Path) -> tuple[dict, list[Path]]:
     """Preflight the complete public package before any remote write."""
     if directory.is_symlink():
         raise ValueError("Publication directory must not be a symlink")
     catalog = validate_catalog(json.loads((directory / "catalog.json").read_text(encoding="utf-8")))
-    if not catalog:
+    if not catalog["items"]:
         raise ValueError("Refusing to publish an empty package")
     files = []
     for path in sorted(directory.rglob("*")):
@@ -53,7 +39,7 @@ def package_files(directory: Path) -> tuple[list[dict], list[Path]]:
             raise ValueError(f"Unsupported publication asset: {relative}")
         files.append(path)
     available = {"library/" + path.relative_to(directory).as_posix() for path in files}
-    for item in catalog:
+    for item in catalog["items"]:
         links = [item.get(name) for name in ("poster", "deck", "powerpoint", "video")]
         links.extend(item.get("scorm", {}).values())
         for link in filter(None, links):
@@ -62,13 +48,13 @@ def package_files(directory: Path) -> tuple[list[dict], list[Path]]:
     return catalog, files
 
 
-def _read_catalog(client, bucket: str) -> tuple[list[dict], str | None]:
+def _read_catalog(client, bucket: str) -> tuple[dict | None, str | None]:
     try:
         result = client.get_object(Bucket=bucket, Key=CATALOG)
     except Exception as error:
         code = getattr(error, "response", {}).get("Error", {}).get("Code")
         if code in {"NoSuchKey", "404"}:
-            return [], None
+            return None, None
         raise
     try:
         return validate_catalog(json.loads(result["Body"].read())), result["ETag"]
@@ -79,6 +65,7 @@ def _read_catalog(client, bucket: str) -> tuple[list[dict], str | None]:
 def publish(directory: Path, client, bucket: str, *, workers: int = 4) -> dict:
     catalog, files = package_files(directory)
     previous, etag = _read_catalog(client, bucket)
+    merge_publication(previous, catalog)  # Validate library references before uploading any files.
     release = uuid4().hex
     prefix = f"library/releases/{release}/"
 
@@ -111,17 +98,16 @@ def publish(directory: Path, client, bucket: str, *, workers: int = 4) -> dict:
 
     with ThreadPoolExecutor(max_workers=workers) as pool:
         verified = list(pool.map(upload, files))
-    updates = copy.deepcopy(catalog)
+    updates = copy.deepcopy(catalog["items"])
     for item in updates:
         for name in ("poster", "deck", "powerpoint", "video"):
             if item.get(name):
                 item[name] = prefix + item[name].removeprefix("library/")
         item["scorm"] = {name: prefix + link.removeprefix("library/") for name, link in item.get("scorm", {}).items()}
-    incoming = {item["id"]: item for item in updates}
-    merged = [incoming.pop(item["id"], item) for item in previous] + list(incoming.values())
+    merged = merge_publication(previous, {**catalog, "items": updates})
     # Retain the previous catalog for recovery. Assets are immutable and never deleted here.
     client.put_object(Bucket=bucket, Key=f"library/history/{release}.json",
-                      Body=json.dumps(previous, ensure_ascii=False).encode(), ContentType="application/json")
+                      Body=json.dumps(previous if previous is not None else {**catalog, "items": []}, ensure_ascii=False).encode(), ContentType="application/json")
     # A concurrent publisher must not overwrite another publisher's catalog update.
     condition = {"IfMatch": etag} if etag else {"IfNoneMatch": "*"}
     client.put_object(Bucket=bucket, Key=CATALOG,
@@ -137,7 +123,7 @@ def main() -> None:
     parser.add_argument("--dry-run", action="store_true", help="Validate and report without credentials or network")
     args = parser.parse_args()
     catalog, files = package_files(args.directory)
-    print(f"Publication package: {len(catalog)} lessons, {len(files)} files, {sum(p.stat().st_size for p in files) / 1024**2:.1f} MiB")
+    print(f"Publication package: {len(catalog['items'])} lessons, {len(files)} files, {sum(p.stat().st_size for p in files) / 1024**2:.1f} MiB")
     if args.dry_run:
         return
     required = ("R2_ACCOUNT_ID", "R2_ACCESS_KEY_ID", "R2_SECRET_ACCESS_KEY")

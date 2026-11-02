@@ -15,7 +15,7 @@
 	"assets": {
 		"directory": "../output/cloudflare-assets",
 		"binding": "ASSETS",
-		"run_worker_first": ["/lti", "/lti/*", "/health", "/library/*"],
+		"run_worker_first": true,
 		"html_handling": "auto-trailing-slash",
 	},
 	"observability": {

@@ -1,5 +1,6 @@
 import { env, SELF } from "cloudflare:test";
 import { expect, test } from "vitest";
+import { defaultGalleries } from "../../src/models/catalog";
 import type { Env } from "../src/model";
 const bucket = (env as unknown as Env).CONTENT;
 
@@ -69,7 +70,10 @@ test("catalog and lesson packages come from R2 and update without a website buil
 		chapters: ["Opening"],
 		deck: "library/media/demo/presentation.html",
 		video: "library/media/demo/interactive/index.html",
-		scorm: { deck: "library/exports/demo/slides.zip", video: "library/exports/demo/video.zip" },
+		scorm: {
+			deck: "library/exports/demo/slides.zip",
+			video: "library/exports/demo/video.zip",
+		},
 	};
 	await bucket.put("library/catalog.json", JSON.stringify([item]), {
 		httpMetadata: { contentType: "application/json" },
@@ -104,8 +108,82 @@ test("old static media bookmarks redirect to the current immutable R2 release", 
 		JSON.stringify([{ id: "legacy", poster: release + "media/legacy/poster.jpg" }]),
 	);
 	for (const key of ["media/legacy/interactive/index.html", "exports/legacy/video.zip"]) {
-		const response = await SELF.fetch(origin + "/library/" + key, { redirect: "manual" });
+		const response = await SELF.fetch(origin + "/library/" + key, {
+			redirect: "manual",
+		});
 		expect(response.status).toBe(307);
 		expect(response.headers.get("Location")).toBe("/" + release + key);
 	}
+});
+
+test("catalog-defined library routes work and update without rebuilding the app", async () => {
+	const gallery = {
+		id: "robotics",
+		name: "הדרכות רובוטיקה",
+		url: "/training/robotics",
+	};
+	const document = {
+		schemaVersion: 1,
+		galleries: [...defaultGalleries, gallery],
+		items: [],
+	};
+	await bucket.put("library/catalog.json", JSON.stringify(document));
+	const page = await SELF.fetch(origin + "/training/robotics?gallery=robotics");
+	expect(page.status).toBe(200);
+	expect(await page.text()).toContain("<html");
+	const head = await SELF.fetch(origin + "/training/robotics", {
+		method: "HEAD",
+	});
+	expect(head.status).toBe(200);
+	expect(await head.text()).toBe("");
+	await bucket.put(
+		"library/catalog.json",
+		JSON.stringify({
+			...document,
+			galleries: [...defaultGalleries, { ...gallery, url: "/new-robotics" }],
+		}),
+	);
+	const moved = await SELF.fetch(origin + "/new-robotics");
+	expect(moved.status).toBe(200);
+	await moved.text();
+	const old = await SELF.fetch(origin + "/training/robotics");
+	expect(old.status).toBe(404);
+	await old.text();
+	await bucket.put(
+		"library/catalog.json",
+		JSON.stringify({
+			schemaVersion: 1,
+			galleries: defaultGalleries,
+			items: [],
+		}),
+	);
+	const removed = await SELF.fetch(origin + "/new-robotics");
+	expect(removed.status).toBe(404);
+	await removed.text();
+});
+
+test("legacy media bookmarks also resolve from a versioned catalog", async () => {
+	const release = "library/releases/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/";
+	await bucket.put(
+		"library/catalog.json",
+		JSON.stringify({
+			schemaVersion: 1,
+			galleries: defaultGalleries,
+			items: [
+				{
+					id: "legacy-new",
+					title: "Lesson",
+					chapters: [],
+					poster: release + "media/legacy-new/poster.jpg",
+				},
+			],
+		}),
+	);
+	const response = await SELF.fetch(origin + "/library/media/legacy-new/presentation.html", {
+		redirect: "manual",
+	});
+	expect(response.status).toBe(307);
+	expect(response.headers.get("Location")).toBe(
+		"/" + release + "media/legacy-new/presentation.html",
+	);
 });

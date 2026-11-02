@@ -1,8 +1,27 @@
 export type MediaKind = "deck" | "video";
 export type MediaFilter = "all" | MediaKind;
-export type GalleryScope = "public" | "team" | "study";
+export type GalleryScope = string;
+export interface GalleryDefinition {
+	[field: string]: unknown;
+	id: string;
+	name: string;
+	url: string;
+}
+export interface CatalogDocument {
+	[field: string]: unknown;
+	schemaVersion: 1;
+	galleries: GalleryDefinition[];
+	items: LearningItem[];
+}
+export const defaultGalleries: GalleryDefinition[] = [
+	{ id: "public", name: "ספרייה ציבורית", url: "/" },
+	{ id: "team", name: "ספריית הקבוצה", url: "/team-library" },
+	{ id: "study", name: "למידה למבחנים", url: "/study-library" },
+	{ id: "none", name: "בקישור בלבד", url: "/" },
+];
 
 export interface LearningItem {
+	[field: string]: unknown;
 	id: string;
 	title: string;
 	description: string;
@@ -22,7 +41,7 @@ export interface LearningItem {
 }
 
 export interface CatalogRepository {
-	list(): Promise<LearningItem[]>;
+	list(): Promise<CatalogDocument>;
 	dispose(): void;
 }
 

@@ -1,4 +1,5 @@
-import type { CatalogRepository, LearningItem } from "../models/catalog";
+import { parseCatalog } from "./catalogDocument";
+import type { CatalogRepository } from "../models/catalog";
 
 // The HTML base keeps catalog and media URLs at the export root on every route.
 export function publicUrl(path: string): string {
@@ -17,24 +18,14 @@ export function createBrowserRepository(): CatalogRepository {
 		async list() {
 			controller?.abort();
 			controller = new AbortController();
-			const response = await fetch(publicUrl("library/catalog.json"), {
-				signal: controller.signal,
-			});
+			const response = await fetch(
+				process.env.EXPO_PUBLIC_CATALOG_URL || publicUrl("library/catalog.json"),
+				{
+					signal: controller.signal,
+				},
+			);
 			if (!response.ok) throw new Error(`Catalog request failed (${response.status})`);
-			const data: unknown = await response.json();
-			if (
-				!Array.isArray(data) ||
-				data.some(
-					(item) =>
-						!item ||
-						typeof item.id !== "string" ||
-						typeof item.title !== "string" ||
-						!Array.isArray(item.chapters),
-				)
-			) {
-				throw new Error("Invalid catalog");
-			}
-			return data as LearningItem[];
+			return parseCatalog(await response.json());
 		},
 		dispose() {
 			controller?.abort();

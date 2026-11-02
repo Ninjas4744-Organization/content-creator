@@ -40,7 +40,10 @@ export async function content(request: Request, env: Env): Promise<Response | nu
 		// Preserve media bookmarks from the previous static deployment.
 		const index = await env.CONTENT.get("library/catalog.json");
 		if (index) {
-			const items = await index.json<{ id: string; poster: string }[]>();
+			const document = await index.json<
+				{ items?: { id: string; poster: string }[] } | { id: string; poster: string }[]
+			>();
+			const items = Array.isArray(document) ? document : (document.items ?? []);
 			const item = items.find((entry) => entry.id === key.split("/")[2]);
 			const release = item?.poster?.match(/^library\/releases\/[a-f0-9]{32}\//)?.[0];
 			if (release)
@@ -54,7 +57,10 @@ export async function content(request: Request, env: Env): Promise<Response | nu
 		}
 	}
 	if (!object)
-		return new Response(null, { status: 404, headers: { "Cache-Control": "no-store" } });
+		return new Response(null, {
+			status: 404,
+			headers: { "Cache-Control": "no-store" },
+		});
 	const headers = new Headers();
 	object.writeHttpMetadata(headers);
 	headers.set("ETag", object.httpEtag);

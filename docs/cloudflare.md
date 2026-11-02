@@ -23,6 +23,10 @@ npm --prefix learning-library ci
 npm --prefix learning-library run typecheck
 npm --prefix learning-library test
 npm --prefix learning-library run build
+npm --prefix learning-library/admin ci
+npm --prefix learning-library/admin run check
+npm --prefix learning-library/admin test
+npm --prefix learning-library/admin run build:production
 npm --prefix learning-library/cloudflare ci
 npm --prefix learning-library/cloudflare run typecheck
 npm --prefix learning-library/cloudflare test
@@ -122,3 +126,16 @@ conditional requests, and accepts only GET/HEAD on published content routes.
 redirect Worker sends public GET/HEAD bookmarks from `learn.davinci4744.com` to the current
 host, with retired session parameters removed; retired integration requests are not forwarded.
 SCORM packages report progress and results through the learning platform hosting the package.
+
+
+## Protected production admin
+
+The admin application is deployed at `https://knowledge.davinci4744.com/admin/` in the same Worker as the public library. Its reviewable deployment source lives in `learning-library/admin/`, synchronized from the sibling `content-creator-admin` repository using that app's `npm run sync:deployment`. The CI pipeline checks and builds both apps, then `prepare_cloudflare.py` mounts the admin export under `/admin`.
+
+Create a self-hosted Cloudflare Access application protecting `knowledge.davinci4744.com/admin` and its subpaths. The public library paths stay public. Its Allow policy must name only the authorized email addresses. Store `ADMIN_ACCESS_ISSUER`, `ADMIN_ACCESS_AUD`, and `ADMIN_EMAILS` with Wrangler secrets; keep personal email addresses and all credentials out of Git. The issuer is the team's `https://<team>.cloudflareaccess.com` domain and the audience is the Access application's AUD tag. A missing configuration denies all admin requests. A signed token must also pass server-side issuer, audience, signature, expiry and explicit email checks. Cross-origin mutation requests are rejected.
+
+The production admin uses `/admin/api/catalog`, `/admin/api/galleries`, `/admin/api/import`, `/admin/api/history`, and `/admin/api/restore`. It loads the authoritative `library/catalog.json` from R2. The local Node API remains loopback-only and does not gain a public write mode.
+
+Before promoting a change, the Worker validates catalog fields and any new media references, writes a private recovery snapshot under `library/admin-history/`, and conditionally writes `library/catalog.json` only if the original R2 ETag still matches. Stale editors and concurrent publishers receive HTTP 409 rather than silently losing an update. The public catalog contains no admin history or authentication state. History is available only through the protected admin API; the latest 30 entries are shown and earlier private snapshots are retained for recovery. Restoring a snapshot uses the same validation and conditional-write boundary and also retains the state being replaced.
+
+Library edits through the deployed admin appear on the public library's next load, without exporting, importing or deploying application code. Application deployments still run the checks above and preserve the existing R2 catalog and immutable media. Newly referenced files must already exist in the bucket; uploading and rendering media remain separate workflows.

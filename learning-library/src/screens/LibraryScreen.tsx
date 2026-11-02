@@ -3,7 +3,7 @@ import { observer } from "mobx-react-lite";
 import styled, { useTheme } from "styled-components/native";
 import type { CatalogStore } from "../features/catalog/CatalogStore";
 import { LibraryCard, durationLabel } from "../features/catalog/LibraryCard";
-import { galleries } from "../features/catalog/galleries";
+import { galleryDetails } from "../features/catalog/galleries";
 import type { LearningItem, MediaKind } from "../models/catalog";
 import {
 	Body,
@@ -165,8 +165,7 @@ export const LibraryScreen = observer(function LibraryScreen({
 	const theme = useTheme();
 	const compact = width < 720;
 	const columns = width < 720 ? 1 : width < 1100 ? 2 : 3;
-	const study = store.gallery === "study";
-	const details = galleries[store.gallery];
+	const details = galleryDetails(store.galleryDefinition);
 	const item = store.viewableItems.find((entry) => entry.id === selectedId);
 	const featured = store.featured;
 	return (
@@ -436,7 +435,7 @@ export const LibraryScreen = observer(function LibraryScreen({
 								</View>
 							))}
 						</View>
-						{study && store.listedItems.length === 0 ? (
+						{store.listedItems.length === 0 ? (
 							<View
 								style={{
 									paddingVertical: 46,
@@ -454,8 +453,8 @@ export const LibraryScreen = observer(function LibraryScreen({
 									התוכן הראשון בדרך
 								</Heading>
 								<Body style={{ textAlign: "center", maxWidth: 510 }}>
-									כאן יופיעו חומרי לימוד ותרגול למקצועות בית הספר.
-									{"\n"}כשהתוכן הראשון יעלה, תוכלו לבחור נושא ולהתחיל ללמוד.
+									כאן יופיעו התכנים של {details.title}.{"\n"}כשהתוכן הראשון יעלה,
+									תוכלו לבחור נושא ולהתחיל ללמוד.
 								</Body>
 							</View>
 						) : store.visibleItems.length === 0 ? (
@@ -475,9 +474,8 @@ export const LibraryScreen = observer(function LibraryScreen({
 							<Row style={{ paddingTop: 20, gap: 14 }}>
 								<Icon name="check" size={20} color={theme.success} />
 								<Body style={{ fontSize: 13 }}>
-									{study
-										? "לומדים בקצב שלכם: חוזרים להסבר, מתרגלים ומגיעים מוכנים למבחן."
-										: "לא רק צופים — משתתפים. בסרטונים תמצאו פרקים, כתוביות ושאלות למחשבה."}
+									לא רק צופים — משתתפים. בסרטונים תמצאו פרקים, כתוביות ושאלות
+									למחשבה.
 								</Body>
 							</Row>
 						</View>

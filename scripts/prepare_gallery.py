@@ -13,6 +13,7 @@ import sys
 from html.parser import HTMLParser
 from pathlib import Path
 from urllib.parse import unquote, urlsplit
+from catalog_model import empty_catalog, normalize_catalog, merge_publication, gallery_of
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
@@ -115,7 +116,7 @@ def publish_video(project_id, source):
         shutil.rmtree(staging, ignore_errors=True)
 
 
-def prepare(project_ids=None):
+def prepare(project_ids=None, catalog_file=None):
     from davinci_creator.common import load
     from davinci_creator.deck import build
     from davinci_creator.scorm import build_scorm
@@ -124,6 +125,7 @@ def prepare(project_ids=None):
     selected = set(project_ids) if project_ids else set(sources)
     if selected - sources.keys():
         raise ValueError("Download missing sources first with project_store.py pull <id>: " + ", ".join(sorted(selected - sources.keys())))
+    document = normalize_catalog(json.loads(Path(catalog_file).read_text(encoding="utf-8"))) if catalog_file else empty_catalog()
     target = LIBRARY / "output/content/library"
     shutil.rmtree(target, ignore_errors=True)
     target.mkdir(parents=True)
@@ -131,6 +133,8 @@ def prepare(project_ids=None):
     brand.mkdir()
     for name in ("logo.png", "wordmark.png", "space-hero.png", "Rubik-Regular.ttf", "Rubik-Bold.ttf", "Rubik-OFL.txt"):
         shutil.copy2(ROOT / "assets/brand" / name, brand / name)
+    gallery_ids = {gallery["id"] for gallery in document["galleries"]}
+    existing_items = {item["id"]: item for item in document["items"]}
     catalog = []
     for project_id, content in sources.items():
         if project_id not in selected:
@@ -138,8 +142,8 @@ def prepare(project_ids=None):
         doc = load(content)
         settings = content.parent / "publication.json"
         metadata = json.loads(settings.read_text(encoding="utf-8")) if settings.is_file() else {}
-        gallery = metadata.get("gallery", "team" if metadata.get("unlisted") else "public")
-        if gallery not in {"public", "team", "study", "none"}:
+        gallery = gallery_of(existing_items[project_id]) if project_id in existing_items else metadata.get("gallery", "team" if metadata.get("unlisted") else "public")
+        if gallery not in gallery_ids:
             raise ValueError(f"Unknown gallery for {project_id}: {gallery}")
         output = target / "media" / project_id
         output.mkdir(parents=True)
@@ -189,7 +193,8 @@ def prepare(project_ids=None):
             "video": f"{prefix}/interactive/index.html" if has_video else None,
             "scorm": scorm,
         })
-    (target / "catalog.json").write_text(json.dumps(catalog, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    prepared = merge_publication({**document, "items": [item for item in document["items"] if item["id"] in selected]}, {**document, "items": catalog})
+    (target / "catalog.json").write_text(json.dumps(prepared, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     print(f"Gallery ready: {len(catalog)} topics, {sum(bool(i['video']) for i in catalog)} videos")
     return target
 
@@ -209,6 +214,7 @@ def main():
     parser.add_argument("--from", dest="player", type=Path, help="Rendered interactive/ directory")
     parser.add_argument("--publish-only", action="store_true")
     parser.add_argument("--project", action="append", help="Project to package; repeat to select several")
+    parser.add_argument("--catalog", type=Path, help="Shared catalog whose library definitions should be retained")
     parser.add_argument("--all", action="store_true", help="Package every local project for the initial migration")
     args = parser.parse_args()
     if args.publish_video:
@@ -218,7 +224,7 @@ def main():
     if not args.publish_only:
         if not args.project and not args.all and not args.publish_video:
             parser.error("Choose --project <id> or --all; website builds do not scan local projects")
-        prepare(args.project or ([args.publish_video] if args.publish_video else None))
+        prepare(args.project or ([args.publish_video] if args.publish_video else None), args.catalog)
 
 
 if __name__ == "__main__":
