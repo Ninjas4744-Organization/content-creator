@@ -12,6 +12,7 @@ from unittest.mock import patch
 from zipfile import ZipFile, ZipInfo
 
 ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT / "creator-kit/scripts"))
 
 
 def module(name, path):

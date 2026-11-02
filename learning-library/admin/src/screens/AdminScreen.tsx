@@ -170,9 +170,21 @@ export const AdminScreen = observer(function AdminScreen({
 						<Body>/</Body>
 						<Label style={{ fontSize: 11 }}>{store.viewName}</Label>
 					</Row>
-					<Body style={{ fontSize: 10, color: theme.success }}>
-						• {store.workspaceLabel}
-					</Body>
+					<Row style={{ gap: 16 }}>
+						<Body style={{ fontSize: 10, color: theme.success }}>
+							• {store.workspaceLabel}
+						</Body>
+						{store.production && (
+							<WebLink
+								href={apiUrl("/auth/account")}
+								target="_blank"
+								rel="noreferrer"
+								style={{ fontSize: 11 }}
+							>
+								החשבון שלי
+							</WebLink>
+						)}
+					</Row>
 				</Row>
 				<View
 					role="main"

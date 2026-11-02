@@ -1,3 +1,4 @@
+import { adminAuthRoutes, authenticateSiteAdmin, loginRedirect, ssoEnabled } from "./admin-sso";
 import { creatorApi } from "../../admin/worker/creator";
 import { CatalogDomain, CatalogError, documentOf } from "../../admin/server/catalog-domain.mjs";
 import { authenticateAdmin } from "./admin-access";
@@ -96,7 +97,23 @@ export async function adminApi(request: Request, env: Env, email: string): Promi
 }
 export async function admin(request: Request, env: Env): Promise<Response> {
 	try {
-		const email = await authenticateAdmin(request, env);
+		const authResponse = await adminAuthRoutes(request, env);
+		if (authResponse) return authResponse;
+		let email: string;
+		if (ssoEnabled(env)) {
+			try {
+				email = (await authenticateSiteAdmin(request, env)).email;
+			} catch (error) {
+				if (
+					error instanceof CatalogError &&
+					error.status === 401 &&
+					["GET", "HEAD"].includes(request.method) &&
+					!new URL(request.url).pathname.startsWith("/admin/api/")
+				)
+					return loginRedirect(request);
+				throw error;
+			}
+		} else email = await authenticateAdmin(request, env);
 		const path = new URL(request.url).pathname;
 		if (path.startsWith("/admin/api/")) return await adminApi(request, env, email);
 		if (!["GET", "HEAD"].includes(request.method))

@@ -19,6 +19,7 @@
 		"html_handling": "auto-trailing-slash",
 	},
 	"observability": {
+		"logs": { "enabled": true, "invocation_logs": false },
 		"enabled": true,
 		"head_sampling_rate": 0.1,
 	},

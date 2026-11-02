@@ -41,7 +41,7 @@ def build(source: Path, output: Path):
                 add(path, path.relative_to(source).as_posix())
     for name in ("davinci-presentation", "davinci-interactive-video"):
         skill = (source / ".agents/skills" / name / "SKILL.md").read_text(encoding="utf-8")
-        skill, count = re.subn(r"`projects/`.*?(?=\n\n)", "`projects/` is a local workspace. Restore missing editable sources with `.venv/bin/python scripts/creator_agent.py pull <id>`. Keep completed edits locally. When the user requests publication, follow the `davinci-publish` skill; publication also saves private sources. Use the creator's Access login, without Git or storage credentials.", skill, count=1, flags=re.S)
+        skill, count = re.subn(r"`projects/`.*?(?=\n\n)", "`projects/` is a local workspace. Restore missing editable sources with `.venv/bin/python scripts/creator_agent.py pull <id>`. Keep completed edits locally. When the user requests publication, follow the `davinci-publish` skill; publication also saves private sources. Use the creator's personal site login and browser approval, without Git or storage credentials.", skill, count=1, flags=re.S)
         if count != 1:
             raise ValueError("Creation skill source workflow changed; review the kit adapter")
         if name == "davinci-interactive-video":

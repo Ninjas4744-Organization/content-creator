@@ -1,4 +1,4 @@
-"""Create, publish and update through the user's Cloudflare Access session. No Git/R2 keys."""
+"""Create, publish and update through the creator's personal site login. No Git/R2 keys."""
 from __future__ import annotations
 
 import argparse
@@ -17,6 +17,7 @@ from urllib.error import HTTPError
 from urllib.request import HTTPRedirectHandler, Request, build_opener
 from uuid import uuid4
 from zipfile import ZipFile
+from creator_auth import credentials, disconnect, forget
 
 ROOT = Path(__file__).resolve().parents[1]
 SITE = "https://knowledge.davinci4744.com"
@@ -31,20 +32,13 @@ class NoRedirect(HTTPRedirectHandler):
 
 class Api:
     def __init__(self):
-        if not shutil.which("cloudflared"):
-            raise ValueError("Install cloudflared: https://developers.cloudflare.com/cloudflare-one/networks/connectors/cloudflare-tunnel/downloads/")
-        print("Sign in with your admin account in the browser if prompted.", file=sys.stderr)
-        result = subprocess.run(["cloudflared", "access", "login", SITE + "/admin/"], stdout=subprocess.PIPE, text=True, check=True)
-        tokens = re.findall(r"eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+", result.stdout)
-        if not tokens:
-            raise ValueError("Access login did not return a session. Complete browser login and retry.")
-        self.token = tokens[-1]
+        self.token = credentials(SITE)
         self.opener = build_opener(NoRedirect())
 
     def request(self, path, method="GET", data=None, revision=None, binary=False):
         if not path.startswith("/") or ".." in path or path.startswith("//"):
             raise ValueError("Invalid admin API path")
-        headers = {"cf-access-token": self.token, "Origin": SITE}
+        headers = {"Authorization": "Bearer " + self.token, "Origin": SITE}
         if data is not None:
             headers["Content-Type"] = "application/octet-stream" if isinstance(data, bytes) else "application/json"
             if not isinstance(data, bytes):
@@ -64,6 +58,8 @@ class Api:
                     raise ValueError("Admin authentication expired; reconnect and retry.")
                 return json.load(response)
         except HTTPError as error:
+            if error.code == 401:
+                forget()
             if error.code in {301, 302, 303, 307, 308, 401, 403}:
                 raise ValueError("Admin login expired or access denied. Sign in again; never share the login token.") from None
             if error.code == 409:
@@ -184,7 +180,7 @@ def managed_path(name):
     safe_relative(name)
     if name in {"AGENTS.md", "START-HERE.md", "pyproject.toml", "templates/starter.json", "templates/brief.md"}:
         return True
-    return name.startswith((".agents/skills/", ".claude/skills/", "src/davinci_creator/", "docs/", "assets/brand/", "assets/photos/", "assets/reference/", "examples/community/")) or name in {"assets/README.md", "assets/manifest.json", "assets/photo-albums.json", "scripts/setup.py", "scripts/prepare_gallery.py", "scripts/catalog_model.py", "scripts/creator_agent.py"}
+    return name.startswith((".agents/skills/", ".claude/skills/", "src/davinci_creator/", "docs/", "assets/brand/", "assets/photos/", "assets/reference/", "examples/community/")) or name in {"assets/README.md", "assets/manifest.json", "assets/photo-albums.json", "scripts/setup.py", "scripts/prepare_gallery.py", "scripts/catalog_model.py", "scripts/creator_agent.py", "scripts/creator_auth.py"}
 
 
 def install_update(data, root=ROOT):
@@ -267,6 +263,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     commands = parser.add_subparsers(dest="command", required=True)
     commands.add_parser("connect")
+    commands.add_parser("disconnect")
     catalog = commands.add_parser("catalog")
     catalog.add_argument("--out", type=Path, default=ROOT / "outputs/current-catalog.json")
     publication = commands.add_parser("publish")
@@ -279,6 +276,9 @@ def main():
     pull.add_argument("project")
     commands.add_parser("update")
     args = parser.parse_args()
+    if args.command == "disconnect":
+        print(json.dumps(disconnect(SITE)))
+        return
     api = Api()
     if args.command == "connect":
         current = api.request("/catalog")
@@ -312,5 +312,5 @@ if __name__ == "__main__":
         main()
     except (ValueError, OSError, subprocess.CalledProcessError) as error:
         # Never echo subprocess output, request objects or authentication headers.
-        print(str(error) if not isinstance(error, subprocess.CalledProcessError) else "Access login failed; retry after signing in.", file=sys.stderr)
+        print(str(error) if not isinstance(error, subprocess.CalledProcessError) else "The local command failed; local work is retained.", file=sys.stderr)
         raise SystemExit(1)

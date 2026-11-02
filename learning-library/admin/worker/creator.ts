@@ -182,7 +182,7 @@ async function sessionOf(bucket: R2Bucket, id: string, actor: string) {
 	return session;
 }
 
-/** Called only after Access authentication, allowlist and same-origin mutation checks. */
+/** Called only after authentication, creator authorization and same-origin mutation checks. */
 export async function creatorApi(
 	request: Request,
 	env: CreatorEnv,
