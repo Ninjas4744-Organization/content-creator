@@ -203,6 +203,7 @@ test("only a state-bound single-use handoff creates a private browser session", 
 	flow.callback.searchParams.set("jwt", signed);
 	const missing = await call(flow.callback.pathname + flow.callback.search);
 	expect(missing.status).toBe(400);
+	expect(missing.headers.get("Referrer-Policy")).toBe("no-referrer");
 	await missing.text();
 	const bad = new URL(flow.callback);
 	bad.searchParams.set("state", "wrong");
@@ -247,6 +248,10 @@ test("only a state-bound single-use handoff creates a private browser session", 
 });
 
 test("unauthenticated UI redirects to login while content writes and incomplete configuration fail closed", async () => {
+	const loginPage = await call("/admin/auth/login");
+	expect(loginPage.headers.get("Referrer-Policy")).toBe("same-origin");
+	await loginPage.text();
+	expect((await call("/admin/auth/start", form({}, undefined, "null"))).status).toBe(403);
 	expect((await call("/admin/")).headers.get("Location")).toContain("/admin/auth/login");
 	expect((await call("/admin/api/catalog")).status).toBe(401);
 	expect(
