@@ -3,6 +3,7 @@ import { beforeEach, expect, test, vi } from "vitest";
 import { SignJWT, generateKeyPair, exportJWK } from "jose";
 import worker from "../src/worker";
 import { authDigest, pkceChallenge, verifySsoIdentity } from "../src/admin-sso";
+import { permissionProfile } from "../src/admin-permissions";
 import type { Env } from "../src/model";
 import seed from "../../admin/fixtures/catalog.json";
 
@@ -59,27 +60,31 @@ async function token(changes: Record<string, unknown> = {}, key = secret) {
 		.setProtectedHeader({ alg: "HS256", typ: "JWT" })
 		.sign(encode(key));
 }
-async function start(next = "/admin/") {
-	const response = await call("/admin/auth/start", form({ next }));
+async function start(next = "/admin/", config = settings) {
+	const response = await call("/admin/auth/start", form({ next }), config);
 	expect(response.status).toBe(303);
 	const provider = new URL(response.headers.get("Location")!);
 	expect(provider.origin).toBe("https://lms.example");
 	expect(provider.searchParams.get("target")).toBe("jwt");
 	return { cookie: cookies(response), callback: new URL(provider.searchParams.get("url")!) };
 }
-async function login() {
-	const flow = await start();
-	flow.callback.searchParams.set("jwt", await token());
-	const response = await call(flow.callback.pathname + flow.callback.search, {
-		headers: { Cookie: flow.cookie },
-	});
+async function login(config = settings, claims: Record<string, unknown> = {}) {
+	const flow = await start("/admin/", config);
+	flow.callback.searchParams.set("jwt", await token(claims));
+	const response = await call(
+		flow.callback.pathname + flow.callback.search,
+		{
+			headers: { Cookie: flow.cookie },
+		},
+		config,
+	);
 	expect(response.status).toBe(303);
 	expect(response.headers.get("Location")).toBe("/admin/");
 	expect(response.headers.get("Set-Cookie")).toContain("Secure; HttpOnly; SameSite=Lax");
 	return cookies(response);
 }
 const csrf = (html: string) => /name="csrf" value="([^"]+)"/.exec(html)![1]!;
-async function pairing(cookie: string) {
+async function pairing(cookie: string, config = settings) {
 	const verifier = "v".repeat(43);
 	const uri = "http://127.0.0.1:47001/callback";
 	const query = new URLSearchParams({
@@ -88,9 +93,13 @@ async function pairing(cookie: string) {
 		code_challenge_method: "S256",
 		state: "s".repeat(43),
 	});
-	const consent = await call("/admin/auth/agent/authorize?" + query, {
-		headers: { Cookie: cookie },
-	});
+	const consent = await call(
+		"/admin/auth/agent/authorize?" + query,
+		{
+			headers: { Cookie: cookie },
+		},
+		config,
+	);
 	expect(consent.status).toBe(200);
 	expect(consent.headers.get("Content-Security-Policy")).toContain(
 		"form-action 'self' http://127.0.0.1:47001;",
@@ -98,6 +107,7 @@ async function pairing(cookie: string) {
 	const approval = await call(
 		"/admin/auth/agent/approve",
 		form({ csrf: csrf(await consent.text()) }, cookie),
+		config,
 	);
 	expect(approval.status).toBe(303);
 	const callback = new URL(approval.headers.get("Location")!);
@@ -105,8 +115,12 @@ async function pairing(cookie: string) {
 	expect(callback.searchParams.get("state")).toBe("s".repeat(43));
 	return { code: callback.searchParams.get("code")!, code_verifier: verifier, redirect_uri: uri };
 }
-async function agent(cookie: string) {
-	const exchange = await call("/admin/auth/agent/token", json(await pairing(cookie)));
+async function agent(cookie: string, config = settings) {
+	const exchange = await call(
+		"/admin/auth/agent/token",
+		json(await pairing(cookie, config)),
+		config,
+	);
 	expect(exchange.status).toBe(200);
 	return (await exchange.json<{ access_token: string }>()).access_token;
 }
@@ -174,10 +188,15 @@ test("migration retains verified Access logins even when SSO is unavailable, wit
 });
 
 test("SSO validates actual numeric/string uid, email policy, algorithm, issuer, audience and short expiry", async () => {
-	expect(await verifySsoIdentity(await token(), settings)).toEqual({ uid: "42", email: actor });
+	expect(await verifySsoIdentity(await token(), settings)).toEqual({
+		uid: "42",
+		email: actor,
+		actor,
+		label: actor,
+	});
 	expect(
 		await verifySsoIdentity(await token({ uid: "42", email: actor.toUpperCase() }), settings),
-	).toEqual({ uid: "42", email: actor });
+	).toEqual({ uid: "42", email: actor, actor, label: actor });
 	for (const change of [
 		{ uid: 0 },
 		{ uid: null },
@@ -453,4 +472,190 @@ test("a paired agent publishes a complete package through the actual authenticat
 	expect((await bucket.list({ prefix: "library/admin-history/" })).objects).toHaveLength(1);
 	expect((await call("/admin/auth/agent/logout", json({}, authorization))).status).toBe(200);
 	expect((await call("/admin/api/catalog", { headers: authorization })).status).toBe(401);
+});
+
+const fieldSettings: Env = {
+	...settings,
+	ADMIN_EMAILS: undefined,
+	ADMIN_SSO_AUTHORIZATION: "remote-field",
+	ADMIN_PERMISSION_URL: "https://lms.example/user-permission",
+	ADMIN_PERMISSION_AUTH: "basic",
+	ADMIN_PERMISSION_USER: "test-api-reader",
+	ADMIN_PERMISSION_SECRET: "test-api-password",
+	ADMIN_PERMISSION_DOMAIN: "7",
+	ADMIN_PERMISSION_KEY: "library_manager",
+	ADMIN_PERMISSION_LABEL: "Library manager",
+};
+function remoteUser(changes: Record<string, unknown> = {}) {
+	return {
+		user_id: "42",
+		domain_id: "7",
+		user_name: "creator",
+		user_enabled: "1",
+		user_expiration: null,
+		full_name: "Test creator",
+		user_email: null,
+		"Library manager": "1",
+		unrelated_private_data: "never persist this profile",
+		...changes,
+	};
+}
+
+test("a checked remote field authorizes a signed identity without email and stores only a minimal permission snapshot", async () => {
+	const network = vi.spyOn(globalThis, "fetch").mockImplementation(async (input, options) => {
+		expect(String(input)).toBe(fieldSettings.ADMIN_PERMISSION_URL);
+		expect(options?.redirect).toBe("manual");
+		expect(new Headers(options?.headers).get("Authorization")).toBe(
+			"Basic " + btoa("test-api-reader:test-api-password"),
+		);
+		expect(JSON.parse(String(options?.body))).toEqual({
+			user_identifier: { user_id: "42", domain: "7" },
+		});
+		return Response.json({ user_details: remoteUser() });
+	});
+	try {
+		const identity = await verifySsoIdentity(await token({ email: undefined }), fieldSettings);
+		expect(identity).toMatchObject({
+			uid: "42",
+			label: "Test creator",
+			actor: expect.stringMatching(/^sso:/),
+		});
+		expect(identity.email).toBeUndefined();
+		const browser = await login(fieldSettings, { email: undefined });
+		const read = await call(
+			"/admin/api/catalog",
+			{ headers: { Cookie: browser } },
+			fieldSettings,
+		);
+		expect(read.status).toBe(200);
+		await read.text();
+		const grants = await bucket.list({ prefix: "private/admin-auth/" });
+		for (const grant of grants.objects)
+			expect(await (await bucket.get(grant.key))!.text()).not.toContain(
+				"never persist this profile",
+			);
+	} finally {
+		network.mockRestore();
+	}
+});
+
+test("unchecked fields, wrong users/tenants, disabled or expired accounts and ambiguous fields cannot authorize access", async () => {
+	let details = remoteUser();
+	const network = vi
+		.spyOn(globalThis, "fetch")
+		.mockImplementation(async () => Response.json({ user_details: details }));
+	try {
+		for (const value of [false, 0, "0", null, "true", "yes"]) {
+			details = remoteUser({ "Library manager": value });
+			await expect(
+				permissionProfile(fieldSettings, settings.ADMIN_SSO_ISSUER!, "42", true),
+			).rejects.toMatchObject({ status: 403 });
+		}
+		for (const change of [
+			{ user_id: "43" },
+			{ domain_id: "8" },
+			{ user_enabled: "0" },
+			{ user_name: "" },
+			{ user_expiration: 1 },
+			{ library_manager: "0" },
+		]) {
+			details = remoteUser(change);
+			await expect(
+				permissionProfile(fieldSettings, settings.ADMIN_SSO_ISSUER!, "42", true),
+			).rejects.toMatchObject({ status: 403 });
+		}
+		for (const value of [true, 1, "1"]) {
+			details = remoteUser({ "Library manager": value });
+			expect(
+				(await permissionProfile(fieldSettings, settings.ADMIN_SSO_ISSUER!, "42", true))
+					.uid,
+			).toBe("42");
+		}
+	} finally {
+		network.mockRestore();
+	}
+});
+
+test("existing browser and agent credentials lose library access within the bounded permission cache after the field is cleared", async () => {
+	let allowed = true;
+	const network = vi.spyOn(globalThis, "fetch").mockImplementation(async () =>
+		Response.json({
+			user_details: remoteUser({ "Library manager": allowed ? "1" : null }),
+		}),
+	);
+	let clock: ReturnType<typeof vi.spyOn> | undefined;
+	try {
+		const browser = await login(fieldSettings, { email: undefined });
+		const grant = await agent(browser, fieldSettings);
+		const authorization = { Authorization: "Bearer " + grant };
+		expect(
+			(await call("/admin/api/catalog", { headers: authorization }, fieldSettings)).status,
+		).toBe(200);
+		allowed = false;
+		clock = vi.spyOn(Date, "now").mockReturnValue(Date.now() + 31_000);
+		expect(
+			(await call("/admin/api/catalog", { headers: authorization }, fieldSettings)).status,
+		).toBe(403);
+		expect(
+			(await call("/admin/api/catalog", { headers: { Cookie: browser } }, fieldSettings))
+				.status,
+		).toBe(403);
+		// Revoking one's own grant stays possible after role removal.
+		expect(
+			(await call("/admin/auth/agent/logout", json({}, authorization), fieldSettings)).status,
+		).toBe(200);
+	} finally {
+		clock?.mockRestore();
+		network.mockRestore();
+	}
+});
+
+test("the field is rechecked when an agent redeems approval, not only when its browser logged in", async () => {
+	let allowed = true;
+	const network = vi.spyOn(globalThis, "fetch").mockImplementation(async () =>
+		Response.json({
+			user_details: remoteUser({ "Library manager": allowed ? "1" : null }),
+		}),
+	);
+	try {
+		const code = await pairing(await login(fieldSettings, { email: undefined }), fieldSettings);
+		allowed = false;
+		expect((await call("/admin/auth/agent/token", json(code), fieldSettings)).status).toBe(403);
+	} finally {
+		network.mockRestore();
+	}
+});
+
+test("permission service errors/redirects fail closed and credentials cannot be sent to another origin", async () => {
+	const network = vi.spyOn(globalThis, "fetch").mockImplementation(
+		async () =>
+			new Response(null, {
+				status: 302,
+				headers: { Location: "https://untrusted.example" },
+			}),
+	);
+	try {
+		await expect(
+			permissionProfile(fieldSettings, settings.ADMIN_SSO_ISSUER!, "42", true),
+		).rejects.toMatchObject({ status: 503 });
+		const count = network.mock.calls.length;
+		await expect(
+			permissionProfile(
+				{
+					...fieldSettings,
+					ADMIN_PERMISSION_URL: "https://untrusted.example/user-permission",
+				},
+				settings.ADMIN_SSO_ISSUER!,
+				"42",
+				true,
+			),
+		).rejects.toMatchObject({ status: 503 });
+		expect(network.mock.calls).toHaveLength(count);
+		network.mockResolvedValue(Response.json({ res: "error" }));
+		await expect(
+			verifySsoIdentity(await token({ email: undefined }), fieldSettings),
+		).rejects.toMatchObject({ status: 503 });
+	} finally {
+		network.mockRestore();
+	}
 });

@@ -1,7 +1,8 @@
 import { jwtVerify, SignJWT } from "jose";
 import { CatalogError } from "../server/catalog-domain.mjs";
+import { permissionProfile, permissionSettings, type PermissionEnv } from "./permissions";
 
-export interface AuthEnv {
+export interface AuthEnv extends PermissionEnv {
 	CONTENT: R2Bucket;
 	ADMIN_AUTH_MODE?: string;
 	ADMIN_EMAILS?: string;
@@ -12,7 +13,9 @@ export interface AuthEnv {
 	ADMIN_SSO_LABEL?: string;
 }
 interface Identity {
-	email: string;
+	actor: string;
+	label: string;
+	email?: string;
 	uid: string;
 }
 interface Credential extends Identity {
@@ -33,6 +36,7 @@ interface Settings {
 	label: string;
 	epoch: string;
 	cookieKey: Uint8Array;
+	remote: boolean;
 }
 const root = "private/admin-auth/";
 const sessionCookie = "__Host-davinci-admin";
@@ -102,6 +106,7 @@ async function settings(env: AuthEnv): Promise<Settings> {
 	try {
 		const url = new URL(env.ADMIN_SSO_URL || "");
 		const issuer = env.ADMIN_SSO_ISSUER || "";
+		const permissions = await permissionSettings(env, issuer);
 		const emails = (env.ADMIN_EMAILS || "")
 			.split(",")
 			.map((v) => v.trim().toLowerCase())
@@ -113,7 +118,7 @@ async function settings(env: AuthEnv): Promise<Settings> {
 			url.hash ||
 			!issuer.startsWith("https://") ||
 			!env.ADMIN_SSO_AUD ||
-			!emails.length ||
+			(!permissions && !emails.length) ||
 			encode(env.ADMIN_SSO_SECRET || "").length < 32
 		)
 			throw new Error();
@@ -136,9 +141,16 @@ async function settings(env: AuthEnv): Promise<Settings> {
 			emails,
 			label: env.ADMIN_SSO_LABEL || "מערכת הלמידה",
 			epoch: await authDigest(
-				issuer + "\n" + env.ADMIN_SSO_AUD + "\n" + env.ADMIN_SSO_SECRET,
+				issuer +
+					"\n" +
+					env.ADMIN_SSO_AUD +
+					"\n" +
+					env.ADMIN_SSO_SECRET +
+					"\n" +
+					(permissions?.fingerprint || "email"),
 			),
 			cookieKey,
+			remote: Boolean(permissions),
 		};
 	} catch {
 		return fail("הכניסה לניהול עדיין אינה מוגדרת.", 503);
@@ -295,7 +307,9 @@ export async function verifySsoIdentity(token: string, env: AuthEnv): Promise<Id
 			algorithms: ["HS256"],
 			issuer: s.issuer,
 			audience: s.audience,
-			requiredClaims: ["exp", "uid", "email", "iss", "aud"],
+			requiredClaims: s.remote
+				? ["exp", "uid", "iss", "aud"]
+				: ["exp", "uid", "email", "iss", "aud"],
 		});
 		if (protectedHeader.typ && protectedHeader.typ !== "JWT") throw new Error();
 		const uid =
@@ -305,21 +319,26 @@ export async function verifySsoIdentity(token: string, env: AuthEnv): Promise<Id
 		if (
 			typeof uid !== "string" ||
 			!/^[1-9]\d{0,19}$/.test(uid) ||
-			typeof payload.email !== "string" ||
 			payload.aud !== s.audience ||
 			!payload.exp ||
 			payload.exp > now() + 45
 		)
 			throw new Error();
+		if (s.remote) {
+			const profile = await permissionProfile(env, s.issuer, uid, true);
+			return { ...profile, actor: `sso:${await authDigest(s.issuer)}:${uid}` };
+		}
+		if (typeof payload.email !== "string") throw new Error();
 		const email = payload.email.toLowerCase();
 		if (!s.emails.includes(email)) throw new Error();
-		return { uid, email };
-	} catch {
+		return { uid, email, actor: email, label: email };
+	} catch (error) {
+		if (error instanceof CatalogError) throw error;
 		return fail("אין הרשאה לניהול הספרייה, או שבקשת ההתחברות פגה.", 403);
 	}
 }
 async function issue(env: AuthEnv, s: Settings, identity: Identity, kind: Credential["kind"]) {
-	const group = await authDigest(identity.email);
+	const group = await authDigest(identity.actor);
 	const token = `dv1.${group}.${random()}`;
 	const id = await authDigest(token);
 	const ttl = kind === "browser" ? 8 * 3600 : 30 * 86400;
@@ -355,9 +374,11 @@ export async function authenticateSiteAdmin(
 		!["browser", "agent"].includes(value.kind) ||
 		value.expires <= now() ||
 		value.epoch !== s.epoch ||
-		typeof value.email !== "string" ||
-		!s.emails.includes(value.email) ||
-		(await authDigest(value.email)) !== group ||
+		typeof value.actor !== "string" ||
+		typeof value.uid !== "string" ||
+		!/^[1-9]\d{0,19}$/.test(value.uid) ||
+		(!s.remote && (!value.email || !s.emails.includes(value.email))) ||
+		(await authDigest(value.actor)) !== group ||
 		(auth ? value.kind !== "agent" : value.kind !== "browser")
 	)
 		fail();
@@ -371,6 +392,22 @@ export async function authenticateSiteAdmin(
 			(path === "/admin/auth/session" && request.method === "GET")
 		))
 			fail("הרשאת הסוכן מוגבלת לכלי יצירת התוכן.", 403);
+	}
+	if (s.remote) {
+		if (value.actor !== `sso:${await authDigest(s.issuer)}:${value.uid}`) fail();
+		const path = new URL(request.url).pathname;
+		if (
+			![
+				"/admin/auth/account",
+				"/admin/auth/revoke",
+				"/admin/auth/logout",
+				"/admin/auth/agent/logout",
+			].includes(path)
+		) {
+			const profile = await permissionProfile(env, s.issuer, value.uid);
+			value.label = profile.label;
+			value.email = profile.email;
+		}
 	}
 	return { ...value, id, key };
 }
@@ -399,7 +436,7 @@ async function account(request: Request, env: AuthEnv, s: Settings) {
 	const origin = new URL(request.url).origin;
 	const csrf = await signed(s, origin, "account", { session: identity.id });
 	const grants = await env.CONTENT.list({
-		prefix: `${root}credentials/${await authDigest(identity.email)}/agent/`,
+		prefix: `${root}credentials/${await authDigest(identity.actor)}/agent/`,
 		include: ["customMetadata"],
 		limit: 100,
 		cursor: new URL(request.url).searchParams.get("cursor") || undefined,
@@ -415,7 +452,7 @@ async function account(request: Request, env: AuthEnv, s: Settings) {
 		: "";
 	return page(
 		"החשבון שלי",
-		`<p>מחוברים בתור <b dir="ltr">${escape(identity.email)}</b></p><h2>סוכנים מורשים</h2><p>כל סוכן מורשה לקרוא ולפרסם תוכן. אפשר לבטל את ההרשאה בכל עת.</p>${agents.map((o) => `<article><b>סוכן יצירת תוכן</b><small>בתוקף עד ${escape(new Date(Number(o.customMetadata!.expires) * 1000).toISOString().slice(0, 10))}</small><form method="post" action="/admin/auth/revoke"><input type="hidden" name="csrf" value="${escape(csrf)}"><input type="hidden" name="id" value="${escape(o.key.split("/").at(-1)!)}"><button>ביטול הרשאה</button></form></article>`).join("") || "<p>אין סוכנים מורשים בעמוד זה.</p>"}${more}<form method="post" action="/admin/auth/logout"><input type="hidden" name="csrf" value="${escape(csrf)}"><button>יציאה מהאדמין</button></form><p><a href="/admin/">חזרה לאדמין</a></p>`,
+		`<p>מחוברים בתור <b dir="auto">${escape(identity.label)}</b></p><h2>סוכנים מורשים</h2><p>כל סוכן מורשה לקרוא ולפרסם תוכן. אפשר לבטל את ההרשאה בכל עת.</p>${agents.map((o) => `<article><b>סוכן יצירת תוכן</b><small>בתוקף עד ${escape(new Date(Number(o.customMetadata!.expires) * 1000).toISOString().slice(0, 10))}</small><form method="post" action="/admin/auth/revoke"><input type="hidden" name="csrf" value="${escape(csrf)}"><input type="hidden" name="id" value="${escape(o.key.split("/").at(-1)!)}"><button>ביטול הרשאה</button></form></article>`).join("") || "<p>אין סוכנים מורשים בעמוד זה.</p>"}${more}<form method="post" action="/admin/auth/logout"><input type="hidden" name="csrf" value="${escape(csrf)}"><button>יציאה מהאדמין</button></form><p><a href="/admin/">חזרה לאדמין</a></p>`,
 	);
 }
 export async function adminAuthRoutes(request: Request, env: AuthEnv): Promise<Response | null> {
@@ -468,7 +505,12 @@ export async function adminAuthRoutes(request: Request, env: AuthEnv): Promise<R
 		}
 		if (path === "/admin/auth/session" && request.method === "GET") {
 			const identity = await authenticateSiteAdmin(request, env);
-			return json({ email: identity.email, kind: identity.kind, expires: identity.expires });
+			return json({
+				account: identity.label,
+				email: identity.email,
+				kind: identity.kind,
+				expires: identity.expires,
+			});
 		}
 		if (path === "/admin/auth/account" && request.method === "GET")
 			return await account(request, env, s);
@@ -487,7 +529,7 @@ export async function adminAuthRoutes(request: Request, env: AuthEnv): Promise<R
 			}
 			if (typeof values.id !== "string" || !/^[a-f0-9]{64}$/.test(values.id))
 				fail("הרשאה אינה תקינה.", 400);
-			const key = `${root}credentials/${await authDigest(identity.email)}/agent/${values.id}`;
+			const key = `${root}credentials/${await authDigest(identity.actor)}/agent/${values.id}`;
 			const record = await env.CONTENT.get(key);
 			if (!record || (await record.json<Credential>()).kind !== "agent")
 				fail("ההרשאה לא נמצאה.", 404);
@@ -501,7 +543,7 @@ export async function adminAuthRoutes(request: Request, env: AuthEnv): Promise<R
 			const csrf = await signed(s, origin, "approve", { ...details, session: identity.id });
 			return page(
 				"חיבור סוכן ה־AI",
-				`<p>סוכן יצירת התוכן במחשב מבקש הרשאה בשם <b dir="ltr">${escape(identity.email)}</b>.</p><p>האישור מאפשר קריאת הקטלוג, הורדת מקורות וסקילים ופרסום תוכן. ההרשאה תקפה ל־30 יום ואפשר לבטל אותה דרך ״החשבון שלי״.</p><form method="post" action="/admin/auth/agent/approve"><input type="hidden" name="csrf" value="${escape(csrf)}"><button>אישור פרסום לסוכן</button></form><p><a href="/admin/">ביטול וחזרה לאדמין</a></p>`,
+				`<p>סוכן יצירת התוכן במחשב מבקש הרשאה בשם <b dir="auto">${escape(identity.label)}</b>.</p><p>האישור מאפשר קריאת הקטלוג, הורדת מקורות וסקילים ופרסום תוכן. ההרשאה תקפה ל־30 יום ואפשר לבטל אותה דרך ״החשבון שלי״.</p><form method="post" action="/admin/auth/agent/approve"><input type="hidden" name="csrf" value="${escape(csrf)}"><button>אישור פרסום לסוכן</button></form><p><a href="/admin/">ביטול וחזרה לאדמין</a></p>`,
 				200,
 				new URL(details.uri).origin,
 			);
@@ -523,6 +565,8 @@ export async function adminAuthRoutes(request: Request, env: AuthEnv): Promise<R
 			});
 			const code = random();
 			await consume(env, "codes/" + (await authDigest(code)), {
+				actor: identity.actor,
+				label: identity.label,
 				email: identity.email,
 				uid: identity.uid,
 				expires: now() + 60,
@@ -562,7 +606,7 @@ export async function adminAuthRoutes(request: Request, env: AuthEnv): Promise<R
 				data.used ||
 				data.expires <= now() ||
 				data.epoch !== s.epoch ||
-				!s.emails.includes(data.email) ||
+				(!s.remote && (!data.email || !s.emails.includes(data.email))) ||
 				values.redirect_uri !== data.uri ||
 				(await pkceChallenge(values.code_verifier)) !== data.challenge
 			)
@@ -571,13 +615,27 @@ export async function adminAuthRoutes(request: Request, env: AuthEnv): Promise<R
 				onlyIf: { etagMatches: record.etag },
 			});
 			if (!consumed) fail("קוד החיבור כבר נוצל.", 400);
-			const issued = await issue(env, s, { email: data.email, uid: data.uid }, "agent");
+			const profile = s.remote
+				? await permissionProfile(env, s.issuer, data.uid, true)
+				: data;
+			const issued = await issue(
+				env,
+				s,
+				{
+					actor: data.actor,
+					label: profile.label,
+					...(profile.email ? { email: profile.email } : {}),
+					uid: data.uid,
+				},
+				"agent",
+			);
 			return json({
 				access_token: issued.token,
 				token_type: "Bearer",
 				expires_at: issued.record.expires,
 				scope: "creator",
-				email: data.email,
+				account: issued.record.label,
+				email: issued.record.email,
 			});
 		}
 		if (path === "/admin/auth/agent/logout" && request.method === "POST") {

@@ -83,7 +83,9 @@ class CreatorAuthTests(unittest.TestCase):
             self.assertEqual(data["redirect_uri"], captured["redirect_uri"])
             expected = base64.urlsafe_b64encode(hashlib.sha256(data["code_verifier"].encode()).digest()).rstrip(b"=").decode()
             self.assertEqual(expected, captured["code_challenge"])
-            return {**self.value(), "token_type": "Bearer", "scope": "creator"}
+            value = self.value()
+            value.pop("email")
+            return {**value, "account": "Test creator", "token_type": "Bearer", "scope": "creator"}
         with patch.object(auth.webbrowser, "open", side_effect=open_browser), patch.object(auth, "request", side_effect=exchange):
             self.assertEqual(auth.browser_login(SITE, timeout=5), TOKEN)
         captured["thread"].join(timeout=3)

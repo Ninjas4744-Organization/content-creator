@@ -102,7 +102,7 @@ export async function admin(request: Request, env: Env): Promise<Response> {
 		let email: string;
 		if (ssoEnabled(env)) {
 			try {
-				email = (await authenticateSiteAdmin(request, env)).email;
+				email = (await authenticateSiteAdmin(request, env)).actor;
 			} catch (error) {
 				if (
 					env.ADMIN_AUTH_MODE === "migration" &&

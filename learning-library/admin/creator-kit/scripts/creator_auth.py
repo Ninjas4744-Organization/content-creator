@@ -123,9 +123,9 @@ def browser_login(site, timeout=300):
         if not result:
             raise ValueError("Login timed out. Run creator_agent.py connect and finish browser approval.")
     value = request(site, "/admin/auth/agent/token", {"code": result["code"], "code_verifier": verifier, "redirect_uri": callback})
-    if not isinstance(value, dict) or value.get("token_type") != "Bearer" or value.get("scope") != "creator" or not isinstance(value.get("access_token"), str) or not TOKEN.fullmatch(value["access_token"]) or not isinstance(value.get("email"), str) or not isinstance(value.get("expires_at"), int) or not time.time() < value["expires_at"] <= time.time() + 31 * 86400:
+    if not isinstance(value, dict) or value.get("token_type") != "Bearer" or value.get("scope") != "creator" or not isinstance(value.get("access_token"), str) or not TOKEN.fullmatch(value["access_token"]) or not isinstance(value.get("account", value.get("email")), str) or not isinstance(value.get("expires_at"), int) or not time.time() < value["expires_at"] <= time.time() + 31 * 86400:
         raise ValueError("Invalid login response; no credential was saved.")
-    save(site, {key: value[key] for key in ("access_token", "expires_at", "email")})
+    save(site, {"access_token": value["access_token"], "expires_at": value["expires_at"], "account": value.get("account", value.get("email"))})
     return value["access_token"]
 
 
