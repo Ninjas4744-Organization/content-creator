@@ -19,6 +19,7 @@ from urllib.request import HTTPRedirectHandler, Request, build_opener
 import webbrowser
 
 TOKEN = re.compile(r"dv1\.[a-f0-9]{64}\.[A-Za-z0-9_-]{43}")
+USER_AGENT = "DaVinciCreator/1.0"
 
 
 class NoRedirect(HTTPRedirectHandler):
@@ -67,7 +68,7 @@ def save(site, value):
 
 
 def request(site, path, data=None, token=None):
-    headers = {"Origin": site}
+    headers = {"Origin": site, "User-Agent": USER_AGENT, "Accept": "application/json"}
     if token:
         headers["Authorization"] = "Bearer " + token
     if data is not None:

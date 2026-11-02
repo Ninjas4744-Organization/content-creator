@@ -17,7 +17,7 @@ from urllib.error import HTTPError
 from urllib.request import HTTPRedirectHandler, Request, build_opener
 from uuid import uuid4
 from zipfile import ZipFile
-from creator_auth import credentials, disconnect, forget
+from creator_auth import credentials, disconnect, forget, USER_AGENT
 
 ROOT = Path(__file__).resolve().parents[1]
 SITE = "https://knowledge.davinci4744.com"
@@ -38,7 +38,7 @@ class Api:
     def request(self, path, method="GET", data=None, revision=None, binary=False):
         if not path.startswith("/") or ".." in path or path.startswith("//"):
             raise ValueError("Invalid admin API path")
-        headers = {"Authorization": "Bearer " + self.token, "Origin": SITE}
+        headers = {"Authorization": "Bearer " + self.token, "Origin": SITE, "User-Agent": USER_AGENT}
         if data is not None:
             headers["Content-Type"] = "application/octet-stream" if isinstance(data, bytes) else "application/json"
             if not isinstance(data, bytes):
