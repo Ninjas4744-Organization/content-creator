@@ -38,7 +38,7 @@ def select_background(api, root, pid, background_id, reason, *, offline=False):
     content = project / "content.json"
     if not content.is_file() or any(path.is_symlink() for path in [project, project.parent, content]):
         raise ValueError("Create or restore the project first; project symlinks are not supported")
-    document = json.loads((root / "assets/backgrounds.json").read_text(encoding="utf-8")) if offline else api.request("/creator/source-library")
+    document = json.loads((root / "assets/brand/backgrounds.json").read_text(encoding="utf-8")) if offline else api.request("/creator/source-library")
     background = next((entry for entry in validate_backgrounds(document) if entry["id"] == background_id), None)
     if background is None:
         raise ValueError("Choose a background ID from the current active library")

@@ -65,7 +65,7 @@ def build(source: Path, output: Path):
                 files[parent + name] = path.read_bytes()
         else:
             files[name] = path.read_bytes()
-    files["assets/backgrounds.json"] = (ADMIN / "fixtures/backgrounds.json").read_bytes()
+    files["assets/brand/backgrounds.json"] = (ADMIN / "fixtures/backgrounds.json").read_bytes()
     files["docs/project-sources.md"] = """# Editable sources in the creator kit
 
 Use `.venv/bin/python scripts/creator_agent.py pull <id>` to restore sources saved by a creator-kit publication. Local edits are preserved. For older content without a creator-kit source archive, ask a site maintainer to restore the legacy source package into a separate workspace. Publication retains a private source archive after excluding outputs, caches and credentials. Prior release sources remain recoverable when the catalog is restored in the admin. No Wrangler or storage credentials are needed. See the davinci-publish skill for publication.

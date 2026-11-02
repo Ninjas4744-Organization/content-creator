@@ -24,7 +24,7 @@ def module(name, path):
 
 builder = module("kit_builder", ROOT / "scripts/build-creator-kit.py")
 agent = module("kit_agent", ROOT / "creator-kit/scripts/creator_agent.py")
-background_tools = module("kit_backgrounds", ROOT / "creator-kit/scripts/creator_backgrounds.py")
+background_tools = module("kit_backgrounds", ROOT / "creator-kit/src/davinci_creator/creator_backgrounds.py")
 
 
 class CreatorKitTests(unittest.TestCase):
@@ -51,6 +51,17 @@ class CreatorKitTests(unittest.TestCase):
             self.assertFalse(any("projects/" in name or ".env" in name or name.endswith(".pyc") for name in manifest["files"]))
             for name in ["pyproject.toml", "scripts/setup.py", "scripts/prepare_gallery.py", "src/davinci_creator/deck.py", "assets/brand/Rubik-Regular.ttf"]:
                 self.assertIn(name, manifest["files"])
+
+    def test_previous_kit_updater_can_install_background_support(self):
+        # Compatibility contract from the kit released before managed backgrounds.
+        prefixes = (".agents/skills/", ".claude/skills/", "src/davinci_creator/", "docs/", "assets/brand/", "assets/photos/", "assets/reference/", "examples/community/")
+        fixed = {"AGENTS.md", "START-HERE.md", "pyproject.toml", "templates/starter.json", "templates/brief.md", "assets/README.md", "assets/manifest.json", "assets/photo-albums.json", "scripts/setup.py", "scripts/prepare_gallery.py", "scripts/catalog_model.py", "scripts/creator_agent.py", "scripts/creator_auth.py"}
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            with patch.object(agent, "managed_path", lambda name: name.startswith(prefixes) or name in fixed):
+                agent.install_update(self.data, root)
+            self.assertTrue((root / "src/davinci_creator/creator_backgrounds.py").is_file())
+            self.assertTrue((root / "assets/brand/backgrounds.json").is_file())
 
     def test_updates_keep_projects_custom_assets_credentials_and_local_edits(self):
         with tempfile.TemporaryDirectory() as folder:

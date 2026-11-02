@@ -21,6 +21,7 @@ from zipfile import ZipFile
 from creator_auth import credentials, disconnect, forget, USER_AGENT
 
 ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT / "src"))
 SITE = "https://knowledge.davinci4744.com"
 CHUNK = 8 * 1024 * 1024
 MAX_KIT = 25 * 1024 * 1024
@@ -102,7 +103,7 @@ def sources(api, out):
             raise ValueError("Invalid source URL; local files are unchanged")
         if album.get("enabled") is not True or not isinstance(album.get("title"), str) or not isinstance(album.get("context"), str) or not isinstance(album.get("tags"), list) or any(not isinstance(tag, str) for tag in album["tags"]):
             raise ValueError("Invalid source metadata; local files are unchanged")
-    from creator_backgrounds import validate_backgrounds
+    from davinci_creator.creator_backgrounds import validate_backgrounds
     backgrounds = validate_backgrounds(current)
     save_json(out, current)
     return {"sources": str(out), "revision": current.get("revision"), "albums": albums, "backgrounds": backgrounds}
@@ -316,7 +317,7 @@ def main():
         print(json.dumps(disconnect(SITE)))
         return
     if args.command == "background" and args.offline:
-        from creator_backgrounds import select_background
+        from davinci_creator.creator_backgrounds import select_background
         print(json.dumps(select_background(None, ROOT, args.project, args.background, args.reason, offline=True), ensure_ascii=False))
         return
     api = Api()
@@ -330,7 +331,7 @@ def main():
     elif args.command == "sources":
         result = sources(api, args.out)
     elif args.command == "background":
-        from creator_backgrounds import select_background
+        from davinci_creator.creator_backgrounds import select_background
         result = select_background(api, ROOT, args.project, args.background, args.reason)
     elif args.command == "publish":
         result = publish(api, args.project, args.gallery, args.video)
