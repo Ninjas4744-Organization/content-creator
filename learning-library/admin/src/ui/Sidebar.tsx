@@ -47,6 +47,7 @@ export const Sidebar = observer(function Sidebar({
 	galleries,
 	busy,
 	onManage,
+	onCreatorTools,
 	onNavigate,
 }: {
 	view: AdminView;
@@ -55,6 +56,7 @@ export const Sidebar = observer(function Sidebar({
 	galleries: GalleryDefinition[];
 	busy: boolean;
 	onManage(): void;
+	onCreatorTools(): void;
 	onNavigate(view: AdminView): void;
 }) {
 	const [expanded, setExpanded] = useState(false);
@@ -187,15 +189,13 @@ export const Sidebar = observer(function Sidebar({
 						</WebLink>
 						<NavItem
 							$selected={false}
-							disabled
 							accessibilityRole="button"
-							accessibilityState={{ disabled: true }}
+							onPress={onCreatorTools}
 							style={{
 								justifyContent: "center",
 								backgroundColor: "#203640",
 								borderWidth: 1,
 								borderColor: "#2c424d",
-								opacity: 0.6,
 								marginBottom: 0,
 							}}
 						>

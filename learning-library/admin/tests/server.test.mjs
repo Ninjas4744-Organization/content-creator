@@ -70,6 +70,26 @@ test("serves the app and catalog; exports the shared catalog document without ad
 	assert.equal((await get("/server/index.mjs")).status, 404);
 });
 
+test("creator kit downloads use only their build directory and stay read-only locally", async (t) => {
+	const directory = await mkdtemp(join(tmpdir(), "davinci-creator-kit-"));
+	t.after(() => rm(directory, { recursive: true, force: true }));
+	await writeFile(join(directory, "creator-kit.zip"), "test zip bytes");
+	await writeFile(join(directory, "creator-kit.json"), JSON.stringify({ version: "test" }));
+	const { origin, get } = await app(t, { creatorKitDirectory: directory });
+	const kit = await get("/api/creator/kit");
+	assert.equal(kit.status, 200);
+	assert.equal(kit.headers.get("content-type"), "application/zip");
+	assert.match(kit.headers.get("content-disposition"), /davinci-creator.zip/);
+	assert.equal(await kit.text(), "test zip bytes");
+	assert.deepEqual(await (await get("/api/creator/kit-manifest")).json(), { version: "test" });
+	const upload = await fetch(origin + "/api/creator/uploads", {
+		method: "POST",
+		headers: { Origin: origin },
+	});
+	assert.equal(upload.status, 404);
+	assert.equal((await get("/api/creator/../../data/workspace.json")).status, 404);
+});
+
 test("only an explicitly configured Expo development origin can make cross-origin requests", async (t) => {
 	const devOrigin = "http://localhost:8081";
 	const { origin, get } = await app(t, { devOrigin });

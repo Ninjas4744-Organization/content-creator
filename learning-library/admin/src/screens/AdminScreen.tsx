@@ -58,6 +58,7 @@ interface Props {
 	onEdit(item?: LearningItem): void;
 	onImport(): void;
 	onManageGalleries(): void;
+	onCreatorTools(): void;
 	onNavigate(view: AdminView): void;
 }
 export const AdminScreen = observer(function AdminScreen({
@@ -65,6 +66,7 @@ export const AdminScreen = observer(function AdminScreen({
 	onEdit,
 	onImport,
 	onManageGalleries,
+	onCreatorTools,
 	onNavigate,
 }: Props) {
 	const { width } = useWindowDimensions();
@@ -148,6 +150,7 @@ export const AdminScreen = observer(function AdminScreen({
 				galleries={store.galleries}
 				busy={store.loading || store.saving}
 				onManage={onManageGalleries}
+				onCreatorTools={onCreatorTools}
 				onNavigate={onNavigate}
 			/>
 			<View style={{ flex: 1, minWidth: 0 }}>
@@ -203,14 +206,20 @@ export const AdminScreen = observer(function AdminScreen({
 								כל המצגות, הסרטונים וחומרי הלמידה. מסודרים, מעודכנים ומוכנים לשיתוף.
 							</Body>
 						</View>
-						<Button
-							disabled={store.loading}
-							accessibilityRole="button"
-							onPress={() => onEdit()}
-						>
-							<Icon name="plus" color="white" size={17} />
-							<ButtonText>הוספת תוכן</ButtonText>
-						</Button>
+						<Row style={{ gap: 10, flexWrap: "wrap" }}>
+							<Button $secondary accessibilityRole="button" onPress={onCreatorTools}>
+								<Icon name="download" size={17} />
+								<ButtonText $secondary>כלים ליוצרי תוכן</ButtonText>
+							</Button>
+							<Button
+								disabled={store.loading}
+								accessibilityRole="button"
+								onPress={() => onEdit()}
+							>
+								<Icon name="plus" color="white" size={17} />
+								<ButtonText>הוספת תוכן</ButtonText>
+							</Button>
+						</Row>
 					</Row>
 					<Row style={{ flexWrap: "wrap", gap: compact ? 12 : 17 }}>
 						{stats.map((stat) => (

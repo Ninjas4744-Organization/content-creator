@@ -1,3 +1,4 @@
+import { creatorApi } from "../../admin/worker/creator";
 import { CatalogDomain, CatalogError, documentOf } from "../../admin/server/catalog-domain.mjs";
 import { authenticateAdmin } from "./admin-access";
 import { R2CatalogStorage } from "./admin-storage";
@@ -59,6 +60,8 @@ export async function adminApi(request: Request, env: Env, email: string): Promi
 	)
 		throw new CatalogError("מקור הבקשה אינו מורשה.", 403);
 	const store = new CatalogDomain(new R2CatalogStorage(env.CONTENT, email));
+	if (path.startsWith("/api/creator/"))
+		return creatorApi(request, env, email, new R2CatalogStorage(env.CONTENT, email));
 	const revision = request.headers.get("If-Match") ?? undefined;
 	if (path === "/api/catalog" && request.method === "GET")
 		return json(200, snapshot(await store.read()));

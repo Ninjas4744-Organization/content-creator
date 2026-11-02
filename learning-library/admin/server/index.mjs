@@ -21,6 +21,7 @@ const types = {
 	".woff": "font/woff",
 	".woff2": "font/woff2",
 	".txt": "text/plain; charset=utf-8",
+	".zip": "application/zip",
 };
 const headers = {
 	"X-Content-Type-Options": "nosniff",
@@ -56,6 +57,7 @@ export function createApp({
 	dataFile = resolve(root, "data/workspace.json"),
 	seedFile = resolve(root, "fixtures/catalog.json"),
 	staticDirectory = resolve(root, "output/site"),
+	creatorKitDirectory = resolve(root, "output/creator-kit"),
 	devOrigin = process.env.ADMIN_DEV_ORIGIN || null,
 	libraryOrigin = process.env.LIBRARY_DEV_ORIGIN || null,
 	fetchCatalog = async () => {
@@ -131,6 +133,34 @@ export function createApp({
 			)
 				throw new CatalogError("מקור הבקשה אינו מורשה.", 403);
 
+			if (
+				["/api/creator/kit", "/api/creator/kit-manifest"].includes(url.pathname) &&
+				request.method === "GET"
+			) {
+				const archive = url.pathname.endsWith("/kit");
+				let content;
+				try {
+					content = await readFile(
+						resolve(
+							creatorKitDirectory,
+							archive ? "creator-kit.zip" : "creator-kit.json",
+						),
+					);
+				} catch {
+					throw new CatalogError(
+						"ערכת היצירה עדיין לא נבנתה. הריצו npm run build:creator-kit.",
+						503,
+					);
+				}
+				response.writeHead(200, {
+					...headers,
+					"Content-Type": archive ? "application/zip" : "application/json",
+					...(archive
+						? { "Content-Disposition": 'attachment; filename="davinci-creator.zip"' }
+						: {}),
+				});
+				return response.end(content);
+			}
 			if (
 				url.pathname === "/library/catalog.json" &&
 				["GET", "HEAD"].includes(request.method)

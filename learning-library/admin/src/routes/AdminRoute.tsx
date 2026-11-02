@@ -8,6 +8,7 @@ import { CatalogStore } from "../features/catalog/CatalogStore";
 import { EditorStore } from "../features/editor/EditorStore";
 import { EditorDialog } from "../features/editor/EditorDialog";
 import { ImportDialog } from "../features/import/ImportDialog";
+import { CreatorTools } from "../features/creator/CreatorTools";
 import { createBrowserRepository } from "../core/browserRepository";
 import { AdminScreen } from "../screens/AdminScreen";
 import { IconButton } from "../ui/browserControls";
@@ -35,6 +36,7 @@ export const AdminRoute = observer(function AdminRoute() {
 	const [editor] = useState(() => new EditorStore());
 	const [importOpen, setImportOpen] = useState(false);
 	const [galleriesOpen, setGalleriesOpen] = useState(false);
+	const [creatorOpen, setCreatorOpen] = useState(false);
 	const [ready, setReady] = useState(false);
 	useEffect(() => {
 		setReady(true);
@@ -81,8 +83,12 @@ export const AdminRoute = observer(function AdminRoute() {
 					setGalleriesOpen(true);
 				}}
 				onNavigate={store.setView}
+				onCreatorTools={() => setCreatorOpen(true)}
 			/>
 			<EditorDialog editor={editor} catalog={store} />
+			{creatorOpen && (
+				<CreatorTools production={store.production} onClose={() => setCreatorOpen(false)} />
+			)}
 			{galleriesOpen && (
 				<GalleryManager store={store} open onClose={() => setGalleriesOpen(false)} />
 			)}
