@@ -92,6 +92,9 @@ async function pairing(cookie: string) {
 		headers: { Cookie: cookie },
 	});
 	expect(consent.status).toBe(200);
+	expect(consent.headers.get("Content-Security-Policy")).toContain(
+		"form-action 'self' http://127.0.0.1:47001;",
+	);
 	const approval = await call(
 		"/admin/auth/agent/approve",
 		form({ csrf: csrf(await consent.text()) }, cookie),
@@ -250,6 +253,9 @@ test("only a state-bound single-use handoff creates a private browser session", 
 test("unauthenticated UI redirects to login while content writes and incomplete configuration fail closed", async () => {
 	const loginPage = await call("/admin/auth/login");
 	expect(loginPage.headers.get("Referrer-Policy")).toBe("same-origin");
+	expect(loginPage.headers.get("Content-Security-Policy")).toContain(
+		"form-action 'self' https://lms.example;",
+	);
 	await loginPage.text();
 	expect((await call("/admin/auth/start", form({}, undefined, "null"))).status).toBe(403);
 	expect((await call("/admin/")).headers.get("Location")).toContain("/admin/auth/login");

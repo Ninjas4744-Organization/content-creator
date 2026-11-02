@@ -144,7 +144,7 @@ async function settings(env: AuthEnv): Promise<Settings> {
 		return fail("הכניסה לניהול עדיין אינה מוגדרת.", 503);
 	}
 }
-function page(title: string, body: string, status = 200): Response {
+function page(title: string, body: string, status = 200, formRedirectOrigin?: string): Response {
 	return new Response(
 		`<!doctype html><html lang="he" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow"><title>${escape(title)} · דה וינצ׳י 4744</title><style>@font-face{font-family:Rubik;src:url('/library/brand/Rubik-Regular.ttf')}*{box-sizing:border-box}body{margin:0;background:#f2f5f5;color:#213b44;font:16px/1.8 Rubik,Arial,sans-serif;display:grid;min-height:100vh;place-items:center;padding:24px}main{width:100%;max-width:560px;background:white;padding:36px;border:1px solid #dce4e4;border-radius:14px}h1{font-size:26px;line-height:1.4;margin-top:0}p{color:#4e646b}button,.button{display:inline-block;border:0;border-radius:7px;background:#688590;color:white;padding:12px 22px;font:inherit;cursor:pointer;text-decoration:none}a{color:#42616c}input{font:inherit}article{padding:16px 0;border-top:1px solid #dce4e4}small{display:block;color:#4e646b}footer{margin-top:24px;font-size:13px}button:focus-visible,a:focus-visible{outline:3px solid #213b44;outline-offset:3px}</style></head><body><main><h1>${escape(title)}</h1>${body}<footer>דה וינצ׳י 4744 · ספריית הידע</footer></main></body></html>`,
 		{
@@ -152,6 +152,10 @@ function page(title: string, body: string, status = 200): Response {
 			// Native form POSTs under no-referrer send Origin: null (Fetch standard).
 			headers: {
 				...headers,
+				"Content-Security-Policy": headers["Content-Security-Policy"].replace(
+					"form-action 'self'",
+					`form-action 'self'${formRedirectOrigin ? " " + formRedirectOrigin : ""}`,
+				),
 				"Referrer-Policy": "same-origin",
 				"Content-Type": "text/html; charset=utf-8",
 			},
@@ -427,6 +431,8 @@ export async function adminAuthRoutes(request: Request, env: AuthEnv): Promise<R
 			return page(
 				"כניסה לניהול הספרייה",
 				`<p>התחברו עם החשבון המורשה שלכם כדי לנהל תוכן ולהוריד את כלי היצירה.</p><form method="post" action="/admin/auth/start"><input type="hidden" name="next" value="${escape(next)}"><button>כניסה באמצעות ${escape(s.label)}</button></form>`,
+				200,
+				s.url.origin,
 			);
 		}
 		if (path === "/admin/auth/start" && request.method === "POST") {
@@ -496,6 +502,8 @@ export async function adminAuthRoutes(request: Request, env: AuthEnv): Promise<R
 			return page(
 				"חיבור סוכן ה־AI",
 				`<p>סוכן יצירת התוכן במחשב מבקש הרשאה בשם <b dir="ltr">${escape(identity.email)}</b>.</p><p>האישור מאפשר קריאת הקטלוג, הורדת מקורות וסקילים ופרסום תוכן. ההרשאה תקפה ל־30 יום ואפשר לבטל אותה דרך ״החשבון שלי״.</p><form method="post" action="/admin/auth/agent/approve"><input type="hidden" name="csrf" value="${escape(csrf)}"><button>אישור פרסום לסוכן</button></form><p><a href="/admin/">ביטול וחזרה לאדמין</a></p>`,
+				200,
+				new URL(details.uri).origin,
 			);
 		}
 		if (path === "/admin/auth/agent/approve" && request.method === "POST") {
