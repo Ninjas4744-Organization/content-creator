@@ -35,6 +35,8 @@ def validate(doc):
         raise ValueError("Expected a version: 1 content document")
     if not isinstance(doc.get("title"), str) or not doc["title"].strip():
         raise ValueError("A non-empty title is required")
+    from .backgrounds import validate_background
+    validate_background(doc)
     voices = doc.get("voices", {"female": "Kore", "male": "Puck"})
     if not isinstance(voices, dict) or any(not isinstance(voices.get(k), str) or not voices[k].strip() for k in ["female", "male"]):
         raise ValueError("voices must define non-empty female and male voice names")

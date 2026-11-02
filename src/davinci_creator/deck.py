@@ -10,6 +10,7 @@ from pathlib import Path
 from .common import ASSETS, ROOT, local_file
 from .layout import W,H,elements
 from .render import storyboard
+from .backgrounds import background_name, themed_elements
 
 
 def data_url(name):
@@ -35,14 +36,14 @@ nav{position:fixed;bottom:8px;left:50%;translate:-50% 0;display:flex;align-items
 @media(prefers-reduced-motion:reduce){.slide.active .el{animation:none}}
 @media print{@page{size:13.333in 7.5in;margin:0}body{overflow:visible}#stage{position:static;transform:none!important}nav,#notes{display:none!important}.slide{position:relative;display:block!important;width:1280px;height:720px;break-after:page;print-color-adjust:exact}.el{animation:none!important}}
 """.replace("REGULAR",data_url("brand/Rubik-Regular.ttf")).replace("BOLD",data_url("brand/Rubik-Bold.ttf"))
-    css+=f'.slide{{background-image:url({data_url("brand/space-content.png")})}}.slide.hero{{background-image:url({data_url("brand/space-hero.png")})}}'
+    css+=f'.slide{{background-image:url({data_url(background_name(doc.get("background")))})}}.slide.hero{{background-image:url({data_url(background_name(doc.get("background"), True))})}}'
     sections=[]
     for i,scene in enumerate(doc["scenes"]):
         parts=[]
         if doc.get("source_deck"):
             from .imported_deck import slide_markup
             parts.append(slide_markup(doc["source_deck"]["slides"][i], scene))
-        for el in ([] if doc.get("source_deck") else elements(scene,i,len(doc["scenes"]))):
+        for el in ([] if doc.get("source_deck") else themed_elements(scene,i,len(doc["scenes"]),doc.get("background"))):
             style=f'left:{el["x"]}px;top:{el["y"]}px;--delay:{el["delay"]}s;'
             if el["kind"]=="line":
                 parts.append(f'<div class="el" style="{style}width:{max(1,el["x2"]-el["x"])}px;height:{max(1,el["y2"]-el["y"])}px;background:#{el["color"]};opacity:.65"></div>')
@@ -124,9 +125,11 @@ def pptx_deck(doc,out):
                 picture._element.nvPicPr.nvPr.append(video_file)
                 picture.click_action.hyperlink.address = url
         else:
-            bg=ASSETS/"brand"/("space-hero.png" if scene.get("layout")=="cover" else "space-content.png")
-            slide.shapes.add_picture(str(bg),0,0,prs.slide_width,prs.slide_height)
-        for el in ([] if scene.get("layout") == "video" else elements(scene,i,len(doc["scenes"]))):
+            bg=local_file(ASSETS, background_name(doc.get("background"), scene.get("layout")=="cover"))
+            with Image.open(bg) as image: iw,ih=image.size
+            ratio=max(W/iw,H/ih)
+            slide.shapes.add_picture(str(bg),Inches((W-iw*ratio)/192),Inches((H-ih*ratio)/192),Inches(iw*ratio/96),Inches(ih*ratio/96))
+        for el in ([] if scene.get("layout") == "video" else themed_elements(scene,i,len(doc["scenes"]),doc.get("background"))):
             px=lambda v:Inches(v/96)
             if el["kind"]=="image":
                 path=local_file(ASSETS,el["src"])

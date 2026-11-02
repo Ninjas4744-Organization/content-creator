@@ -6,6 +6,7 @@ import { join } from "node:path";
 import { once } from "node:events";
 import { request } from "node:http";
 import { createApp } from "../server/index.mjs";
+import { backgroundPng } from "./background-fixture.ts";
 
 async function app(t, options = {}) {
 	const directory = await mkdtemp(join(tmpdir(), "davinci-admin-http-"));
@@ -385,4 +386,38 @@ test("source API shares active albums with creators and enforces origin, validat
 	assert.equal((await get("/library/photo-albums.json")).status, 404);
 	assert.equal((await get("/api/export")).status, 200);
 	assert.equal((await (await get("/api/export")).json()).albums, undefined);
+});
+
+test("background upload and delivery stay behind local boundaries and metadata saves check actual assets", async (t) => {
+	const { origin, get } = await app(t);
+	const current = await (await get("/api/sources")).json();
+	assert.equal(current.backgrounds[0].id, "space-challenge");
+	const seed = await get("/api/creator/background-assets/" + current.backgrounds[0].image.file);
+	assert.equal(seed.status, 200);
+	assert.equal(seed.headers.get("content-type"), "image/png");
+	assert.equal((await seed.arrayBuffer()).byteLength, current.backgrounds[0].image.size);
+	const upload = (site = origin, type = "image/png", data = backgroundPng) =>
+		fetch(origin + "/api/sources/background-assets", {
+			method: "POST",
+			headers: { Origin: site, "Content-Type": type },
+			body: data,
+		});
+	assert.equal((await upload("https://evil.test")).status, 403);
+	assert.equal((await upload(origin, "image/jpeg")).status, 400);
+	const result = await upload();
+	assert.equal(result.status, 201);
+	const image = await result.json();
+	assert.equal((await get("/api/creator/background-assets/" + image.file)).status, 200);
+	assert.equal((await get("/data/background-assets/" + image.file)).status, 404);
+	const created = await fetch(origin + "/api/sources", {
+		method: "POST",
+		headers: { Origin: origin, "Content-Type": "application/json", "If-Match": "0" },
+		body: JSON.stringify({
+			type: "create-background",
+			background: { name: "בדיקה", description: "רקע חדש", image, enabled: true },
+		}),
+	});
+	assert.equal(created.status, 200);
+	assert.equal((await created.json()).backgrounds.length, 2);
+	assert.equal((await (await get("/api/creator/source-library")).json()).backgrounds.length, 2);
 });

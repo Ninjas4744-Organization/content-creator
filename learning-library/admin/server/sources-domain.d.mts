@@ -4,7 +4,7 @@ export interface SourceState {
 	document: SourceDocument;
 	revision: CatalogRevision;
 	updatedAt: string | null;
-	history: (Omit<SourceHistoryEntry, "count"> & {
+	history: (Omit<SourceHistoryEntry, "count" | "backgroundCount"> & {
 		revision: CatalogRevision;
 		document: SourceDocument;
 	})[];

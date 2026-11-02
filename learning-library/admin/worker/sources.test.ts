@@ -7,6 +7,8 @@ import type { Env } from "../src/model";
 import { R2SourcesStorage } from "../../admin/worker/sources";
 import { SourcesDomain } from "../../admin/server/sources-domain.mjs";
 import type { SourceSnapshot } from "../../admin/src/models/sources";
+import { backgroundPng } from "../../admin/tests/background-fixture";
+import type { BackgroundAsset } from "../../admin/src/models/sources";
 
 const settings = {
 	...env,
@@ -126,4 +128,64 @@ test("creator source reads exclude disabled albums; API validates URLs and origi
 	});
 	expect(updated.document.future).toEqual({ retained: true });
 	expect(updated.document.albums[0]!.credit).toBe("team");
+});
+
+test("background uploads are immutable and private, and saves validate their stored metadata", async () => {
+	const upload = () =>
+		adminApi(
+			new Request(origin + "/admin/api/sources/background-assets", {
+				method: "POST",
+				headers: { Origin: origin, "Content-Type": "image/png" },
+				body: backgroundPng,
+			}),
+			settings,
+			actor,
+		);
+	const response = await upload();
+	expect(response.status).toBe(201);
+	const image = await response.json<BackgroundAsset>();
+	expect(await (await upload()).json()).toEqual(image);
+	const current = await (await call()).json<SourceSnapshot>();
+	const created = await (
+		await call(
+			"sources",
+			{
+				type: "create-background",
+				background: {
+					name: "הכשרת צוות",
+					description: "רקע מתאים להכשרה",
+					image,
+					enabled: true,
+				},
+			},
+			String(current.revision),
+		)
+	).json<SourceSnapshot>();
+	expect(created.backgrounds).toHaveLength(2);
+	const preview = await call("creator/background-assets/" + image.file);
+	expect(preview.headers.get("Content-Type")).toBe("image/png");
+	expect(new Uint8Array(await preview.arrayBuffer())).toEqual(backgroundPng);
+	await expect(
+		call(
+			"sources",
+			{
+				type: "create-background",
+				background: {
+					name: "זיוף",
+					description: "לא קיים",
+					image: { ...image, size: image.size + 1 },
+					enabled: true,
+				},
+			},
+			String(created.revision),
+		),
+	).rejects.toMatchObject({ status: 400 });
+	const publicRead = await worker.fetch(
+		new Request(origin + "/private/admin-sources/background-assets/" + image.file),
+		settings,
+	);
+	expect(publicRead.status).toBe(404);
+	const seeded = await call("creator/background-assets/" + current.backgrounds[0]!.image.file);
+	expect(seeded.status).toBe(200);
+	expect((await seeded.arrayBuffer()).byteLength).toBe(current.backgrounds[0]!.image.size);
 });

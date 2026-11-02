@@ -5,6 +5,7 @@ import styled from "styled-components/native";
 import type { AlbumInput, PhotoAlbum } from "../../models/sources";
 import type { SourcesStore } from "./SourcesStore";
 import { sourcePrompt } from "./sourcePrompt";
+import { BackgroundsPanel } from "./BackgroundsPanel";
 import { Body, Label, Heading, Row, Button, ButtonText } from "../../ui/primitives";
 import { Field, FormButton, FormError, WebLink, Select } from "../../ui/browserControls";
 import { ModalDialog, DialogBody, DialogFooter } from "../../ui/ModalDialog";
@@ -51,10 +52,11 @@ export const SourcesPanel = observer(function SourcesPanel({
 	const [restoreId, setRestoreId] = useState("");
 	const [restoring, setRestoring] = useState(false);
 	const [prompt, setPrompt] = useState<string | null>(null);
+	const [section, setSection] = useState<"albums" | "backgrounds">("albums");
 	useEffect(() => {
 		void store.load();
 	}, [store]);
-	const busy = store.loading || store.saving;
+	const busy = store.loading || store.saving || store.uploading;
 	const edit = (album?: PhotoAlbum) => {
 		store.clearFeedback();
 		setCreating(!album);
@@ -85,26 +87,50 @@ export const SourcesPanel = observer(function SourcesPanel({
 						מקורות ליצירת תוכן
 					</Heading>
 					<Body>
-						אלבומי התמונות של הקבוצה, עם ההקשר שיעזור לסוכן לבחור תמונות למצגות
-						ולסרטונים.
+						תמונות ורקעים עם ההקשר שיעזור לאייג׳נט לעצב מצגות וסרטונים שמתאימים לתוכן.
 					</Body>
 				</View>
-				<Button accessibilityRole="button" disabled={busy} onPress={() => edit()}>
-					<Icon name="plus" color="white" size={17} />
-					<ButtonText>הוספת אלבום</ButtonText>
-				</Button>
+				{section === "albums" && (
+					<Button accessibilityRole="button" disabled={busy} onPress={() => edit()}>
+						<Icon name="plus" color="white" size={17} />
+						<ButtonText>הוספת אלבום</ButtonText>
+					</Button>
+				)}
 			</Row>
-			<Card>
-				<Label>מתחילים מהמקור, יוצרים בהתאם לקונטקסט</Label>
-				<Body>
-					הוסיפו לכל אלבום תיאור של מה שמופיע בו, נושאים ושימושים מתאימים. הסקילים טוענים
-					את המקורות הפעילים מהאתר ובוחרים תמונות לפי נושא התוכן וקהל היעד.
-				</Body>
-				<Body style={{ fontSize: 11 }}>
-					האלבומים צריכים להיות פתוחים לצפייה בקישור משותף של Google Photos. התמונות
-					נבחרות ומיובאות במחשב של היוצר.
-				</Body>
-			</Card>
+			<Row style={{ flexWrap: "wrap", gap: 10 }}>
+				{(
+					[
+						["albums", "אלבומי תמונות"],
+						["backgrounds", "רקעים לתוכן"],
+					] as const
+				).map(([key, label]) => (
+					<FormButton
+						key={key}
+						$primary={section === key}
+						aria-pressed={section === key}
+						onClick={() => {
+							setSection(key);
+							store.setQuery("");
+							store.clearFeedback();
+						}}
+					>
+						{label}
+					</FormButton>
+				))}
+			</Row>
+			{section === "albums" && (
+				<Card>
+					<Label>מתחילים מהמקור, יוצרים בהתאם לקונטקסט</Label>
+					<Body>
+						הוסיפו לכל אלבום תיאור של מה שמופיע בו, נושאים ושימושים מתאימים. הסקילים
+						טוענים את המקורות הפעילים מהאתר ובוחרים תמונות לפי נושא התוכן וקהל היעד.
+					</Body>
+					<Body style={{ fontSize: 11 }}>
+						האלבומים צריכים להיות פתוחים לצפייה בקישור משותף של Google Photos. התמונות
+						נבחרות ומיובאות במחשב של היוצר.
+					</Body>
+				</Card>
+			)}
 			{store.error && (
 				<View accessibilityRole="alert">
 					<FormError>{store.error}</FormError>
@@ -115,19 +141,25 @@ export const SourcesPanel = observer(function SourcesPanel({
 			)}
 			{store.message && <Body accessibilityLiveRegion="polite">{store.message}</Body>}
 			<Row style={{ justifyContent: "space-between", flexWrap: "wrap", gap: 12 }}>
-				<Label>אלבומי תמונות · {store.albums.length}</Label>
+				<Label>
+					{section === "albums"
+						? `אלבומי תמונות · ${store.albums.length}`
+						: "רקעים לבחירת האייג׳נט"}
+				</Label>
 				<FormButton disabled={busy} onClick={() => void store.load()}>
 					<Icon name="refresh" size={15} /> רענון
 				</FormButton>
 			</Row>
 			<Search
 				accessibilityLabel="חיפוש מקורות"
-				placeholder="חיפוש לפי אלבום, הקשר או תגית…"
+				placeholder="חיפוש לפי שם, תיאור או תגית…"
 				value={store.query}
 				onChangeText={store.setQuery}
 			/>
 			{store.loading ? (
 				<ActivityIndicator accessibilityLabel="טוענים מקורות" />
+			) : section === "backgrounds" ? (
+				<BackgroundsPanel store={store} compact={compact} />
 			) : (
 				<Row style={{ flexWrap: "wrap", alignItems: "stretch", gap: 18 }}>
 					{store.visibleAlbums.map((album) => (
@@ -222,7 +254,7 @@ export const SourcesPanel = observer(function SourcesPanel({
 							{store.history.map((entry) => (
 								<option key={entry.id} value={entry.id}>
 									{new Date(entry.at).toLocaleString("he-IL")} · {entry.action} ·{" "}
-									{entry.count} אלבומים
+									{entry.count} אלבומים · {entry.backgroundCount} רקעים
 								</option>
 							))}
 						</Select>
@@ -351,7 +383,7 @@ export const SourcesPanel = observer(function SourcesPanel({
 			<ConfirmDialog
 				open={restoring}
 				title="שחזור מקורות"
-				description="רשימת האלבומים וההקשרים תוחלף בגרסה שנבחרה. המצב הנוכחי יישמר בהיסטוריה."
+				description="האלבומים, הרקעים והתיאורים יוחזרו לגרסה שנבחרה. המצב הנוכחי יישמר בהיסטוריה."
 				label="שחזור מקורות"
 				busy={store.saving}
 				error={store.error}

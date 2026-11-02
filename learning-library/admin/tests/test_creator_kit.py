@@ -24,6 +24,7 @@ def module(name, path):
 
 builder = module("kit_builder", ROOT / "scripts/build-creator-kit.py")
 agent = module("kit_agent", ROOT / "creator-kit/scripts/creator_agent.py")
+background_tools = module("kit_backgrounds", ROOT / "creator-kit/scripts/creator_backgrounds.py")
 
 
 class CreatorKitTests(unittest.TestCase):
@@ -78,7 +79,55 @@ class CreatorKitTests(unittest.TestCase):
             self.assertEqual(result.returncode, 0, result.stderr)
             content = json.loads((root / "projects/kit-test/content.json").read_text(encoding="utf-8"))
             self.assertEqual(content["title"], "ערכת יצירה")
+            self.assertIsNone(content["background"])
             self.assertTrue((root / "projects/kit-test/brief.md").is_file())
+
+    def test_background_selection_downloads_verified_assets_and_survives_kit_updates(self):
+        data = b"\x89PNG\r\n\x1a\nbackground fixture"
+        digest = hashlib.sha256(data).hexdigest()
+        asset = {"file": digest + ".png", "sha256": digest, "size": len(data), "contentType": "image/png", "width": 8, "height": 5}
+        current = {"version": 1, "revision": "current", "backgrounds": [{"id": "custom", "name": "רקע הכשרה", "description": "מתאים להכשרת צוות", "enabled": True, "image": asset}]}
+        class Api:
+            def request(self, path, **kwargs):
+                if path == "/creator/source-library":
+                    return current
+                assert path == "/creator/background-assets/" + asset["file"] and kwargs["binary"]
+                return data
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            agent.install_update(self.data, root)
+            project = root / "projects/example"
+            project.mkdir(parents=True)
+            agent.save_json(project / "content.json", {"background": None, "future": {"keep": True}})
+            result = background_tools.select_background(Api(), root, "example", "custom", "מתאים לקהל ולנושא")
+            selected = json.loads((project / "content.json").read_text())
+            self.assertEqual(selected["background"]["id"], "custom")
+            self.assertEqual(selected["background"]["sourceRevision"], "current")
+            self.assertEqual(selected["future"], {"keep": True})
+            image = root / "assets" / result["background"]["image"]
+            self.assertEqual(image.read_bytes(), data)
+            agent.install_update(self.data, root)
+            self.assertEqual(image.read_bytes(), data)
+            image.write_bytes(b"local edits")
+            before = (project / "content.json").read_bytes()
+            with self.assertRaisesRegex(ValueError, "checksum"):
+                background_tools.select_background(Api(), root, "example", "custom", "בחירה חדשה")
+            self.assertEqual((project / "content.json").read_bytes(), before)
+            current["backgrounds"][0]["enabled"] = False
+            with self.assertRaisesRegex(ValueError, "metadata"):
+                background_tools.select_background(Api(), root, "example", "custom", "בחירה")
+
+    def test_explicit_offline_background_selection_uses_the_supplied_space_images(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            agent.install_update(self.data, root)
+            project = root / "projects/offline"
+            project.mkdir(parents=True)
+            agent.save_json(project / "content.json", {"background": None})
+            result = background_tools.select_background(None, root, "offline", "space-challenge", "החלל מתאים לאתגר", offline=True)
+            self.assertEqual(result["background"]["source"], "bundled")
+            self.assertNotEqual(result["background"]["image"], result["background"]["coverImage"])
+            self.assertTrue((root / "assets" / result["background"]["coverImage"]).is_file())
 
     def test_bad_archive_checksums_and_symlink_destinations_change_nothing(self):
         buffer = io.BytesIO()
@@ -112,7 +161,7 @@ class CreatorKitTests(unittest.TestCase):
             install.assert_not_called()
 
     def test_sources_refresh_new_album_context_without_changing_managed_files(self):
-        current = {"version": 1, "revision": "latest", "albums": [{"id": "new-team-album", "title": "תמונות חדשות", "url": "https://photos.google.com/share/abc?key=shared", "context": "בניית רובוט", "tags": ["צוות"], "enabled": True}]}
+        current = {"version": 1, "revision": "latest", "albums": [{"id": "new-team-album", "title": "תמונות חדשות", "url": "https://photos.google.com/share/abc?key=shared", "context": "בניית רובוט", "tags": ["צוות"], "enabled": True}], "backgrounds": json.loads((ROOT / "fixtures/backgrounds.json").read_text())["backgrounds"]}
         class Api:
             def request(self, path):
                 self.path = path

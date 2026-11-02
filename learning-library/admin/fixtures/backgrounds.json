@@ -1,0 +1,26 @@
+{
+  "backgrounds": [
+    {
+      "id": "space-challenge",
+      "name": "אתגר החללית",
+      "description": "רקע כחול של נוף ירחי, מסלולי כוכבים ורכב חלל. מתאים לאתגר החללית, לחלל, למדע ולרובוטיקה. כולל גרסאות נפרדות לפתיחה ולשקפי תוכן, עם שטח פנוי לטקסט.",
+      "image": {
+        "file": "2f23392c74e43770cea74a0c3d0728df9b4118ab3ce733f77af7ee50d74b210e.png",
+        "sha256": "2f23392c74e43770cea74a0c3d0728df9b4118ab3ce733f77af7ee50d74b210e",
+        "contentType": "image/png",
+        "size": 984788,
+        "width": 1280,
+        "height": 720
+      },
+      "coverImage": {
+        "file": "af7d7bdfe1a9c69edfe6e48a80e619a9f6f9d92deedf1cd5b5092bdb17e35b8f.png",
+        "sha256": "af7d7bdfe1a9c69edfe6e48a80e619a9f6f9d92deedf1cd5b5092bdb17e35b8f",
+        "contentType": "image/png",
+        "size": 1152397,
+        "width": 1280,
+        "height": 720
+      },
+      "enabled": true
+    }
+  ]
+}

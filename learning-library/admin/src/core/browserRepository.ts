@@ -17,6 +17,7 @@ export function createApiClient() {
 		method = "GET",
 		body?: unknown,
 		revision?: CatalogRevision,
+		contentType = "application/json",
 	): Promise<T> {
 		const controller = new AbortController();
 		controllers.add(controller);
@@ -28,8 +29,16 @@ export function createApiClient() {
 				headers:
 					body === undefined
 						? {}
-						: { "Content-Type": "application/json", "If-Match": String(revision) },
-				body: body === undefined ? undefined : JSON.stringify(body),
+						: {
+								"Content-Type": contentType,
+								...(revision === undefined ? {} : { "If-Match": String(revision) }),
+							},
+				body:
+					body === undefined
+						? undefined
+						: body instanceof ArrayBuffer
+							? body
+							: JSON.stringify(body),
 			});
 			if (!response.headers.get("Content-Type")?.includes("application/json"))
 				throw new Error("יש להתחבר מחדש לניהול הספרייה ולרענן את הדף.");

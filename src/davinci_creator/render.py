@@ -4,9 +4,10 @@ import functools
 import math
 import random
 from pathlib import Path
-from PIL import Image, ImageDraw
+from PIL import Image, ImageDraw, ImageOps
 from bidi.algorithm import get_display
 from .common import ASSETS, local_file
+from .backgrounds import background_name, themed_elements
 from .layout import W, H, WHITE, GOLD, BLUE, font, elements, wrapped
 
 
@@ -17,9 +18,9 @@ def picture(name, frame_index=0):
         return src.convert("RGBA")
 
 
-@functools.lru_cache(2)
-def background(hero=False):
-    return picture("brand/space-hero.png" if hero else "brand/space-content.png").resize((W, H))
+@functools.lru_cache(32)
+def background(hero=False, name=None):
+    return ImageOps.fit(picture(name or background_name(None, hero)), (W, H), method=Image.Resampling.LANCZOS)
 
 
 def ease(value):
@@ -67,9 +68,9 @@ _rng = random.Random(4744)
 STARS = [(_rng.uniform(0,W), _rng.uniform(0,H), _rng.uniform(.5,1.5), _rng.random()*6.28) for _ in range(65)]
 
 
-def frame(scene, index, total, t=None, caption=None):
-    im = Image.new("RGBA", (W, H), "#000000") if scene.get("layout") == "video" else background(scene.get("layout")=="cover").copy()
-    if t is not None:
+def frame(scene, index, total, t=None, caption=None, background_selection=None):
+    im = Image.new("RGBA", (W, H), "#000000") if scene.get("layout") == "video" else background(scene.get("layout")=="cover", background_name(background_selection, scene.get("layout")=="cover")).copy()
+    if t is not None and (not background_selection or background_selection.get("id") == "space-challenge"):
         layer = Image.new("RGBA", im.size)
         d = ImageDraw.Draw(layer)
         for x,y,r,phase in STARS:
@@ -82,7 +83,7 @@ def frame(scene, index, total, t=None, caption=None):
         x,y = 135+235*math.cos(a),90+230*math.sin(a)
         d.ellipse((x-4,y-4,x+4,y+4), fill=(255,218,157,170))
         im.alpha_composite(layer)
-    for item in elements(scene,index,total):
+    for item in themed_elements(scene,index,total,background_selection):
         draw_element(im,item,1 if t is None else ease((t-item["delay"])/.65))
     if caption:
         d = ImageDraw.Draw(im)
@@ -99,7 +100,7 @@ def storyboard(doc, out: Path):
     scenes=doc["scenes"]
     contact=Image.new("RGB",(1280,180*math.ceil(len(scenes)/4)),"#102742")
     for i,s in enumerate(scenes):
-        im=frame(s,i,len(scenes))
+        im=frame(s,i,len(scenes),background_selection=doc.get("background"))
         im.save(out/f"slide-{i+1:02d}.png")
         contact.paste(im.resize((320,180)),((i%4)*320,(i//4)*180))
     contact.save(out/"storyboard.jpg",quality=92)

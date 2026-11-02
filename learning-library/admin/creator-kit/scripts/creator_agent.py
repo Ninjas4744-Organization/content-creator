@@ -50,7 +50,7 @@ class Api:
         try:
             with self.opener.open(request, timeout=120) as response:
                 if binary:
-                    limit = MAX_KIT if path == "/creator/kit" else 1024**3
+                    limit = MAX_KIT if path == "/creator/kit" else 8 * 1024**2 if path.startswith("/creator/background-assets/") else 1024**3
                     value = response.read(limit + 1)
                     if len(value) > limit:
                         raise ValueError("Download exceeds the supported size")
@@ -102,8 +102,10 @@ def sources(api, out):
             raise ValueError("Invalid source URL; local files are unchanged")
         if album.get("enabled") is not True or not isinstance(album.get("title"), str) or not isinstance(album.get("context"), str) or not isinstance(album.get("tags"), list) or any(not isinstance(tag, str) for tag in album["tags"]):
             raise ValueError("Invalid source metadata; local files are unchanged")
+    from creator_backgrounds import validate_backgrounds
+    backgrounds = validate_backgrounds(current)
     save_json(out, current)
-    return {"sources": str(out), "revision": current.get("revision"), "albums": albums}
+    return {"sources": str(out), "revision": current.get("revision"), "albums": albums, "backgrounds": backgrounds}
 
 
 def safe_relative(name):
@@ -207,7 +209,7 @@ def managed_path(name):
     safe_relative(name)
     if name in {"AGENTS.md", "START-HERE.md", "pyproject.toml", "templates/starter.json", "templates/brief.md"}:
         return True
-    return name.startswith((".agents/skills/", ".claude/skills/", "src/davinci_creator/", "docs/", "assets/brand/", "assets/photos/", "assets/reference/", "examples/community/")) or name in {"assets/README.md", "assets/manifest.json", "assets/photo-albums.json", "scripts/setup.py", "scripts/prepare_gallery.py", "scripts/catalog_model.py", "scripts/creator_agent.py", "scripts/creator_auth.py"}
+    return name.startswith((".agents/skills/", ".claude/skills/", "src/davinci_creator/", "docs/", "assets/brand/", "assets/photos/", "assets/reference/", "examples/community/")) or name in {"assets/README.md", "assets/manifest.json", "assets/photo-albums.json", "assets/backgrounds.json", "scripts/setup.py", "scripts/prepare_gallery.py", "scripts/catalog_model.py", "scripts/creator_agent.py", "scripts/creator_auth.py", "scripts/creator_backgrounds.py"}
 
 
 def install_update(data, root=ROOT):
@@ -295,6 +297,11 @@ def main():
     catalog.add_argument("--out", type=Path, default=ROOT / "outputs/current-catalog.json")
     library = commands.add_parser("sources", help="Load active photo albums and their context from the site")
     library.add_argument("--out", type=Path, default=ROOT / "outputs/current-sources.json")
+    background = commands.add_parser("background", help="Choose a background for a presentation or video before rendering")
+    background.add_argument("background")
+    background.add_argument("--project", required=True)
+    background.add_argument("--reason", required=True)
+    background.add_argument("--offline", action="store_true", help="Explicitly choose a bundled background without contacting the site")
     publication = commands.add_parser("publish")
     publication.add_argument("project")
     publication.add_argument("--gallery")
@@ -308,6 +315,10 @@ def main():
     if args.command == "disconnect":
         print(json.dumps(disconnect(SITE)))
         return
+    if args.command == "background" and args.offline:
+        from creator_backgrounds import select_background
+        print(json.dumps(select_background(None, ROOT, args.project, args.background, args.reason, offline=True), ensure_ascii=False))
+        return
     api = Api()
     if args.command == "connect":
         current = api.request("/catalog")
@@ -318,6 +329,9 @@ def main():
         result = {"catalog": str(args.out), "galleries": current["galleries"]}
     elif args.command == "sources":
         result = sources(api, args.out)
+    elif args.command == "background":
+        from creator_backgrounds import select_background
+        result = select_background(api, ROOT, args.project, args.background, args.reason)
     elif args.command == "publish":
         result = publish(api, args.project, args.gallery, args.video)
     elif args.command == "resume":

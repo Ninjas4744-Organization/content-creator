@@ -62,7 +62,15 @@ export async function adminApi(request: Request, env: Env, email: string): Promi
 	)
 		throw new CatalogError("מקור הבקשה אינו מורשה.", 403);
 	const store = new CatalogDomain(new R2CatalogStorage(env.CONTENT, email));
-	if (["/api/sources", "/api/sources/history", "/api/creator/source-library"].includes(path))
+	if (
+		[
+			"/api/sources",
+			"/api/sources/history",
+			"/api/sources/background-assets",
+			"/api/creator/source-library",
+		].includes(path) ||
+		path.startsWith("/api/creator/background-assets/")
+	)
 		return sourcesApi(request, env, email);
 	if (path.startsWith("/api/creator/"))
 		return creatorApi(request, env, email, new R2CatalogStorage(env.CONTENT, email));

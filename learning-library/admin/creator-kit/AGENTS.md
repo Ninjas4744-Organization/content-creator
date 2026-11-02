@@ -8,6 +8,7 @@ This folder is a standalone workspace downloaded from the library admin. Work fr
 - Updating these skills/tools: read `.agents/skills/davinci-update/SKILL.md`.
 - Brand and content schema: `docs/brand.md` and `docs/content-format.md`.
 - For team imagery, load the site's active albums with `scripts/creator_agent.py sources` and follow `docs/source-library.md`. Match context and tags to the brief, inspect images visually, and preserve source records. The bundled album registry is an offline seed, not the current source library.
+- Every new presentation or video must select a background. Follow `docs/backgrounds.md`, choose it yourself from the active names/descriptions and the brief, and apply it with `scripts/creator_agent.py background <id> --project <project> --reason "why it fits"`. New projects cannot render with a null background. Keep selected images and the reason with their sources.
 - Use local Rubik fonts and supplied logos; Hebrew uses logical RTL. Preserve Gracious Professionalism®.
 - Create and edit under `projects/<id>/`. Run `python3 scripts/setup.py` if `.venv` is absent. Use the project's Python environment for rendering.
 - Retain local sources and output previews. Publication includes a private recoverable source archive. Restore with `scripts/creator_agent.py pull <id>`; local changes are never overwritten.

@@ -351,6 +351,7 @@ test("agent credentials cannot manage galleries/catalog or approve agents, and a
 		"/admin/api/catalog",
 		"/admin/api/galleries",
 		"/admin/api/sources",
+		"/admin/api/sources/background-assets",
 		"/admin/auth/agent/approve",
 	])
 		expect(

@@ -81,6 +81,7 @@ def main():
             if folder.exists():raise ValueError(f"Project already exists: {folder}")
             folder.mkdir(parents=True)
             doc=json.loads((ROOT/"templates/starter.json").read_text(encoding="utf-8"))
+            doc["background"]=None
             doc["title"]=args.title;doc["scenes"][0]["title"]=args.title
             write_json(folder/"content.json",doc)
             shutil.copy2(ROOT/"templates/brief.md",folder/"brief.md")

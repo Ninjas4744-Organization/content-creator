@@ -6,16 +6,20 @@ import type {
 	SourceSnapshot,
 	SourceHistoryEntry,
 	SourceMutation,
+	ContentBackground,
+	BackgroundAsset,
 } from "../../models/sources";
 
 export class SourcesStore {
 	albums: PhotoAlbum[] = [];
+	backgrounds: ContentBackground[] = [];
 	history: SourceHistoryEntry[] = [];
 	revision: CatalogRevision = 0;
 	updatedAt: string | null = null;
 	query = "";
 	loading = true;
 	saving = false;
+	uploading = false;
 	error: string | null = null;
 	message: string | null = null;
 	private generation = 0;
@@ -28,6 +32,7 @@ export class SourcesStore {
 				generation: false,
 				disposed: false,
 				albums: observable.ref,
+				backgrounds: observable.ref,
 				history: observable.ref,
 			},
 			{ autoBind: true },
@@ -47,12 +52,46 @@ export class SourcesStore {
 	setQuery(query: string) {
 		this.query = query;
 	}
+	get visibleBackgrounds() {
+		const words = this.query.trim().toLocaleLowerCase("he").split(/\s+/).filter(Boolean);
+		return this.backgrounds.filter((background) =>
+			words.every((word) =>
+				`${background.name} ${background.description}`
+					.toLocaleLowerCase("he")
+					.includes(word),
+			),
+		);
+	}
+	async uploadBackground(data: ArrayBuffer, type: string): Promise<BackgroundAsset | null> {
+		if (this.saving || this.uploading || this.disposed) return null;
+		this.uploading = true;
+		this.error = null;
+		try {
+			const asset = await this.repository.uploadBackground(data, type);
+			return this.disposed ? null : asset;
+		} catch (error) {
+			if (!this.disposed)
+				runInAction(() => {
+					this.error = error instanceof Error ? error.message : "העלאת הרקע לא הושלמה.";
+				});
+			return null;
+		} finally {
+			if (!this.disposed)
+				runInAction(() => {
+					this.uploading = false;
+				});
+		}
+	}
 	clearFeedback() {
 		this.error = null;
 		this.message = null;
 	}
+	setError(error: string) {
+		this.error = error;
+	}
 	private accept(snapshot: SourceSnapshot) {
 		this.albums = snapshot.albums;
+		this.backgrounds = snapshot.backgrounds;
 		this.revision = snapshot.revision;
 		this.updatedAt = snapshot.updatedAt;
 	}
@@ -87,7 +126,7 @@ export class SourcesStore {
 		}
 	}
 	async change(input: SourceMutation): Promise<boolean> {
-		if (this.loading || this.saving || this.disposed) return false;
+		if (this.loading || this.saving || this.uploading || this.disposed) return false;
 		this.saving = true;
 		this.error = null;
 		this.message = null;

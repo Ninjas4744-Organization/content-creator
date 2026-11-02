@@ -1,5 +1,6 @@
 import { CatalogError } from "./catalog-domain.mjs";
 import seed from "../fixtures/photo-albums.json" with { type: "json" };
+import { defaultBackgrounds, validateBackgroundAsset } from "./background-assets.mjs";
 
 const fail = (message, status = 400) => {
 	throw new CatalogError(message, status);
@@ -63,10 +64,48 @@ export function validateSourceDocument(value) {
 			enabled,
 		};
 	});
-	const document = { ...structuredClone(value), version: 1, albums };
+	const document = {
+		...structuredClone(value),
+		version: 1,
+		albums,
+		backgrounds: validateBackgrounds(
+			value.backgrounds === undefined ? defaultBackgrounds : value.backgrounds,
+		),
+	};
 	if (new TextEncoder().encode(JSON.stringify(document)).length > 256 * 1024)
 		fail("רשימת המקורות גדולה מדי.", 413);
 	return document;
+}
+export function validateBackgrounds(value) {
+	if (!Array.isArray(value) || !value.length || value.length > 100)
+		fail("יש לשמור בין רקע אחד ל־100 רקעים.");
+	const ids = new Set();
+	for (const background of value) {
+		if (
+			!background ||
+			typeof background.id !== "string" ||
+			!/^[a-z0-9][a-z0-9-]{0,119}$/.test(background.id) ||
+			ids.has(background.id)
+		)
+			fail("מזהה רקע אינו תקין או כבר קיים.");
+		ids.add(background.id);
+		for (const [key, max] of [
+			["name", 160],
+			["description", 2000],
+		])
+			if (
+				typeof background[key] !== "string" ||
+				!background[key].trim() ||
+				background[key].length > max
+			)
+				fail("יש למלא שם ותיאור לרקע (עד 160 ו־2,000 תווים).");
+		if (typeof background.enabled !== "boolean") fail("זמינות הרקע אינה תקינה.");
+		validateBackgroundAsset(background.image);
+		if (background.coverImage !== undefined) validateBackgroundAsset(background.coverImage);
+	}
+	if (!value.some((background) => background.enabled))
+		fail("חייב להישאר לפחות רקע פעיל אחד לבחירת האייג׳נט.");
+	return structuredClone(value);
 }
 export function initialSourceState() {
 	return { document: validateSourceDocument(seed), revision: 0, updatedAt: null, history: [] };
@@ -78,6 +117,7 @@ export function sourceHistory(state) {
 	return state.history.map(({ document, ...entry }) => ({
 		...entry,
 		count: document.albums.length,
+		backgroundCount: validateSourceDocument(document).backgrounds.length,
 	}));
 }
 export class SourcesDomain {
@@ -85,8 +125,9 @@ export class SourcesDomain {
 	constructor(storage) {
 		this.storage = storage;
 	}
-	read() {
-		return this.storage.read();
+	async read() {
+		const state = await this.storage.read();
+		return { ...state, document: validateSourceDocument(state.document) };
 	}
 	change(revision, input) {
 		const operation = this.#queue.then(async () => {
@@ -99,6 +140,33 @@ export class SourcesDomain {
 				if (!entry) fail("גרסת המקורות לא נמצאה.", 404);
 				document = entry.document;
 				action = "שחזור מקורות";
+			} else if (
+				["create-background", "update-background", "delete-background"].includes(input.type)
+			) {
+				let backgrounds = document.backgrounds;
+				if (input.type === "delete-background") {
+					if (!backgrounds.some((background) => background.id === input.id))
+						fail("הרקע לא נמצא.", 404);
+					backgrounds = backgrounds.filter((background) => background.id !== input.id);
+					action = "הסרת רקע";
+				} else {
+					const incoming = input.background;
+					if (!incoming || typeof incoming !== "object" || Array.isArray(incoming))
+						fail("רשומת הרקע אינה תקינה.");
+					const id =
+						input.type === "create-background"
+							? `background-${crypto.randomUUID()}`
+							: incoming.id;
+					const existing = backgrounds.find((background) => background.id === id);
+					if (input.type === "update-background" && !existing) fail("הרקע לא נמצא.", 404);
+					const background = { ...existing, ...incoming, id };
+					if (incoming.coverImage === undefined) delete background.coverImage;
+					backgrounds = existing
+						? backgrounds.map((entry) => (entry.id === id ? background : entry))
+						: [...backgrounds, background];
+					action = `${existing ? "עריכת" : "הוספת"} רקע: ${background.name}`;
+				}
+				document = { ...document, backgrounds };
 			} else if (input.type === "delete") {
 				if (!document.albums.some((album) => album.id === input.id))
 					fail("האלבום לא נמצא.", 404);

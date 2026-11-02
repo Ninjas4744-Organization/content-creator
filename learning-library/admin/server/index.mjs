@@ -6,6 +6,8 @@ import { createHash } from "node:crypto";
 import { CatalogStore, CatalogError, validateDocument, documentOf } from "./catalog.mjs";
 import { SourcesStore } from "./sources.mjs";
 import { sourceSnapshot, sourceHistory } from "./sources-domain.mjs";
+import { BackgroundStorage } from "./background-storage.mjs";
+import { maxBackgroundBytes } from "./background-assets.mjs";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const source = "https://knowledge.davinci4744.com/library/catalog.json";
@@ -34,20 +36,24 @@ const headers = {
 		"default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' https://knowledge.davinci4744.com data:; font-src 'self'; connect-src 'self'; frame-src https://knowledge.davinci4744.com; object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'",
 };
 
-async function body(request) {
-	if (!request.headers["content-type"]?.startsWith("application/json"))
-		throw new CatalogError("נדרש JSON.", 415);
+async function bytes(request, limit = MAX_BODY) {
 	let size = 0;
 	const chunks = [];
 	for await (const chunk of request) {
 		size += chunk.length;
-		if (size > MAX_BODY) throw new CatalogError("הקובץ גדול מדי (עד 4MB).", 413);
+		if (size > limit) throw new CatalogError("הקובץ גדול מדי.", 413);
 		chunks.push(chunk);
 	}
+	return Buffer.concat(chunks);
+}
+async function body(request) {
+	if (!request.headers["content-type"]?.startsWith("application/json"))
+		throw new CatalogError("נדרש JSON.", 415);
 	let parsed;
 	try {
-		parsed = JSON.parse(Buffer.concat(chunks).toString("utf8"));
-	} catch {
+		parsed = JSON.parse((await bytes(request)).toString("utf8"));
+	} catch (error) {
+		if (error instanceof CatalogError) throw error;
 		throw new CatalogError("קובץ JSON אינו תקין.");
 	}
 	if (!parsed || typeof parsed !== "object" || Array.isArray(parsed))
@@ -86,7 +92,8 @@ export function createApp({
 		libraryOrigin ? [libraryOrigin, libraryOrigin.replace("localhost", "127.0.0.1")] : [],
 	);
 	const store = new CatalogStore(dataFile, seedFile);
-	const sources = new SourcesStore(resolve(dirname(dataFile), "sources.json"));
+	const backgroundAssets = new BackgroundStorage(resolve(dirname(dataFile), "background-assets"));
+	const sources = new SourcesStore(resolve(dirname(dataFile), "sources.json"), backgroundAssets);
 	const json = (response, status, value, extra = {}) => {
 		response.writeHead(status, {
 			...headers,
@@ -136,6 +143,32 @@ export function createApp({
 			)
 				throw new CatalogError("מקור הבקשה אינו מורשה.", 403);
 
+			if (url.pathname === "/api/sources/background-assets" && request.method === "POST") {
+				const data = await bytes(request, maxBackgroundBytes);
+				return json(
+					response,
+					201,
+					await backgroundAssets.upload(
+						data,
+						request.headers["content-type"]?.split(";")[0] ?? "",
+					),
+				);
+			}
+			if (
+				url.pathname.startsWith("/api/creator/background-assets/") &&
+				["GET", "HEAD"].includes(request.method)
+			) {
+				const result = await backgroundAssets.read(
+					url.pathname.slice("/api/creator/background-assets/".length),
+				);
+				if (!result) throw new CatalogError("תמונת הרקע לא נמצאה.", 404);
+				response.writeHead(200, {
+					...headers,
+					"Content-Type": result.asset.contentType,
+					"Content-Length": result.asset.size,
+				});
+				return response.end(request.method === "HEAD" ? undefined : result.data);
+			}
 			if (url.pathname === "/api/sources" && request.method === "GET")
 				return json(response, 200, sourceSnapshot(await sources.read(), "local"));
 			if (url.pathname === "/api/sources/history" && request.method === "GET")
@@ -154,6 +187,9 @@ export function createApp({
 				return json(response, 200, {
 					...state.document,
 					albums: state.document.albums.filter((album) => album.enabled),
+					backgrounds: state.document.backgrounds.filter(
+						(background) => background.enabled,
+					),
 					revision: state.revision,
 					updatedAt: state.updatedAt,
 				});

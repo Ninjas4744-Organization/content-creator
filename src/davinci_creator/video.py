@@ -43,13 +43,13 @@ def plan(doc,voices:Path,fps=30,draft=False,seconds=None,model=DEFAULT_MODEL):
 
 
 def scene_render(args):
-    index,scene,total,previous,fps,width,out=args
+    index,scene,total,previous,fps,width,out,background_selection=args
     height=width*9//16
     if height%2:
         raise ValueError("Video dimensions must be even; use width 640, 1280 or 1920")
     output=out/f"scene-{index:03d}.mp4"
     temporary=out/f"scene-{index:03d}.partial.mp4"
-    prior=frame(previous,index-1,total) if previous else None
+    prior=frame(previous,index-1,total,background_selection=background_selection) if previous else None
     cmd=[ffmpeg(),"-hide_banner","-loglevel","error","-y","-f","rawvideo","-vcodec","rawvideo",
          "-pix_fmt","rgb24","-s",f"{width}x{height}","-r",str(fps),"-i","-","-an","-c:v","libx264",
          "-threads","2","-preset","fast","-crf","19","-pix_fmt","yuv420p","-movflags","+faststart",str(temporary)]
@@ -61,7 +61,7 @@ def scene_render(args):
             if scene["captions"] and 0<=local<scene["voice_duration"]:
                 j=min(len(scene["captions"])-1,int(local/scene["voice_duration"]*len(scene["captions"])))
                 caption=scene["captions"][j]
-            im=frame(scene,index,total,t,caption)
+            im=frame(scene,index,total,t,caption,background_selection=background_selection)
             if prior is not None and t<.5:
                 # A crossfade plus moving gold edge connects scenes.
                 im=Image.blend(prior,im,min(1,t/.5))
@@ -104,7 +104,7 @@ def render(doc,out:Path,voices:Path,*,fps=30,width=1280,workers=2,draft=False,se
     write_json(out/"timeline.json",timeline)
     score(timeline,voices_audio,out/"audio")
     storyboard(doc,out/"previews")
-    jobs=[(i,s,len(timeline["scenes"]),timeline["scenes"][i-1] if i else None,fps,width,work) for i,s in enumerate(timeline["scenes"])]
+    jobs=[(i,s,len(timeline["scenes"]),timeline["scenes"][i-1] if i else None,fps,width,work,doc.get("background")) for i,s in enumerate(timeline["scenes"])]
     # Always render fresh. A changed title or previous scene cannot reuse stale frames.
     with concurrent.futures.ProcessPoolExecutor(max_workers=workers) as pool:
         files=list(pool.map(scene_render,jobs))

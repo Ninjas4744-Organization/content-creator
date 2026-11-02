@@ -4,12 +4,14 @@ import { autorun } from "mobx";
 import { SourcesStore } from "../src/features/sources/SourcesStore";
 import { sourcePrompt } from "../src/features/sources/sourcePrompt";
 import type { SourcesRepository, SourceSnapshot } from "../src/models/sources";
+import { defaultBackgrounds } from "../server/background-assets.mjs";
 
 const snapshot: SourceSnapshot = {
 	version: 1,
 	revision: 0,
 	updatedAt: null,
 	mode: "local",
+	backgrounds: structuredClone(defaultBackgrounds),
 	albums: [
 		{
 			id: "team",
@@ -26,6 +28,7 @@ function repository(): SourcesRepository {
 		load: async () => structuredClone(snapshot),
 		history: async () => [],
 		change: async () => ({ ...snapshot, revision: 1 }),
+		uploadBackground: async () => snapshot.backgrounds[0]!.image,
 		dispose() {},
 	};
 }
@@ -88,4 +91,22 @@ test("source prompts carry the selected album and context into both creation wor
 		assert.ok(prompt.includes(album.context));
 		assert.ok(prompt.includes(album.tags[0]!));
 	}
+});
+
+test("background search and upload failures retain the current source revision", async () => {
+	const repo = repository();
+	const store = new SourcesStore(repo);
+	await store.load();
+	store.setQuery("ירחי רובוטיקה");
+	assert.equal(store.visibleBackgrounds.length, 1);
+	const uploaded = await store.uploadBackground(new ArrayBuffer(8), "image/png");
+	assert.equal(uploaded?.sha256, snapshot.backgrounds[0]!.image.sha256);
+	assert.equal(store.revision, 0);
+	repo.uploadBackground = async () => {
+		throw new Error("invalid image");
+	};
+	assert.equal(await store.uploadBackground(new ArrayBuffer(1), "image/png"), null);
+	assert.equal(store.error, "invalid image");
+	assert.equal(store.backgrounds.length, 1);
+	store.dispose();
 });

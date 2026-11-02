@@ -1,5 +1,10 @@
 import { createApiClient } from "./browserRepository";
-import type { SourcesRepository, SourceSnapshot, SourceHistoryEntry } from "../models/sources";
+import type {
+	BackgroundAsset,
+	SourcesRepository,
+	SourceSnapshot,
+	SourceHistoryEntry,
+} from "../models/sources";
 
 export function createBrowserSourcesRepository(): SourcesRepository {
 	const { request, dispose } = createApiClient();
@@ -9,6 +14,14 @@ export function createBrowserSourcesRepository(): SourcesRepository {
 			request<SourceSnapshot>("/api/sources", "POST", input, revision),
 		history: async () =>
 			(await request<{ history: SourceHistoryEntry[] }>("/api/sources/history")).history,
+		uploadBackground: (data, type) =>
+			request<BackgroundAsset>(
+				"/api/sources/background-assets",
+				"POST",
+				data,
+				undefined,
+				type,
+			),
 		dispose,
 	};
 }
