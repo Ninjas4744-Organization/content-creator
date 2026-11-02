@@ -23,6 +23,8 @@ import {
 import { Icon, type IconName } from "../ui/Icon";
 import { Select, IconButton, WebLink } from "../ui/browserControls";
 import { apiUrl } from "../core/browserRepository";
+import { SourcesPanel } from "../features/sources/SourcesPanel";
+import type { SourcesStore } from "../features/sources/SourcesStore";
 
 const Panel = styled.View`
 	border-radius: 10px;
@@ -55,6 +57,9 @@ const ErrorBox = webStyled.div`
 `;
 interface Props {
 	store: CatalogStore;
+	sources: SourcesStore;
+	sourcesOpen: boolean;
+	onSources(): void;
 	onEdit(item?: LearningItem): void;
 	onImport(): void;
 	onManageGalleries(): void;
@@ -63,6 +68,9 @@ interface Props {
 }
 export const AdminScreen = observer(function AdminScreen({
 	store,
+	sources,
+	sourcesOpen,
+	onSources,
 	onEdit,
 	onImport,
 	onManageGalleries,
@@ -146,6 +154,8 @@ export const AdminScreen = observer(function AdminScreen({
 			<Sidebar
 				compact={compact}
 				view={store.view}
+				sourcesOpen={sourcesOpen}
+				onSources={onSources}
 				count={store.items.length}
 				galleries={store.galleries}
 				busy={store.loading || store.saving}
@@ -168,7 +178,9 @@ export const AdminScreen = observer(function AdminScreen({
 					<Row style={{ gap: 13 }}>
 						<Body style={{ fontSize: 11 }}>מרחב העבודה</Body>
 						<Body>/</Body>
-						<Label style={{ fontSize: 11 }}>{store.viewName}</Label>
+						<Label style={{ fontSize: 11 }}>
+							{sourcesOpen ? "מקורות" : store.viewName}
+						</Label>
 					</Row>
 					<Row style={{ gap: 16 }}>
 						<Body style={{ fontSize: 10, color: theme.success }}>
@@ -197,339 +209,381 @@ export const AdminScreen = observer(function AdminScreen({
 						gap: 28,
 					}}
 				>
-					<Row
-						style={{
-							justifyContent: "space-between",
-							alignItems: "center",
-							flexWrap: "wrap",
-							gap: 17,
-						}}
-					>
-						<View style={{ gap: 8, flexShrink: 1 }}>
-							<Body style={{ color: theme.primary, fontSize: 10 }}>
-								• מנהלים ידע. יוצרים השפעה.
-							</Body>
-							<Heading $compact={compact} accessibilityRole="header">
-								{store.view === "history"
-									? "כל שינוי, חלק מהסיפור."
-									: "הספרייה שלכם, במבט אחד."}
-							</Heading>
-							<Body style={{ fontSize: 12 }}>
-								כל המצגות, הסרטונים וחומרי הלמידה. מסודרים, מעודכנים ומוכנים לשיתוף.
-							</Body>
-						</View>
-						<Row style={{ gap: 10, flexWrap: "wrap" }}>
-							<Button $secondary accessibilityRole="button" onPress={onCreatorTools}>
-								<Icon name="download" size={17} />
-								<ButtonText $secondary>כלים ליוצרי תוכן</ButtonText>
-							</Button>
-							<Button
-								disabled={store.loading}
-								accessibilityRole="button"
-								onPress={() => onEdit()}
-							>
-								<Icon name="plus" color="white" size={17} />
-								<ButtonText>הוספת תוכן</ButtonText>
-							</Button>
-						</Row>
-					</Row>
-					<Row style={{ flexWrap: "wrap", gap: compact ? 12 : 17 }}>
-						{stats.map((stat) => (
-							<StatCard
-								key={stat.label}
-								accessibilityRole="button"
-								onPress={stat.action}
-								style={{
-									width: width < 1120 ? "47%" : "23%",
-									flexGrow: 1,
-									minHeight: 145,
-								}}
-							>
-								<Row style={{ justifyContent: "space-between", gap: 7 }}>
-									<Body style={{ fontSize: compact ? 10 : 11, flexShrink: 1 }}>
-										{stat.label}
-									</Body>
-									<Icon name={stat.icon} size={19} color={stat.color} />
-								</Row>
-								<Label
-									style={{ fontSize: 32, lineHeight: 38, fontFamily: theme.font }}
-								>
-									{stat.count}
-								</Label>
-								<Body style={{ fontSize: 9, lineHeight: 14 }}>{stat.note}</Body>
-							</StatCard>
-						))}
-					</Row>
-					{store.error && (
-						<ErrorBox role="alert">
-							<span>{store.error}</span>
-							<WebLink as="button" type="button" onClick={() => void store.load()}>
-								טעינה מחדש
-							</WebLink>
-							<IconButton
-								aria-label="סגירת הודעת שגיאה"
-								onClick={() => store.setError(null)}
-							>
-								<Icon name="close" size={15} />
-							</IconButton>
-						</ErrorBox>
-					)}
-					<Panel>
-						<Row
-							style={{
-								justifyContent: "space-between",
-								padding: compact ? 18 : 24,
-								flexWrap: "wrap",
-							}}
-						>
-							<View style={{ gap: 5 }}>
-								<Label style={{ fontSize: 16 }}>
-									{store.viewName}{" "}
-									<Label style={{ fontSize: 12, color: theme.muted }}>
-										{store.view === "history"
-											? store.history.length
-											: store.visibleItems.length}
-									</Label>
-								</Label>
-								<Body style={{ fontSize: 10 }}>
-									{store.updatedAt
-										? `${store.production ? "נשמר באתר" : "נשמר מקומית"} · ${new Date(store.updatedAt).toLocaleString("he-IL")}`
-										: "עותק של הספרייה · מוכן לעריכה מקומית"}
-								</Body>
-							</View>
-							<Row style={{ gap: 6 }}>
-								<Button
-									$secondary
-									disabled={store.loading}
-									accessibilityRole="button"
-									onPress={onImport}
-									style={{ paddingHorizontal: 9, borderWidth: 0 }}
-								>
-									<Icon name="upload" size={15} />
-									<ButtonText $secondary>ייבוא קטלוג</ButtonText>
-								</Button>
-								<WebLink href={apiUrl("/api/export")} download="catalog.json">
-									<Icon name="download" size={15} />
-									ייצוא
-								</WebLink>
-							</Row>
-						</Row>
-						{store.view !== "history" && (
-							<>
-								<Row
-									style={{
-										gap: 10,
-										flexWrap: "wrap",
-										paddingHorizontal: compact ? 18 : 24,
-										paddingBottom: 18,
-									}}
-								>
-									<Row
-										style={{
-											flex: 1,
-											minWidth: compact ? 200 : 160,
-											backgroundColor: "#fbfcfb",
-											borderWidth: 1,
-											borderColor: theme.border,
-											paddingHorizontal: 10,
-											borderRadius: 6,
-										}}
-									>
-										<Icon name="search" size={16} />
-										<Search
-											ref={searchRef}
-											accessibilityLabel="חיפוש תכנים"
-											placeholder="חיפוש לפי שם, נושא או פרק…"
-											placeholderTextColor={theme.muted}
-											value={store.query}
-											onChangeText={store.setQuery}
-										/>
-									</Row>
-									<Select
-										aria-label="קטגוריה"
-										value={store.category}
-										onChange={(event) => store.setCategory(event.target.value)}
-									>
-										{store.categories.map((category) => (
-											<option key={category} value={category}>
-												{category === "הכול" ? "כל הקטגוריות" : category}
-											</option>
-										))}
-									</Select>
-									<Select
-										aria-label="פורמט"
-										value={store.filter}
-										onChange={(event) =>
-											store.setFilter(event.target.value as MediaFilter)
-										}
-									>
-										<option value="all">כל הפורמטים</option>
-										<option value="deck">מצגות</option>
-										<option value="video">סרטונים</option>
-									</Select>
-									<Row style={{ gap: 0, marginStart: "auto" }}>
-										<IconButton
-											aria-label="תצוגת רשימה"
-											aria-pressed={store.layout === "table"}
-											$selected={store.layout === "table"}
-											onClick={() => store.setLayout("table")}
-										>
-											<Icon name="list" size={16} />
-										</IconButton>
-										<IconButton
-											aria-label="תצוגת כרטיסים"
-											aria-pressed={store.layout === "grid"}
-											$selected={store.layout === "grid"}
-											onClick={() => store.setLayout("grid")}
-										>
-											<Icon name="grid" size={16} />
-										</IconButton>
-									</Row>
-								</Row>
-								<Row
-									style={{
-										paddingHorizontal: compact ? 12 : 24,
-										justifyContent: "space-between",
-										flexWrap: "wrap",
-										borderBottomWidth: 1,
-										borderBottomColor: theme.border,
-										gap: 5,
-									}}
-								>
-									<Row style={{ gap: compact ? 2 : 9, flexWrap: "wrap" }}>
-										{[{ id: "all", name: "הכול" }, ...store.galleries].map(
-											({ id: value, name }) => (
-												<Chip
-													key={value}
-													$selected={store.gallery === value}
-													accessibilityRole="button"
-													accessibilityState={{
-														selected: store.gallery === value,
-													}}
-													onPress={() => store.setGallery(value)}
-												>
-													<ChipText $selected={store.gallery === value}>
-														{name}
-													</ChipText>
-												</Chip>
-											),
-										)}
-									</Row>
-									<Select
-										aria-label="מיון"
-										value={store.sort}
-										onChange={(event) =>
-											store.setSort(event.target.value as CatalogSort)
-										}
-										style={{ border: 0, fontSize: 10 }}
-									>
-										<option value="original">סדר הקטלוג</option>
-										<option value="title">שם התוכן</option>
-										<option value="featured">מומלצים תחילה</option>
-									</Select>
-								</Row>
-								{!!store.selected.length && (
-									<Row
-										style={{
-											gap: 10,
-											flexWrap: "wrap",
-											padding: 14,
-											backgroundColor: theme.card,
-										}}
-									>
-										<Label style={{ fontSize: 11 }}>
-											{store.selected.length} תכנים נבחרו
-										</Label>
-										<Select
-											aria-label="העברת התכנים שנבחרו"
-											value={bulkGallery}
-											onChange={(event) =>
-												setBulkGallery(event.target.value as Gallery | "")
-											}
-										>
-											<option value="">העברה לספרייה…</option>
-											{store.galleries.map(({ id, name }) => (
-												<option key={id} value={id}>
-													{name}
-												</option>
-											))}
-										</Select>
-										<Button
-											disabled={
-												!store.galleries.some(
-													(entry) => entry.id === bulkGallery,
-												) || store.saving
-											}
-											accessibilityRole="button"
-											onPress={async () => {
-												if (
-													bulkGallery &&
-													(await store.moveSelected(bulkGallery))
-												)
-													setBulkGallery("");
-											}}
-										>
-											<ButtonText>החלה</ButtonText>
-										</Button>
-										<Button
-											$secondary
-											accessibilityRole="button"
-											onPress={store.clearSelection}
-										>
-											<ButtonText $secondary>ביטול בחירה</ButtonText>
-										</Button>
-									</Row>
-								)}
-							</>
-						)}
-						{store.loading ? (
-							<View style={{ padding: 70, gap: 15 }}>
-								<ActivityIndicator
-									color={theme.primary}
-									accessibilityLabel="טוען את הקטלוג"
-								/>
-								<Body style={{ textAlign: "center" }}>טוענים את התכנים שלכם…</Body>
-							</View>
-						) : store.view === "history" ? (
-							<HistoryPanel store={store} />
-						) : (
-							<CatalogItems
-								store={store}
-								onEdit={onEdit}
-								columns={width < 850 ? 1 : width < 1200 ? 2 : 3}
-							/>
-						)}
-						{store.view !== "history" && (
+					{sourcesOpen ? (
+						<SourcesPanel store={sources} compact={compact} />
+					) : (
+						<>
 							<Row
 								style={{
-									borderTopWidth: 1,
-									borderTopColor: theme.border,
-									padding: 17,
 									justifyContent: "space-between",
+									alignItems: "center",
 									flexWrap: "wrap",
+									gap: 17,
 								}}
 							>
-								<Body style={{ fontSize: 10 }}>
-									מציגים {store.visibleItems.length} מתוך {store.items.length}{" "}
-									תכנים
-								</Body>
-								<Body style={{ fontSize: 10 }}>
-									•{" "}
+								<View style={{ gap: 8, flexShrink: 1 }}>
+									<Body style={{ color: theme.primary, fontSize: 10 }}>
+										• מנהלים ידע. יוצרים השפעה.
+									</Body>
+									<Heading $compact={compact} accessibilityRole="header">
+										{store.view === "history"
+											? "כל שינוי, חלק מהסיפור."
+											: "הספרייה שלכם, במבט אחד."}
+									</Heading>
+									<Body style={{ fontSize: 12 }}>
+										כל המצגות, הסרטונים וחומרי הלמידה. מסודרים, מעודכנים ומוכנים
+										לשיתוף.
+									</Body>
+								</View>
+								<Row style={{ gap: 10, flexWrap: "wrap" }}>
+									<Button
+										$secondary
+										accessibilityRole="button"
+										onPress={onCreatorTools}
+									>
+										<Icon name="download" size={17} />
+										<ButtonText $secondary>כלים ליוצרי תוכן</ButtonText>
+									</Button>
+									<Button
+										disabled={store.loading}
+										accessibilityRole="button"
+										onPress={() => onEdit()}
+									>
+										<Icon name="plus" color="white" size={17} />
+										<ButtonText>הוספת תוכן</ButtonText>
+									</Button>
+								</Row>
+							</Row>
+							<Row style={{ flexWrap: "wrap", gap: compact ? 12 : 17 }}>
+								{stats.map((stat) => (
+									<StatCard
+										key={stat.label}
+										accessibilityRole="button"
+										onPress={stat.action}
+										style={{
+											width: width < 1120 ? "47%" : "23%",
+											flexGrow: 1,
+											minHeight: 145,
+										}}
+									>
+										<Row style={{ justifyContent: "space-between", gap: 7 }}>
+											<Body
+												style={{
+													fontSize: compact ? 10 : 11,
+													flexShrink: 1,
+												}}
+											>
+												{stat.label}
+											</Body>
+											<Icon name={stat.icon} size={19} color={stat.color} />
+										</Row>
+										<Label
+											style={{
+												fontSize: 32,
+												lineHeight: 38,
+												fontFamily: theme.font,
+											}}
+										>
+											{stat.count}
+										</Label>
+										<Body style={{ fontSize: 9, lineHeight: 14 }}>
+											{stat.note}
+										</Body>
+									</StatCard>
+								))}
+							</Row>
+							{store.error && (
+								<ErrorBox role="alert">
+									<span>{store.error}</span>
+									<WebLink
+										as="button"
+										type="button"
+										onClick={() => void store.load()}
+									>
+										טעינה מחדש
+									</WebLink>
+									<IconButton
+										aria-label="סגירת הודעת שגיאה"
+										onClick={() => store.setError(null)}
+									>
+										<Icon name="close" size={15} />
+									</IconButton>
+								</ErrorBox>
+							)}
+							<Panel>
+								<Row
+									style={{
+										justifyContent: "space-between",
+										padding: compact ? 18 : 24,
+										flexWrap: "wrap",
+									}}
+								>
+									<View style={{ gap: 5 }}>
+										<Label style={{ fontSize: 16 }}>
+											{store.viewName}{" "}
+											<Label style={{ fontSize: 12, color: theme.muted }}>
+												{store.view === "history"
+													? store.history.length
+													: store.visibleItems.length}
+											</Label>
+										</Label>
+										<Body style={{ fontSize: 10 }}>
+											{store.updatedAt
+												? `${store.production ? "נשמר באתר" : "נשמר מקומית"} · ${new Date(store.updatedAt).toLocaleString("he-IL")}`
+												: "עותק של הספרייה · מוכן לעריכה מקומית"}
+										</Body>
+									</View>
+									<Row style={{ gap: 6 }}>
+										<Button
+											$secondary
+											disabled={store.loading}
+											accessibilityRole="button"
+											onPress={onImport}
+											style={{ paddingHorizontal: 9, borderWidth: 0 }}
+										>
+											<Icon name="upload" size={15} />
+											<ButtonText $secondary>ייבוא קטלוג</ButtonText>
+										</Button>
+										<WebLink
+											href={apiUrl("/api/export")}
+											download="catalog.json"
+										>
+											<Icon name="download" size={15} />
+											ייצוא
+										</WebLink>
+									</Row>
+								</Row>
+								{store.view !== "history" && (
+									<>
+										<Row
+											style={{
+												gap: 10,
+												flexWrap: "wrap",
+												paddingHorizontal: compact ? 18 : 24,
+												paddingBottom: 18,
+											}}
+										>
+											<Row
+												style={{
+													flex: 1,
+													minWidth: compact ? 200 : 160,
+													backgroundColor: "#fbfcfb",
+													borderWidth: 1,
+													borderColor: theme.border,
+													paddingHorizontal: 10,
+													borderRadius: 6,
+												}}
+											>
+												<Icon name="search" size={16} />
+												<Search
+													ref={searchRef}
+													accessibilityLabel="חיפוש תכנים"
+													placeholder="חיפוש לפי שם, נושא או פרק…"
+													placeholderTextColor={theme.muted}
+													value={store.query}
+													onChangeText={store.setQuery}
+												/>
+											</Row>
+											<Select
+												aria-label="קטגוריה"
+												value={store.category}
+												onChange={(event) =>
+													store.setCategory(event.target.value)
+												}
+											>
+												{store.categories.map((category) => (
+													<option key={category} value={category}>
+														{category === "הכול"
+															? "כל הקטגוריות"
+															: category}
+													</option>
+												))}
+											</Select>
+											<Select
+												aria-label="פורמט"
+												value={store.filter}
+												onChange={(event) =>
+													store.setFilter(
+														event.target.value as MediaFilter,
+													)
+												}
+											>
+												<option value="all">כל הפורמטים</option>
+												<option value="deck">מצגות</option>
+												<option value="video">סרטונים</option>
+											</Select>
+											<Row style={{ gap: 0, marginStart: "auto" }}>
+												<IconButton
+													aria-label="תצוגת רשימה"
+													aria-pressed={store.layout === "table"}
+													$selected={store.layout === "table"}
+													onClick={() => store.setLayout("table")}
+												>
+													<Icon name="list" size={16} />
+												</IconButton>
+												<IconButton
+													aria-label="תצוגת כרטיסים"
+													aria-pressed={store.layout === "grid"}
+													$selected={store.layout === "grid"}
+													onClick={() => store.setLayout("grid")}
+												>
+													<Icon name="grid" size={16} />
+												</IconButton>
+											</Row>
+										</Row>
+										<Row
+											style={{
+												paddingHorizontal: compact ? 12 : 24,
+												justifyContent: "space-between",
+												flexWrap: "wrap",
+												borderBottomWidth: 1,
+												borderBottomColor: theme.border,
+												gap: 5,
+											}}
+										>
+											<Row style={{ gap: compact ? 2 : 9, flexWrap: "wrap" }}>
+												{[
+													{ id: "all", name: "הכול" },
+													...store.galleries,
+												].map(({ id: value, name }) => (
+													<Chip
+														key={value}
+														$selected={store.gallery === value}
+														accessibilityRole="button"
+														accessibilityState={{
+															selected: store.gallery === value,
+														}}
+														onPress={() => store.setGallery(value)}
+													>
+														<ChipText
+															$selected={store.gallery === value}
+														>
+															{name}
+														</ChipText>
+													</Chip>
+												))}
+											</Row>
+											<Select
+												aria-label="מיון"
+												value={store.sort}
+												onChange={(event) =>
+													store.setSort(event.target.value as CatalogSort)
+												}
+												style={{ border: 0, fontSize: 10 }}
+											>
+												<option value="original">סדר הקטלוג</option>
+												<option value="title">שם התוכן</option>
+												<option value="featured">מומלצים תחילה</option>
+											</Select>
+										</Row>
+										{!!store.selected.length && (
+											<Row
+												style={{
+													gap: 10,
+													flexWrap: "wrap",
+													padding: 14,
+													backgroundColor: theme.card,
+												}}
+											>
+												<Label style={{ fontSize: 11 }}>
+													{store.selected.length} תכנים נבחרו
+												</Label>
+												<Select
+													aria-label="העברת התכנים שנבחרו"
+													value={bulkGallery}
+													onChange={(event) =>
+														setBulkGallery(
+															event.target.value as Gallery | "",
+														)
+													}
+												>
+													<option value="">העברה לספרייה…</option>
+													{store.galleries.map(({ id, name }) => (
+														<option key={id} value={id}>
+															{name}
+														</option>
+													))}
+												</Select>
+												<Button
+													disabled={
+														!store.galleries.some(
+															(entry) => entry.id === bulkGallery,
+														) || store.saving
+													}
+													accessibilityRole="button"
+													onPress={async () => {
+														if (
+															bulkGallery &&
+															(await store.moveSelected(bulkGallery))
+														)
+															setBulkGallery("");
+													}}
+												>
+													<ButtonText>החלה</ButtonText>
+												</Button>
+												<Button
+													$secondary
+													accessibilityRole="button"
+													onPress={store.clearSelection}
+												>
+													<ButtonText $secondary>ביטול בחירה</ButtonText>
+												</Button>
+											</Row>
+										)}
+									</>
+								)}
+								{store.loading ? (
+									<View style={{ padding: 70, gap: 15 }}>
+										<ActivityIndicator
+											color={theme.primary}
+											accessibilityLabel="טוען את הקטלוג"
+										/>
+										<Body style={{ textAlign: "center" }}>
+											טוענים את התכנים שלכם…
+										</Body>
+									</View>
+								) : store.view === "history" ? (
+									<HistoryPanel store={store} />
+								) : (
+									<CatalogItems
+										store={store}
+										onEdit={onEdit}
+										columns={width < 850 ? 1 : width < 1200 ? 2 : 3}
+									/>
+								)}
+								{store.view !== "history" && (
+									<Row
+										style={{
+											borderTopWidth: 1,
+											borderTopColor: theme.border,
+											padding: 17,
+											justifyContent: "space-between",
+											flexWrap: "wrap",
+										}}
+									>
+										<Body style={{ fontSize: 10 }}>
+											מציגים {store.visibleItems.length} מתוך{" "}
+											{store.items.length} תכנים
+										</Body>
+										<Body style={{ fontSize: 10 }}>
+											•{" "}
+											{store.production
+												? "הקטלוג מחובר לאתר הספרייה"
+												: "הקטלוג נשמר במחשב הזה"}
+										</Body>
+									</Row>
+								)}
+							</Panel>
+							<Row style={{ gap: 9, alignItems: "flex-start" }}>
+								<Icon name="info" size={16} />
+								<Body style={{ flex: 1, fontSize: 11 }}>
 									{store.production
-										? "הקטלוג מחובר לאתר הספרייה"
-										: "הקטלוג נשמר במחשב הזה"}
+										? "שינויים נשמרים ישירות באתר הספרייה. גרסאות קודמות זמינות בהיסטוריית השינויים."
+										: "מרחב לעריכה מקומית. שינויים נשמרים כאן ואפשר לייצא אותם כקטלוג."}
 								</Body>
 							</Row>
-						)}
-					</Panel>
-					<Row style={{ gap: 9, alignItems: "flex-start" }}>
-						<Icon name="info" size={16} />
-						<Body style={{ flex: 1, fontSize: 11 }}>
-							{store.production
-								? "שינויים נשמרים ישירות באתר הספרייה. גרסאות קודמות זמינות בהיסטוריית השינויים."
-								: "מרחב לעריכה מקומית. שינויים נשמרים כאן ואפשר לייצא אותם כקטלוג."}
-						</Body>
-					</Row>
+						</>
+					)}
 					<Row
 						style={{
 							borderTopWidth: 1,

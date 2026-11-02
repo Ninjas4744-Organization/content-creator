@@ -9,6 +9,8 @@ import { EditorStore } from "../features/editor/EditorStore";
 import { EditorDialog } from "../features/editor/EditorDialog";
 import { ImportDialog } from "../features/import/ImportDialog";
 import { CreatorTools } from "../features/creator/CreatorTools";
+import { SourcesStore } from "../features/sources/SourcesStore";
+import { createBrowserSourcesRepository } from "../core/browserSourcesRepository";
 import { createBrowserRepository } from "../core/browserRepository";
 import { AdminScreen } from "../screens/AdminScreen";
 import { IconButton } from "../ui/browserControls";
@@ -34,6 +36,8 @@ const Toast = styled.div`
 export const AdminRoute = observer(function AdminRoute() {
 	const [store] = useState(() => new CatalogStore(createBrowserRepository()));
 	const [editor] = useState(() => new EditorStore());
+	const [sources] = useState(() => new SourcesStore(createBrowserSourcesRepository()));
+	const [sourcesOpen, setSourcesOpen] = useState(false);
 	const [importOpen, setImportOpen] = useState(false);
 	const [galleriesOpen, setGalleriesOpen] = useState(false);
 	const [creatorOpen, setCreatorOpen] = useState(false);
@@ -41,8 +45,11 @@ export const AdminRoute = observer(function AdminRoute() {
 	useEffect(() => {
 		setReady(true);
 		void store.load();
-		return store.dispose;
-	}, [store]);
+		return () => {
+			store.dispose();
+			sources.dispose();
+		};
+	}, [store, sources]);
 	useEffect(() => {
 		if (!store.message) return;
 		const timer = setTimeout(() => store.notify(null), 6500);
@@ -70,6 +77,9 @@ export const AdminRoute = observer(function AdminRoute() {
 			</Head>
 			<AdminScreen
 				store={store}
+				sources={sources}
+				sourcesOpen={sourcesOpen}
+				onSources={() => setSourcesOpen(true)}
 				onEdit={(item) => {
 					store.setError(null);
 					editor.edit(item);
@@ -82,7 +92,10 @@ export const AdminRoute = observer(function AdminRoute() {
 					store.setError(null);
 					setGalleriesOpen(true);
 				}}
-				onNavigate={store.setView}
+				onNavigate={(view) => {
+					setSourcesOpen(false);
+					store.setView(view);
+				}}
 				onCreatorTools={() => setCreatorOpen(true)}
 			/>
 			<EditorDialog editor={editor} catalog={store} />

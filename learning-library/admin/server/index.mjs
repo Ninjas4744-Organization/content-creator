@@ -4,6 +4,8 @@ import { dirname, resolve, extname, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import { createHash } from "node:crypto";
 import { CatalogStore, CatalogError, validateDocument, documentOf } from "./catalog.mjs";
+import { SourcesStore } from "./sources.mjs";
+import { sourceSnapshot, sourceHistory } from "./sources-domain.mjs";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const source = "https://knowledge.davinci4744.com/library/catalog.json";
@@ -84,6 +86,7 @@ export function createApp({
 		libraryOrigin ? [libraryOrigin, libraryOrigin.replace("localhost", "127.0.0.1")] : [],
 	);
 	const store = new CatalogStore(dataFile, seedFile);
+	const sources = new SourcesStore(resolve(dirname(dataFile), "sources.json"));
 	const json = (response, status, value, extra = {}) => {
 		response.writeHead(status, {
 			...headers,
@@ -133,6 +136,28 @@ export function createApp({
 			)
 				throw new CatalogError("מקור הבקשה אינו מורשה.", 403);
 
+			if (url.pathname === "/api/sources" && request.method === "GET")
+				return json(response, 200, sourceSnapshot(await sources.read(), "local"));
+			if (url.pathname === "/api/sources/history" && request.method === "GET")
+				return json(response, 200, { history: sourceHistory(await sources.read()) });
+			if (url.pathname === "/api/sources" && request.method === "POST")
+				return json(
+					response,
+					200,
+					sourceSnapshot(
+						await sources.change(request.headers["if-match"], await body(request)),
+						"local",
+					),
+				);
+			if (url.pathname === "/api/creator/source-library" && request.method === "GET") {
+				const state = await sources.read();
+				return json(response, 200, {
+					...state.document,
+					albums: state.document.albums.filter((album) => album.enabled),
+					revision: state.revision,
+					updatedAt: state.updatedAt,
+				});
+			}
 			if (
 				["/api/creator/kit", "/api/creator/kit-manifest"].includes(url.pathname) &&
 				request.method === "GET"

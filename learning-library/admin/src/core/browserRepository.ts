@@ -10,7 +10,7 @@ export function apiUrl(path: string): string {
 	return `${(process.env.EXPO_PUBLIC_API_URL || "").replace(/\/$/, "")}${path}`;
 }
 
-export function createBrowserRepository(): CatalogRepository {
+export function createApiClient() {
 	const controllers = new Set<AbortController>();
 	async function request<T>(
 		path: string,
@@ -41,6 +41,17 @@ export function createBrowserRepository(): CatalogRepository {
 		}
 	}
 	return {
+		request,
+		dispose() {
+			controllers.forEach((controller) => controller.abort());
+			controllers.clear();
+		},
+	};
+}
+
+export function createBrowserRepository(): CatalogRepository {
+	const { request, dispose } = createApiClient();
+	return {
 		load: () => request<CatalogSnapshot>("/api/catalog"),
 		save: (items, revision, action) =>
 			request<CatalogSnapshot>("/api/catalog", "PUT", { items, action }, revision),
@@ -52,9 +63,6 @@ export function createBrowserRepository(): CatalogRepository {
 		restore: (id, revision) =>
 			request<CatalogSnapshot>("/api/restore", "POST", { id }, revision),
 		source: async () => (await request<{ catalog: CatalogDocument }>("/api/source")).catalog,
-		dispose() {
-			controllers.forEach((controller) => controller.abort());
-			controllers.clear();
-		},
+		dispose,
 	};
 }

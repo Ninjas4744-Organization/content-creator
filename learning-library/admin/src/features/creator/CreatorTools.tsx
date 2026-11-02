@@ -61,6 +61,14 @@ export function CreatorTools({ production, onClose }: { production: boolean; onC
 						</Body>
 					</View>
 					<View style={{ gap: 7 }}>
+						<Label>יוצרים מתוך המקורות שלכם</Label>
+						<Body>
+							באזור ״מקורות״ אפשר לנהל אלבומי תמונות ולהוסיף הקשר ותגיות. סקילי המצגות
+							והסרטונים טוענים את המקורות הפעילים מהאתר ובוחרים תמונות בהתאם לנושא
+							ולקהל היעד. אפשר להעתיק בקשת יצירה מכרטיס אלבום.
+						</Body>
+					</View>
+					<View style={{ gap: 7 }}>
 						<Label>מעדכנים בלי להוריד הכול ידנית</Label>
 						<Body>
 							בקשו מהסוכן להשתמש בסקיל $davinci-update. הוא יעדכן את הסקילים והכלים

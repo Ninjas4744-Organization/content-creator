@@ -15,6 +15,7 @@ import sys
 import tempfile
 from urllib.error import HTTPError
 from urllib.request import HTTPRedirectHandler, Request, build_opener
+from urllib.parse import urlsplit
 from uuid import uuid4
 from zipfile import ZipFile
 from creator_auth import credentials, disconnect, forget, USER_AGENT
@@ -77,6 +78,32 @@ def save_json(path, data):
 def file_hashes(path):
     with path.open("rb") as stream:
         return [hashlib.sha256(chunk).hexdigest() for chunk in iter(lambda: stream.read(CHUNK), b"")]
+
+
+def sources(api, out):
+    """Fetch current active source metadata without modifying bundled assets or project files."""
+    current = api.request("/creator/source-library")
+    albums = current.get("albums")
+    if current.get("version") != 1 or not isinstance(albums, list) or len(albums) > 100:
+        raise ValueError("Invalid source library; local files are unchanged")
+    seen = set()
+    for album in albums:
+        if not isinstance(album, dict) or not isinstance(album.get("id"), str) or not re.fullmatch(r"[a-z0-9][a-z0-9-]{0,119}", album["id"]) or album["id"] in seen:
+            raise ValueError("Invalid source album; local files are unchanged")
+        seen.add(album["id"])
+        url = album.get("url")
+        if not isinstance(url, str) or re.search(r"[\s\\]", url):
+            raise ValueError("Invalid source URL; local files are unchanged")
+        parts = urlsplit(url)
+        if parts.scheme != "https" or parts.username or parts.password or parts.port not in (None, 443) or parts.fragment or not (
+            parts.hostname == "photos.app.goo.gl" and re.fullmatch(r"/[A-Za-z0-9_-]+/?", parts.path) or
+            parts.hostname == "photos.google.com" and re.fullmatch(r"/share/[A-Za-z0-9_-]+/?", parts.path)
+        ):
+            raise ValueError("Invalid source URL; local files are unchanged")
+        if album.get("enabled") is not True or not isinstance(album.get("title"), str) or not isinstance(album.get("context"), str) or not isinstance(album.get("tags"), list) or any(not isinstance(tag, str) for tag in album["tags"]):
+            raise ValueError("Invalid source metadata; local files are unchanged")
+    save_json(out, current)
+    return {"sources": str(out), "revision": current.get("revision"), "albums": albums}
 
 
 def safe_relative(name):
@@ -266,6 +293,8 @@ def main():
     commands.add_parser("disconnect")
     catalog = commands.add_parser("catalog")
     catalog.add_argument("--out", type=Path, default=ROOT / "outputs/current-catalog.json")
+    library = commands.add_parser("sources", help="Load active photo albums and their context from the site")
+    library.add_argument("--out", type=Path, default=ROOT / "outputs/current-sources.json")
     publication = commands.add_parser("publish")
     publication.add_argument("project")
     publication.add_argument("--gallery")
@@ -287,6 +316,8 @@ def main():
         current = api.request("/catalog")
         save_json(args.out, {k: v for k, v in current.items() if k not in {"revision", "updatedAt", "mode"}})
         result = {"catalog": str(args.out), "galleries": current["galleries"]}
+    elif args.command == "sources":
+        result = sources(api, args.out)
     elif args.command == "publish":
         result = publish(api, args.project, args.gallery, args.video)
     elif args.command == "resume":

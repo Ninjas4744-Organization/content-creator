@@ -348,3 +348,41 @@ test("public source accepts new documents and normalizes legacy arrays", async (
 	const older = await app(t, { fetchCatalog: async () => catalog.items });
 	assert.deepEqual((await (await older.get("/api/source")).json()).catalog.items, catalog.items);
 });
+
+test("source API shares active albums with creators and enforces origin, validation, revisions and recovery", async (t) => {
+	const { origin, get } = await app(t);
+	const before = await (await get("/api/sources")).json();
+	assert.equal(before.albums.length, 3);
+	const album = {
+		...before.albums[0],
+		context: "עבודת צוות בתחרות",
+		tags: ["צוות"],
+		enabled: false,
+	};
+	const change = (input, revision = "0", site = origin) =>
+		fetch(origin + "/api/sources", {
+			method: "POST",
+			headers: { Origin: site, "Content-Type": "application/json", "If-Match": revision },
+			body: JSON.stringify(input),
+		});
+	assert.equal((await change({ type: "update", album }, "0", "https://evil.test")).status, 403);
+	assert.equal((await change({ type: "update", album }, "")).status, 409);
+	assert.equal(
+		(await change({ type: "create", album: { ...album, url: "https://evil.test" } })).status,
+		400,
+	);
+	assert.equal((await change({ type: "update", album })).status, 200);
+	assert.equal((await change({ type: "delete", id: album.id })).status, 409);
+	const active = await (await get("/api/creator/source-library")).json();
+	assert.equal(active.albums.length, 2);
+	assert.ok(!active.albums.some((entry) => entry.id === album.id));
+	assert.equal(active.history, undefined);
+	const { history } = await (await get("/api/sources/history")).json();
+	assert.equal(history[0].document, undefined);
+	assert.equal((await change({ type: "restore", id: history[0].id }, "1")).status, 200);
+	assert.deepEqual((await (await get("/api/sources")).json()).albums, before.albums);
+	assert.equal((await get("/data/sources.json")).status, 404);
+	assert.equal((await get("/library/photo-albums.json")).status, 404);
+	assert.equal((await get("/api/export")).status, 200);
+	assert.equal((await (await get("/api/export")).json()).albums, undefined);
+});

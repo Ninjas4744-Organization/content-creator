@@ -347,7 +347,12 @@ test("agent credentials cannot manage galleries/catalog or approve agents, and a
 	const authorization = { Authorization: "Bearer " + auth };
 	for (const path of ["/admin/", "/admin/auth/account", "/admin/api/history"])
 		expect((await call(path, { headers: authorization })).status).toBe(403);
-	for (const path of ["/admin/api/catalog", "/admin/api/galleries", "/admin/auth/agent/approve"])
+	for (const path of [
+		"/admin/api/catalog",
+		"/admin/api/galleries",
+		"/admin/api/sources",
+		"/admin/auth/agent/approve",
+	])
 		expect(
 			(
 				await call(path, {
@@ -356,6 +361,12 @@ test("agent credentials cannot manage galleries/catalog or approve agents, and a
 				})
 			).status,
 		).toBe(403);
+	expect(
+		(await call("/admin/api/creator/source-library", { headers: authorization })).status,
+	).toBe(200);
+	expect((await call("/admin/api/creator/source-library", json({}, authorization))).status).toBe(
+		405,
+	);
 	const account = await call("/admin/auth/account", { headers: { Cookie: browser } });
 	const html = await account.text();
 	expect(html).not.toContain(auth);

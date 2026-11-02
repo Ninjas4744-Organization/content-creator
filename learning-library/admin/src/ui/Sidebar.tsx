@@ -49,12 +49,16 @@ export const Sidebar = observer(function Sidebar({
 	onManage,
 	onCreatorTools,
 	onNavigate,
+	sourcesOpen,
+	onSources,
 }: {
 	view: AdminView;
 	count: number;
 	compact: boolean;
 	galleries: GalleryDefinition[];
 	busy: boolean;
+	sourcesOpen: boolean;
+	onSources(): void;
 	onManage(): void;
 	onCreatorTools(): void;
 	onNavigate(view: AdminView): void;
@@ -140,9 +144,9 @@ export const Sidebar = observer(function Sidebar({
 									</>
 								)}
 								<NavItem
-									$selected={view === key}
+									$selected={!sourcesOpen && view === key}
 									accessibilityRole="button"
-									accessibilityState={{ selected: view === key }}
+									accessibilityState={{ selected: !sourcesOpen && view === key }}
 									onPress={() => {
 										onNavigate(key);
 										setExpanded(false);
@@ -151,12 +155,15 @@ export const Sidebar = observer(function Sidebar({
 									<Icon
 										name={icon}
 										size={18}
-										color={view === key ? "#edf4f5" : "#99afb9"}
+										color={!sourcesOpen && view === key ? "#edf4f5" : "#99afb9"}
 									/>
 									<Body
 										style={{
 											fontSize: 12,
-											color: view === key ? "#f4f8f8" : "#aabfc8",
+											color:
+												!sourcesOpen && view === key
+													? "#f4f8f8"
+													: "#aabfc8",
 											flex: 1,
 										}}
 									>
@@ -170,6 +177,26 @@ export const Sidebar = observer(function Sidebar({
 								</NavItem>
 							</View>
 						))}
+						<NavItem
+							$selected={sourcesOpen}
+							accessibilityRole="button"
+							accessibilityState={{ selected: sourcesOpen }}
+							onPress={() => {
+								onSources();
+								setExpanded(false);
+							}}
+						>
+							<Icon
+								name="image"
+								size={18}
+								color={sourcesOpen ? "#edf4f5" : "#99afb9"}
+							/>
+							<Body
+								style={{ fontSize: 12, color: sourcesOpen ? "#f4f8f8" : "#aabfc8" }}
+							>
+								מקורות
+							</Body>
+						</NavItem>
 					</View>
 				)}
 				{!compact && (

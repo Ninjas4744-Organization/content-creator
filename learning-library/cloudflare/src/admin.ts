@@ -1,4 +1,5 @@
 import { adminAuthRoutes, authenticateSiteAdmin, loginRedirect, ssoEnabled } from "./admin-sso";
+import { sourcesApi } from "../../admin/worker/sources";
 import { creatorApi } from "../../admin/worker/creator";
 import { CatalogDomain, CatalogError, documentOf } from "../../admin/server/catalog-domain.mjs";
 import { authenticateAdmin } from "./admin-access";
@@ -61,6 +62,8 @@ export async function adminApi(request: Request, env: Env, email: string): Promi
 	)
 		throw new CatalogError("מקור הבקשה אינו מורשה.", 403);
 	const store = new CatalogDomain(new R2CatalogStorage(env.CONTENT, email));
+	if (["/api/sources", "/api/sources/history", "/api/creator/source-library"].includes(path))
+		return sourcesApi(request, env, email);
 	if (path.startsWith("/api/creator/"))
 		return creatorApi(request, env, email, new R2CatalogStorage(env.CONTENT, email));
 	const revision = request.headers.get("If-Match") ?? undefined;

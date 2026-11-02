@@ -111,6 +111,44 @@ class CreatorKitTests(unittest.TestCase):
                 agent.update(Api())
             install.assert_not_called()
 
+    def test_sources_refresh_new_album_context_without_changing_managed_files(self):
+        current = {"version": 1, "revision": "latest", "albums": [{"id": "new-team-album", "title": "תמונות חדשות", "url": "https://photos.google.com/share/abc?key=shared", "context": "בניית רובוט", "tags": ["צוות"], "enabled": True}]}
+        class Api:
+            def request(self, path):
+                self.path = path
+                return current
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            agent.install_update(self.data, root)
+            registry = root / "assets/photo-albums.json"
+            before = registry.read_bytes()
+            api = Api()
+            out = root / "outputs/current-sources.json"
+            result = agent.sources(api, out)
+            self.assertEqual(api.path, "/creator/source-library")
+            self.assertEqual(json.loads(out.read_text()), current)
+            self.assertEqual(result["albums"][0]["context"], "בניית רובוט")
+            self.assertEqual(registry.read_bytes(), before)
+            self.assertEqual(agent.install_update(self.data, root), json.loads((root / "creator-kit-files.json").read_text())["version"])
+            current["albums"] = []
+            agent.sources(api, out)
+            self.assertEqual(json.loads(out.read_text())["albums"], [])
+
+    def test_invalid_or_unavailable_sources_preserve_previous_snapshot(self):
+        class Api:
+            def request(self, path):
+                return {"version": 1, "albums": [{"id": "bad", "url": "https://evil.example/album", "title": "x", "context": "", "tags": [], "enabled": True}]}
+        with tempfile.TemporaryDirectory() as folder:
+            out = Path(folder) / "sources.json"
+            out.write_bytes(b"previous")
+            with self.assertRaisesRegex(ValueError, "URL"):
+                agent.sources(Api(), out)
+            self.assertEqual(out.read_bytes(), b"previous")
+            with patch.object(Api, "request", side_effect=ValueError("offline")):
+                with self.assertRaisesRegex(ValueError, "offline"):
+                    agent.sources(Api(), out)
+            self.assertEqual(out.read_bytes(), b"previous")
+
     def test_resume_recovers_partial_upload_and_verifies_publication(self):
         class Api:
             def __init__(self):

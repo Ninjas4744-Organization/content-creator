@@ -1,5 +1,5 @@
-import { ModalDialog, DialogFooter } from "./ModalDialog";
-import { FormButton } from "./browserControls";
+import { ModalDialog, DialogBody, DialogFooter } from "./ModalDialog";
+import { FormButton, FormError } from "./browserControls";
 
 export function ConfirmDialog({
 	open,
@@ -7,6 +7,7 @@ export function ConfirmDialog({
 	description,
 	label,
 	busy = false,
+	error,
 	onClose,
 	onConfirm,
 }: {
@@ -15,11 +16,17 @@ export function ConfirmDialog({
 	description: string;
 	label: string;
 	busy?: boolean;
+	error?: string | null;
 	onClose(): void;
 	onConfirm(): void;
 }) {
 	return (
 		<ModalDialog open={open} title={title} description={description} onClose={onClose}>
+			{error && (
+				<DialogBody>
+					<FormError role="alert">{error}</FormError>
+				</DialogBody>
+			)}
 			<DialogFooter>
 				<FormButton disabled={busy} onClick={onClose}>
 					ביטול

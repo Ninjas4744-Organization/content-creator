@@ -23,6 +23,8 @@ const paths = {
 	check: "m5 12 4 4L19 6",
 	trash: "M3 6h18 M9 6V3h6v3 M5 6l1 15h12l1-15 M10 10v7 M14 10v7",
 	edit: "m16 3 5 5 M3 21l5-1L21 7a3.5 3.5 0 0 0-5-5L3 15Z",
+	image: "M3 3h18v18H3z M3 16l6-6 7 11 M13 17l3-4 5 6 M17 7h.01",
+	refresh: "M20 7v5h-5 M4 17v-5h5 M5 8a8 8 0 0 1 13-3l2 7 M4 12l2 7a8 8 0 0 0 13-3",
 };
 export type IconName = keyof typeof paths;
 export function Icon({
