@@ -82,10 +82,10 @@ export const Sidebar = observer(function Sidebar({
 						source={{ uri: "/library/brand/logo.png" }}
 						style={{ width: 37, height: 44 }}
 						resizeMode="contain"
-						accessibilityLabel="סמל דה וינצ׳י"
+						accessibilityLabel="סמל Da Vinci"
 					/>
 					<View style={{ flex: 1, gap: 4 }}>
-						<Label style={{ fontSize: 17, color: "#f1f5f5" }}>דה וינצ׳י 4744</Label>
+						<Label style={{ fontSize: 17, color: "#f1f5f5" }}>Da Vinci 4744</Label>
 						<Body style={{ fontSize: 10, lineHeight: 16, color: "#81959f" }}>
 							סביבת ניהול התוכן
 						</Body>

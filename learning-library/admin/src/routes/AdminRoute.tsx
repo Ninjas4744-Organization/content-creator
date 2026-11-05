@@ -61,7 +61,7 @@ export const AdminRoute = observer(function AdminRoute() {
 		return (
 			<>
 				<Head>
-					<title>ניהול הספרייה · דה וינצ׳י 4744</title>
+					<title>ניהול הספרייה · Da Vinci 4744</title>
 					<meta name="robots" content="noindex,nofollow" />
 				</Head>
 				<View style={{ padding: 40 }}>
@@ -72,7 +72,7 @@ export const AdminRoute = observer(function AdminRoute() {
 	return (
 		<>
 			<Head>
-				<title>ניהול הספרייה · דה וינצ׳י 4744</title>
+				<title>ניהול הספרייה · Da Vinci 4744</title>
 				<meta name="robots" content="noindex,nofollow" />
 			</Head>
 			<AdminScreen

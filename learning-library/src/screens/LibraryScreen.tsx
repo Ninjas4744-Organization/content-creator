@@ -186,14 +186,14 @@ export const LibraryScreen = observer(function LibraryScreen({
 							<BrandMark>
 								<Image
 									source={{ uri: "library/brand/logo.png" }}
-									accessibilityLabel="סמל דה וינצ׳י"
+									accessibilityLabel="סמל Da Vinci"
 									style={{ width: 32, height: 32 }}
 									resizeMode="contain"
 								/>
 							</BrandMark>
 							<View style={{ gap: 2 }}>
 								<Label style={{ fontSize: 17 }}>
-									דה וינצ׳י{" "}
+									Da Vinci{" "}
 									<Label style={{ color: theme.accent, fontSize: 17 }}>
 										4744
 									</Label>

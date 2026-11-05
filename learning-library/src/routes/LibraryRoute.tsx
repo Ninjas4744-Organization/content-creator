@@ -36,7 +36,7 @@ export const LibraryRoute = observer(function LibraryRoute() {
 	return (
 		<>
 			<Head>
-				<title>{details.title} · דה וינצ׳י 4744</title>
+				<title>{details.title} · Da Vinci 4744</title>
 				{store.gallery !== "public" && <meta name="robots" content="noindex,nofollow" />}
 			</Head>
 			<LibraryScreen

@@ -14,7 +14,7 @@ export default function RootHtml({ children }: PropsWithChildren) {
 				<meta name="theme-color" content={theme.background} />
 				<meta
 					name="description"
-					content="ספריית הלמידה של דה וינצ׳י 4744 — מצגות וסרטונים אינטראקטיביים לקהילת FIRST."
+					content="ספריית הלמידה של Da Vinci 4744 — מצגות וסרטונים אינטראקטיביים לקהילת FIRST."
 				/>
 				<ScrollViewStyleReset />
 			</head>
