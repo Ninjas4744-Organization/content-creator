@@ -27,7 +27,7 @@ const Title = styled.Text`
 const Tag = styled.Text`
 	font-family: ${({ theme }) => theme.font};
 	font-size: 12px;
-	color: ${({ theme }) => theme.blue};
+	color: ${({ theme }) => theme.accent};
 	text-align: right;
 `;
 

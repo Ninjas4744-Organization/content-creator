@@ -68,7 +68,7 @@ export function ExportDialog({
 											<Icon
 												name={icon}
 												size={17}
-												color={kind === value ? theme.blue : theme.muted}
+												color={kind === value ? theme.accent : theme.muted}
 											/>
 											<ChipText $selected={kind === value}>{label}</ChipText>
 										</Row>
@@ -84,7 +84,7 @@ export function ExportDialog({
 						<Body style={{ fontSize: 13, lineHeight: 22 }}>
 							קובץ ZIP להתקנה במערכת הלמידה, עם שאלון סיום ושמירת התקדמות.
 						</Body>
-						<Body style={{ fontSize: 12, lineHeight: 18, color: theme.blue }}>
+						<Body style={{ fontSize: 12, lineHeight: 18, color: theme.accent }}>
 							SCORM 1.2 · ציון מעבר 80
 						</Body>
 						{archive ? (

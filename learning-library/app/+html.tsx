@@ -1,5 +1,6 @@
 import { ScrollViewStyleReset } from "expo-router/html";
 import type { PropsWithChildren } from "react";
+import { theme } from "../src/ui/theme";
 
 const basePath = `${(process.env.EXPO_BASE_URL || "").replace(/\/$/, "")}/`;
 
@@ -10,7 +11,7 @@ export default function RootHtml({ children }: PropsWithChildren) {
 				<meta charSet="utf-8" />
 				<base href={basePath} />
 				<meta name="viewport" content="width=device-width, initial-scale=1" />
-				<meta name="theme-color" content="#081525" />
+				<meta name="theme-color" content={theme.background} />
 				<meta
 					name="description"
 					content="ספריית הלמידה של דה וינצ׳י 4744 — מצגות וסרטונים אינטראקטיביים לקהילת FIRST."

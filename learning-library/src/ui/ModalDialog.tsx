@@ -12,12 +12,12 @@ const Dialog = styled.dialog`
 	border-radius: 22px;
 	background: ${({ theme }) => theme.surface};
 	color: ${({ theme }) => theme.text};
-	box-shadow: 0 28px 100px #0008;
+	box-shadow: 0 28px 100px ${({ theme }) => theme.text}40;
 	overscroll-behavior: contain;
 	scrollbar-width: thin;
 	scrollbar-color: ${({ theme }) => theme.border} transparent;
 	&::backdrop {
-		background: #030b16b8;
+		background: ${({ theme }) => theme.text}99;
 		backdrop-filter: blur(7px);
 	}
 	&[open] {

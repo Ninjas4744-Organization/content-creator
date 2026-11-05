@@ -9,7 +9,7 @@ module.exports = {
 		slug: "davinci-learning-library",
 		version: "1.0.0",
 		platforms: ["web"],
-		userInterfaceStyle: "dark",
+		userInterfaceStyle: "light",
 		web: { bundler: "metro", output: "static", favicon: "../assets/brand/logo.png" },
 		plugins: [["expo-router", { sitemap: false }]],
 		experiments: { ...(baseUrl ? { baseUrl } : {}) },

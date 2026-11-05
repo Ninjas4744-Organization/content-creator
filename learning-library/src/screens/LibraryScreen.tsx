@@ -24,19 +24,27 @@ import { ExportDialog } from "../features/export/ExportDialog";
 const Header = styled.View`
 	border-bottom-width: 1px;
 	border-bottom-color: ${({ theme }) => theme.border};
-	padding-vertical: 22px;
+	background-color: ${({ theme }) => theme.surface};
+	padding-vertical: 16px;
+`;
+const BrandMark = styled.View`
+	width: 44px;
+	height: 44px;
+	align-items: center;
+	justify-content: center;
+	border-radius: 8px;
+	background-color: ${({ theme }) => theme.brand};
 `;
 const Eyebrow = styled.Text`
-	font-family: ${({ theme }) => theme.font};
+	font-family: ${({ theme }) => theme.bold};
 	font-size: 12px;
-	letter-spacing: 1px;
-	color: ${({ theme }) => theme.primary};
+	color: ${({ theme }) => theme.accent};
 	text-align: right;
 `;
 const HeroTitle = styled.Text<{ $compact: boolean }>`
 	font-family: ${({ theme }) => theme.bold};
-	font-size: ${({ $compact }) => ($compact ? 44 : 68)}px;
-	line-height: ${({ $compact }) => ($compact ? 57 : 85)}px;
+	font-size: ${({ $compact }) => ($compact ? 38 : 68)}px;
+	line-height: ${({ $compact }) => ($compact ? 47 : 78)}px;
 	color: ${({ theme }) => theme.text};
 	text-align: right;
 `;
@@ -46,7 +54,7 @@ const SearchBox = styled.View`
 	gap: 12px;
 	border-radius: 9px;
 	border-width: 1px;
-	border-color: ${({ theme }) => theme.border};
+	border-color: ${({ theme }) => theme.controlBorder};
 	padding-horizontal: 16px;
 	background-color: ${({ theme }) => theme.surface};
 `;
@@ -57,6 +65,7 @@ const Search = styled.TextInput`
 	text-align: right;
 	height: 50px;
 	flex: 1;
+	min-width: 0;
 `;
 const Rule = styled.View`
 	height: 1px;
@@ -174,16 +183,18 @@ export const LibraryScreen = observer(function LibraryScreen({
 				<Container $compact={compact}>
 					<Row style={{ justifyContent: "space-between", flexWrap: "wrap" }}>
 						<Row style={{ gap: 13 }}>
-							<Image
-								source={{ uri: "library/brand/logo.png" }}
-								accessibilityLabel="סמל דה וינצ׳י"
-								style={{ width: 41, height: 47 }}
-								resizeMode="contain"
-							/>
+							<BrandMark>
+								<Image
+									source={{ uri: "library/brand/logo.png" }}
+									accessibilityLabel="סמל דה וינצ׳י"
+									style={{ width: 32, height: 32 }}
+									resizeMode="contain"
+								/>
+							</BrandMark>
 							<View style={{ gap: 2 }}>
 								<Label style={{ fontSize: 17 }}>
 									דה וינצ׳י{" "}
-									<Label style={{ color: theme.primary, fontSize: 17 }}>
+									<Label style={{ color: theme.accent, fontSize: 17 }}>
 										4744
 									</Label>
 								</Label>
@@ -235,49 +246,53 @@ export const LibraryScreen = observer(function LibraryScreen({
 			) : (
 				<>
 					<Container $compact={compact}>
-						<View
-							style={{
-								paddingTop: compact ? 46 : 64,
-								paddingBottom: compact ? 36 : 50,
-								gap: 23,
-							}}
-						>
-							<Eyebrow>{details.eyebrow}</Eyebrow>
-							<HeroTitle $compact={compact} accessibilityRole="header">
-								{details.hero}
-							</HeroTitle>
-							<Body
-								style={{
-									maxWidth: 550,
-									fontSize: compact ? 16 : 18,
-									lineHeight: 30,
-								}}
-							>
-								{details.description}
-							</Body>
-							<Row style={{ gap: 24, paddingTop: 6, flexWrap: "wrap" }}>
-								<Row style={{ gap: 8 }}>
-									<Icon name="slides" size={17} color={theme.blue} />
-									<Body style={{ fontSize: 13 }}>{store.deckCount} מצגות</Body>
-								</Row>
-								<Row style={{ gap: 8 }}>
-									<Icon name="play" size={17} color={theme.blue} />
-									<Body style={{ fontSize: 13 }}>
-										{store.videoCount} סרטונים אינטראקטיביים
+						<section className="workshop-cover">
+							<View style={{ gap: 14 }}>
+								<Eyebrow>{details.eyebrow}</Eyebrow>
+								<HeroTitle $compact={compact} accessibilityRole="header">
+									{details.hero}
+								</HeroTitle>
+								<Body
+									style={{
+										maxWidth: 550,
+										fontSize: compact ? 16 : 18,
+										lineHeight: 30,
+									}}
+								>
+									{details.description}
+								</Body>
+								<Row
+									style={{
+										gap: compact ? 12 : 24,
+										paddingTop: 6,
+										flexWrap: "wrap",
+									}}
+								>
+									<Row style={{ gap: 8 }}>
+										<Icon name="slides" size={17} color={theme.accent} />
+										<Body style={{ fontSize: 13 }}>
+											{store.deckCount} מצגות
+										</Body>
+									</Row>
+									<Row style={{ gap: 8 }}>
+										<Icon name="play" size={17} color={theme.accent} />
+										<Body style={{ fontSize: 13 }}>
+											{store.videoCount} סרטונים אינטראקטיביים
+										</Body>
+									</Row>
+									<Body style={{ fontSize: 13, color: theme.success }}>
+										בעברית, מההתחלה ועד הסוף
 									</Body>
 								</Row>
-								<Body style={{ fontSize: 13, color: theme.success }}>
-									בעברית, מההתחלה ועד הסוף
-								</Body>
-							</Row>
-						</View>
+							</View>
+						</section>
 						{featured && (
 							<View
 								style={{
 									borderRadius: 14,
 									overflow: "hidden",
 									borderWidth: 1,
-									borderColor: theme.featuredBorder,
+									borderColor: theme.border,
 									flexDirection: compact ? "column" : "row",
 									backgroundColor: theme.featured,
 								}}
@@ -494,7 +509,7 @@ export const LibraryScreen = observer(function LibraryScreen({
 				>
 					<Image
 						source={{ uri: "library/brand/wordmark.png" }}
-						style={{ width: 115, height: 30 }}
+						style={{ width: 115, height: 30, tintColor: theme.text }}
 						resizeMode="contain"
 						accessibilityLabel="Da Vinci 4744"
 					/>

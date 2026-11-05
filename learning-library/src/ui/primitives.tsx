@@ -45,7 +45,7 @@ export const Button = styled.Pressable<{ $secondary?: boolean }>`
 	gap: 9px;
 	border-radius: 9px;
 	border-width: 1px;
-	border-color: ${({ theme, $secondary }) => ($secondary ? theme.border : theme.primary)};
+	border-color: ${({ theme, $secondary }) => ($secondary ? theme.controlBorder : theme.primary)};
 	background-color: ${({ theme, $secondary }) => ($secondary ? theme.surface : theme.primary)};
 `;
 export const ButtonText = styled.Text<{ $secondary?: boolean }>`
@@ -58,11 +58,11 @@ export const Chip = styled.Pressable<{ $selected?: boolean }>`
 	padding: 11px 16px;
 	border-radius: 8px;
 	border-width: 1px;
-	border-color: ${({ theme, $selected }) => ($selected ? theme.blue : theme.border)};
+	border-color: ${({ theme, $selected }) => ($selected ? theme.accent : theme.controlBorder)};
 	background-color: ${({ theme, $selected }) => ($selected ? theme.card : "transparent")};
 `;
 export const ChipText = styled.Text<{ $selected?: boolean }>`
-	font-family: ${({ theme }) => theme.font};
+	font-family: ${({ theme, $selected }) => ($selected ? theme.bold : theme.font)};
 	font-size: 13px;
 	color: ${({ theme, $selected }) => ($selected ? theme.text : theme.muted)};
 `;
