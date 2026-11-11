@@ -3,6 +3,7 @@ import styled, { useTheme } from "styled-components/native";
 import type { LearningItem, MediaKind } from "../../models/catalog";
 import { Body, Button, ButtonText, Label, Row } from "../../ui/primitives";
 import { Icon } from "../../ui/Icon";
+import { CompletionToggle, type LessonCompletion } from "./CourseProgress";
 
 const Card = styled.View`
 	overflow: hidden;
@@ -40,9 +41,13 @@ export function durationLabel(seconds: number | null) {
 export function LibraryCard({
 	item,
 	onOpen,
+	topics,
+	completion,
 }: {
 	item: LearningItem;
 	onOpen(id: string, kind: MediaKind): void;
+	topics?: readonly string[];
+	completion?: LessonCompletion;
 }) {
 	const theme = useTheme();
 	return (
@@ -53,17 +58,33 @@ export function LibraryCard({
 				resizeMode="cover"
 			/>
 			<View style={{ padding: 23, gap: 14, flex: 1 }}>
-				<Row style={{ justifyContent: "space-between" }}>
-					<Tag>{item.category}</Tag>
-					{item.video && (
-						<Row style={{ gap: 5 }}>
-							<Icon name="clock" size={14} />
-							<Tag>{durationLabel(item.duration)}</Tag>
-						</Row>
-					)}
-				</Row>
-				<Title accessibilityRole="header">{item.title}</Title>
+				{item.video && item.duration ? (
+					<Row style={{ gap: 5 }}>
+						<Icon name="clock" size={14} />
+						<Tag>{durationLabel(item.duration)}</Tag>
+					</Row>
+				) : null}
+				<Title accessibilityRole="header" aria-level={3}>
+					{item.title}
+				</Title>
 				<Body style={{ fontSize: 14, lineHeight: 24, flex: 1 }}>{item.description}</Body>
+				{topics && topics.length > 0 && (
+					<Row style={{ flexWrap: "wrap", gap: 6 }}>
+						{topics.map((topic) => (
+							<Tag
+								key={topic}
+								style={{
+									paddingVertical: 3,
+									paddingHorizontal: 8,
+									borderRadius: 5,
+									backgroundColor: theme.card,
+								}}
+							>
+								{topic}
+							</Tag>
+						))}
+					</Row>
+				)}
 				<Row style={{ gap: 16, flexWrap: "wrap", marginTop: 2 }}>
 					{item.deck && (
 						<Row style={{ gap: 6 }}>
@@ -103,6 +124,7 @@ export function LibraryCard({
 						</Button>
 					)}
 				</Row>
+				{completion && <CompletionToggle title={item.title} {...completion} />}
 			</View>
 		</Card>
 	);

@@ -15,6 +15,7 @@ export const LibraryRoute = observer(function LibraryRoute() {
 		item?: string;
 		view?: string;
 		gallery?: string;
+		section?: string;
 	}>();
 	const address = new URL(
 		typeof window === "undefined"
@@ -26,6 +27,8 @@ export const LibraryRoute = observer(function LibraryRoute() {
 	const selector = address.href;
 	const store = useMemo(() => new CatalogStore(createBrowserRepository(), selector), [selector]);
 	const details = galleryDetails(store.galleryDefinition);
+	const courseDirectory =
+		pathname === "/" && !params.gallery && !params.item && params.section === "course";
 	const router = useRouter();
 	useEffect(() => {
 		void store.load();
@@ -36,11 +39,12 @@ export const LibraryRoute = observer(function LibraryRoute() {
 	return (
 		<>
 			<Head>
-				<title>{details.title} · Da Vinci 4744</title>
+				<title>{courseDirectory ? "קורסים" : details.title} · Da Vinci 4744</title>
 				{store.gallery !== "public" && <meta name="robots" content="noindex,nofollow" />}
 			</Head>
 			<LibraryScreen
 				store={store}
+				courseDirectory={courseDirectory}
 				selectedId={params.item}
 				selectedKind={params.view === "video" ? "video" : "deck"}
 				onOpen={open}

@@ -180,10 +180,13 @@ def prepare(project_ids=None, catalog_file=None):
             archive.replace(exports / "video.zip")
             scorm["video"] = f"library/exports/{project_id}/video.zip"
         shutil.rmtree(exports / "staging")
+        legacy_category = metadata.get("category")
+        legacy_topic = " ".join(legacy_category.split()) if isinstance(legacy_category, str) else ""
         catalog.append({
             "id": project_id, "title": metadata.get("title", doc["title"]),
             "description": metadata.get("description", doc["scenes"][0].get("subtitle", "מצגת מבית דה וינצ׳י 4744")),
-            "category": metadata.get("category", "עוד מהקבוצה"), "featured": metadata.get("featured", False),
+            "topics": metadata.get("topics", [legacy_topic] if legacy_topic else []),
+            "featured": metadata.get("featured", False),
             "unlisted": metadata.get("unlisted", False),
             "gallery": gallery,
             "poster": f"{prefix}/poster.jpg", "slides": len(doc["scenes"]), "duration": duration,

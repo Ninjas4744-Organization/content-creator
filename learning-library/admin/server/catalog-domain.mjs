@@ -72,6 +72,12 @@ export function validateGalleries(value) {
 			fail("מזהה הספרייה אינו תקין או כבר קיים.");
 		const name = galleryName(gallery.name);
 		if (galleryUrl(gallery.url) !== gallery.url) fail("קישור הספרייה אינו תקין.");
+		if (gallery.section !== undefined) {
+			if (gallery.section !== "team" && gallery.section !== "course")
+				fail("האזור שנבחר לספרייה אינו תקין.");
+			if (fixedGallery(gallery.id) || !gallery.url.startsWith("/"))
+				fail("אזורי הצוותים והקורסים מיועדים לספריות שניתנות לעריכה עם נתיב באתר.");
+		}
 		if (name !== gallery.name || names.has(name.toLocaleLowerCase("he")))
 			fail("שם הספרייה כבר קיים או אינו תקין.");
 		ids.add(gallery.id);
@@ -106,19 +112,34 @@ export function validateCatalog(value, galleries = defaultGalleries) {
 		for (const [key, max, required] of [
 			["title", 300, true],
 			["description", 10000, false],
-			["category", 200, true],
 		]) {
 			if (
 				typeof item[key] !== "string" ||
 				item[key].length > max ||
 				(required && !item[key].trim())
 			)
-				fail("יש למלא כותרת וקטגוריה ולבדוק את אורך הטקסט.");
+				fail("יש למלא כותרת ולבדוק את אורך הכותרת והתיאור.");
 		}
 		for (const key of ["featured", "unlisted"]) {
 			if (item[key] !== undefined && typeof item[key] !== "boolean")
 				fail("ערך סימון אינו תקין.");
 		}
+		if (
+			item.topics !== undefined &&
+			(!Array.isArray(item.topics) ||
+				item.topics.length > 20 ||
+				item.topics.some(
+					(topic) =>
+						typeof topic !== "string" ||
+						!topic ||
+						topic !== topic.trim() ||
+						topic.length > 200 ||
+						/[\r\n]/.test(topic),
+				) ||
+				new Set(item.topics.map((topic) => topic.toLocaleLowerCase("he"))).size !==
+					item.topics.length)
+		)
+			fail("אפשר לשייך עד 20 תחומים שונים, באורך של עד 200 תווים לכל תחום.");
 		if (!galleryIds.has(galleryOf(item))) fail("בחירת הספרייה אינה תקינה.");
 		for (const key of ["slides", "checkpoints"]) {
 			if (!Number.isSafeInteger(item[key]) || item[key] < 0 || item[key] > 100000)
@@ -289,7 +310,9 @@ export class CatalogDomain {
 			if (input.type === "create") {
 				const name = galleryName(input.name);
 				const url = galleryUrl(input.url === undefined ? "/" : input.url);
-				galleries = [...galleries, { id: `gallery-${randomUUID()}`, name, url }];
+				const gallery = { id: `gallery-${randomUUID()}`, name, url };
+				if (input.section != null) gallery.section = input.section;
+				galleries = [...galleries, gallery];
 				action = `הוספת ספרייה: ${name}`;
 			} else {
 				if (!["update", "rename", "delete"].includes(input.type))
@@ -300,9 +323,12 @@ export class CatalogDomain {
 				if (input.type === "rename" || input.type === "update") {
 					const name = galleryName(input.name);
 					const url = input.type === "update" ? galleryUrl(input.url) : gallery.url;
-					galleries = galleries.map((entry) =>
-						entry.id === input.id ? { ...entry, name, url } : entry,
-					);
+					const updated = { ...gallery, name, url };
+					if (input.type === "update" && input.section !== undefined) {
+						if (input.section === null) delete updated.section;
+						else updated.section = input.section;
+					}
+					galleries = galleries.map((entry) => (entry.id === input.id ? updated : entry));
 					action =
 						input.type === "update"
 							? `עריכת ספרייה: ${name}`

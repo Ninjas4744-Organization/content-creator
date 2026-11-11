@@ -4,22 +4,22 @@ import type { TextInput } from "react-native";
 import { observer } from "mobx-react-lite";
 import styled, { useTheme } from "styled-components/native";
 import webStyled from "styled-components";
-import type { AdminView, CatalogSort, Gallery, LearningItem, MediaFilter } from "../models/catalog";
+import type {
+	AdminView,
+	CatalogSort,
+	Gallery,
+	GalleryDefinition,
+	GallerySection,
+	LearningItem,
+	MediaFilter,
+} from "../models/catalog";
 import type { CatalogStore } from "../features/catalog/CatalogStore";
 import { CatalogItems } from "../features/catalog/CatalogItems";
+import { GalleryTabs } from "../features/catalog/GalleryTabs";
+import { GalleryOptions } from "../features/catalog/GalleryOptions";
 import { HistoryPanel } from "../features/history/HistoryPanel";
 import { Sidebar } from "../ui/Sidebar";
-import {
-	Body,
-	Label,
-	Heading,
-	Button,
-	ButtonText,
-	Chip,
-	ChipText,
-	Page,
-	Row,
-} from "../ui/primitives";
+import { Body, Label, Heading, Button, ButtonText, Page, Row } from "../ui/primitives";
 import { Icon, type IconName } from "../ui/Icon";
 import { Select, IconButton, WebLink } from "../ui/browserControls";
 import { apiUrl } from "../core/browserRepository";
@@ -63,6 +63,7 @@ interface Props {
 	onEdit(item?: LearningItem): void;
 	onImport(): void;
 	onManageGalleries(): void;
+	onGalleryDialog(gallery?: GalleryDefinition, section?: GallerySection): void;
 	onCreatorTools(): void;
 	onNavigate(view: AdminView): void;
 }
@@ -74,6 +75,7 @@ export const AdminScreen = observer(function AdminScreen({
 	onEdit,
 	onImport,
 	onManageGalleries,
+	onGalleryDialog,
 	onCreatorTools,
 	onNavigate,
 }: Props) {
@@ -385,17 +387,19 @@ export const AdminScreen = observer(function AdminScreen({
 												/>
 											</Row>
 											<Select
-												aria-label="קטגוריה"
-												value={store.category}
+												aria-label="תחום"
+												value={store.topic}
 												onChange={(event) =>
-													store.setCategory(event.target.value)
+													store.setTopic(event.target.value)
 												}
 											>
-												{store.categories.map((category) => (
-													<option key={category} value={category}>
-														{category === "הכול"
-															? "כל הקטגוריות"
-															: category}
+												<option value="">כל התחומים</option>
+												{store.topics.map((topic) => (
+													<option
+														key={topic}
+														value={topic.toLocaleLowerCase("he")}
+													>
+														{topic}
 													</option>
 												))}
 											</Select>
@@ -441,28 +445,11 @@ export const AdminScreen = observer(function AdminScreen({
 												gap: 5,
 											}}
 										>
-											<Row style={{ gap: compact ? 2 : 9, flexWrap: "wrap" }}>
-												{[
-													{ id: "all", name: "הכול" },
-													...store.galleries,
-												].map(({ id: value, name }) => (
-													<Chip
-														key={value}
-														$selected={store.gallery === value}
-														accessibilityRole="button"
-														accessibilityState={{
-															selected: store.gallery === value,
-														}}
-														onPress={() => store.setGallery(value)}
-													>
-														<ChipText
-															$selected={store.gallery === value}
-														>
-															{name}
-														</ChipText>
-													</Chip>
-												))}
-											</Row>
+											<GalleryTabs
+												store={store}
+												compact={compact}
+												onOpenDialog={onGalleryDialog}
+											/>
 											<Select
 												aria-label="מיון"
 												value={store.sort}
@@ -498,11 +485,7 @@ export const AdminScreen = observer(function AdminScreen({
 													}
 												>
 													<option value="">העברה לספרייה…</option>
-													{store.galleries.map(({ id, name }) => (
-														<option key={id} value={id}>
-															{name}
-														</option>
-													))}
+													<GalleryOptions galleries={store.galleries} />
 												</Select>
 												<Button
 													disabled={

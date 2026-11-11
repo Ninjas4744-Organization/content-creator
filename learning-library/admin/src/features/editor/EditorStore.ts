@@ -1,12 +1,12 @@
 import { makeAutoObservable, observable } from "mobx";
-import { itemGallery } from "../../models/catalog";
+import { itemGallery, itemTopics } from "../../models/catalog";
 import type { Gallery, LearningItem } from "../../models/catalog";
 
 export interface EditorFields {
 	id: string;
 	title: string;
 	description: string;
-	category: string;
+	topics: string;
 	gallery: Gallery;
 	featured: boolean;
 	chapters: string;
@@ -20,12 +20,12 @@ export interface EditorFields {
 	scormDeck: string;
 	scormVideo: string;
 }
-function fields(item?: LearningItem): EditorFields {
+function fields(item?: LearningItem, topics: readonly string[] = []): EditorFields {
 	return {
 		id: item?.id ?? "",
 		title: item?.title ?? "",
 		description: item?.description ?? "",
-		category: item?.category ?? "",
+		topics: topics.join("\n"),
 		gallery: item ? itemGallery(item) : "none",
 		featured: item?.featured ?? false,
 		chapters: item?.chapters.join("\n") ?? "",
@@ -55,9 +55,9 @@ export class EditorStore {
 	get dirty() {
 		return this.open && this.initial !== JSON.stringify(this.draft);
 	}
-	edit(item?: LearningItem) {
+	edit(item?: LearningItem, topics = item ? itemTopics(item) : []) {
 		this.original = item ?? null;
-		this.draft = fields(item);
+		this.draft = fields(item, topics);
 		this.initial = JSON.stringify(this.draft);
 		this.open = true;
 	}
@@ -69,6 +69,12 @@ export class EditorStore {
 	}
 	toItem(): LearningItem {
 		const draft = this.draft;
+		const topics = new Map<string, string>();
+		for (const line of draft.topics.split("\n")) {
+			const topic = line.trim();
+			const key = topic.toLocaleLowerCase("he");
+			if (topic && !topics.has(key)) topics.set(key, topic);
+		}
 		const scorm: LearningItem["scorm"] = {};
 		if (draft.scormDeck.trim()) scorm.deck = draft.scormDeck.trim();
 		if (draft.scormVideo.trim()) scorm.video = draft.scormVideo.trim();
@@ -77,7 +83,7 @@ export class EditorStore {
 			id: draft.id.trim(),
 			title: draft.title.trim(),
 			description: draft.description.trim(),
-			category: draft.category.trim(),
+			topics: [...topics.values()],
 			gallery: draft.gallery,
 			unlisted: draft.gallery !== "public",
 			featured: draft.featured,

@@ -196,9 +196,7 @@ export const CatalogItems = observer(function CatalogItems({
 								/>
 								<TitleButton onClick={() => onEdit(item)}>{item.title}</TitleButton>
 							</Row>
-							<Body style={{ fontSize: 11 }}>
-								{item.category} · {item.slides} שקפים
-							</Body>
+							<Body style={{ fontSize: 11 }}>{item.slides} שקפים</Body>
 							<Row style={{ justifyContent: "space-between", flexWrap: "wrap" }}>
 								<Formats item={item} />
 								<Scope item={item} store={store} />
@@ -279,7 +277,7 @@ export const CatalogItems = observer(function CatalogItems({
 											{item.title}
 										</TitleButton>
 										<Body style={{ fontSize: 10, lineHeight: 17 }}>
-											{item.category} · {item.slides} שקפים
+											{item.slides} שקפים
 											{item.duration
 												? ` · ${Math.ceil(item.duration / 60)} דק׳`
 												: ""}

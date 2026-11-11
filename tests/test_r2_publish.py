@@ -80,9 +80,10 @@ class R2PublishTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as root:
             directory, item = self.package(root)
             storage = FakeStorage()
+            (directory / "catalog.json").write_text(json.dumps([{**item, "topics": ["Package topic"]}]))
             document = publisher.validate_catalog([item])
             document["galleries"].append({"id": "robotics", "name": "Robotics", "url": "/robotics", "custom": True})
-            document["items"][0].update({"title": "Edited in admin", "gallery": "robotics", "chapters": ["Edited chapter"], "custom": {"retained": True}})
+            document["items"][0].update({"title": "Edited in admin", "gallery": "robotics", "chapters": ["Edited chapter"], "category": "Legacy topic", "custom": {"retained": True}})
             document["customCatalogMetadata"] = {"retained": True}
             storage.objects[publisher.CATALOG] = json.dumps(document).encode()
             publisher.publish(directory, storage, "test-bucket")
@@ -93,6 +94,8 @@ class R2PublishTests(unittest.TestCase):
             self.assertEqual(result["items"][0]["gallery"], "robotics")
             self.assertEqual(result["items"][0]["chapters"], ["Edited chapter"])
             self.assertEqual(result["items"][0]["custom"], {"retained": True})
+            self.assertEqual(result["items"][0]["category"], "Legacy topic")
+            self.assertNotIn("topics", result["items"][0])
             self.assertIn("library/releases/", result["items"][0]["deck"])
 
     def test_initial_publication_creates_the_catalog(self):

@@ -1,5 +1,5 @@
 import { makeAutoObservable, observable, runInAction } from "mobx";
-import { isFixedGallery, itemGallery } from "../../models/catalog";
+import { isFixedGallery, itemGallery, itemTopics } from "../../models/catalog";
 import { viewNames } from "./galleries";
 import type {
 	AdminView,
@@ -25,7 +25,7 @@ export class CatalogStore {
 	updatedAt: string | null = null;
 	query = "";
 	filter: MediaFilter = "all";
-	category = "הכול";
+	topic = "";
 	gallery: "all" | Gallery = "all";
 	view: AdminView = "all";
 	sort: CatalogSort = "original";
@@ -74,10 +74,25 @@ export class CatalogStore {
 			? viewNames[this.view]!
 			: this.galleryName(this.view);
 	}
-	get categories() {
-		return ["הכול", ...new Set(this.items.map((item) => item.category))].sort((a, b) =>
-			a === "הכול" ? -1 : b === "הכול" ? 1 : a.localeCompare(b, "he"),
+	get formerTeams() {
+		return new Map(
+			this.galleries
+				.filter((gallery) => gallery.section === "team")
+				.map(({ id, name }) => [id, name]),
 		);
+	}
+	topicsFor(item: LearningItem) {
+		return itemTopics(item, this.formerTeams.get(itemGallery(item)));
+	}
+	get topics() {
+		const topics = new Map<string, string>();
+		for (const item of this.items) {
+			for (const topic of this.topicsFor(item)) {
+				const key = topic.toLocaleLowerCase("he");
+				if (!topics.has(key)) topics.set(key, topic);
+			}
+		}
+		return [...topics.values()].sort((a, b) => a.localeCompare(b, "he"));
 	}
 	get deckCount() {
 		return this.items.filter((item) => item.deck).length;
@@ -92,7 +107,8 @@ export class CatalogStore {
 		const words = this.query.trim().toLocaleLowerCase("he").split(/\s+/).filter(Boolean);
 		const items = this.items.filter((item) => {
 			const gallery = itemGallery(item);
-			const text = [item.title, item.description, item.category, item.id, ...item.chapters]
+			const topics = this.topicsFor(item).map((topic) => topic.toLocaleLowerCase("he"));
+			const text = [item.title, item.description, ...topics, item.id, ...item.chapters]
 				.join(" ")
 				.toLocaleLowerCase("he");
 			return (
@@ -101,7 +117,7 @@ export class CatalogStore {
 					(this.view === "featured" ? item.featured : gallery === this.view)) &&
 				(this.gallery === "all" || this.gallery === gallery) &&
 				(this.filter === "all" || Boolean(item[this.filter])) &&
-				(this.category === "הכול" || item.category === this.category) &&
+				(!this.topic || topics.includes(this.topic)) &&
 				words.every((word) => text.includes(word))
 			);
 		});
@@ -121,8 +137,8 @@ export class CatalogStore {
 	setFilter(value: MediaFilter) {
 		this.filter = value;
 	}
-	setCategory(value: string) {
-		this.category = value;
+	setTopic(value: string) {
+		this.topic = value.toLocaleLowerCase("he");
 	}
 	setGallery(value: "all" | Gallery) {
 		this.gallery = value;
@@ -163,7 +179,7 @@ export class CatalogStore {
 	reset() {
 		this.query = "";
 		this.filter = "all";
-		this.category = "הכול";
+		this.topic = "";
 		this.gallery = "all";
 		this.view = "all";
 		this.clearSelection();
@@ -181,7 +197,11 @@ export class CatalogStore {
 			this.view = "all";
 		this.revision = snapshot.revision;
 		this.updatedAt = snapshot.updatedAt;
-		if (!this.categories.includes(this.category)) this.category = "הכול";
+		if (
+			this.topic &&
+			!this.topics.some((topic) => topic.toLocaleLowerCase("he") === this.topic)
+		)
+			this.topic = "";
 		this.clearSelection();
 	}
 	async load() {

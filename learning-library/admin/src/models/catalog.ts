@@ -2,14 +2,16 @@ export type MediaKind = "deck" | "video";
 export type MediaFilter = "all" | MediaKind;
 // Stable gallery IDs; display names are workspace data.
 export type Gallery = string;
+export type GallerySection = "team" | "course";
 export interface GalleryDefinition {
 	id: Gallery;
 	name: string;
 	url: string;
+	section?: GallerySection;
 }
 export type GalleryMutation =
-	| { type: "create"; name: string; url?: string }
-	| { type: "update"; id: Gallery; name: string; url: string }
+	| { type: "create"; name: string; url?: string; section?: "course" | null }
+	| { type: "update"; id: Gallery; name: string; url: string; section?: "course" | null }
 	| { type: "rename"; id: Gallery; name: string }
 	| { type: "delete"; id: Gallery };
 export const isFixedGallery = (id: Gallery): boolean => id === "public" || id === "none";
@@ -22,7 +24,8 @@ export interface LearningItem {
 	id: string;
 	title: string;
 	description: string;
-	category: string;
+	category?: string;
+	topics?: string[];
 	featured: boolean;
 	unlisted?: boolean;
 	gallery?: Gallery;
@@ -35,6 +38,20 @@ export interface LearningItem {
 	powerpoint: string | null;
 	video: string | null;
 	scorm?: Partial<Record<MediaKind, string>>;
+}
+
+export function itemTopics(
+	item: Pick<LearningItem, "topics" | "category">,
+	formerTeam?: string,
+): string[] {
+	if (item.topics) return item.topics;
+	const topics = new Map<string, string>();
+	for (const value of [formerTeam, item.category]) {
+		const topic = typeof value === "string" ? value.replace(/\s+/g, " ").trim() : "";
+		const key = topic.toLocaleLowerCase("he");
+		if (topic && !topics.has(key)) topics.set(key, topic);
+	}
+	return [...topics.values()];
 }
 
 export interface CatalogDocument {

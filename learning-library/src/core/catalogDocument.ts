@@ -42,6 +42,14 @@ export function parseCatalog(value: unknown): CatalogDocument {
 		const url = new URL(gallery.url, "https://knowledge.davinci4744.com/");
 		if (!["http:", "https:"].includes(url.protocol) || url.username || url.password)
 			throw new Error("Invalid library URL");
+		if (
+			gallery.section !== undefined &&
+			((gallery.section !== "team" && gallery.section !== "course") ||
+				gallery.id === "public" ||
+				gallery.id === "none" ||
+				!gallery.url.startsWith("/"))
+		)
+			throw new Error("Invalid library section");
 		galleryIds.add(gallery.id);
 		names.add(gallery.name.toLocaleLowerCase("he"));
 	}
@@ -67,6 +75,19 @@ export function parseCatalog(value: unknown): CatalogDocument {
 			typeof item.title !== "string" ||
 			!Array.isArray(item.chapters) ||
 			item.chapters.some((chapter: unknown) => typeof chapter !== "string") ||
+			(item.topics !== undefined &&
+				(!Array.isArray(item.topics) ||
+					item.topics.length > 20 ||
+					item.topics.some(
+						(topic: unknown) =>
+							typeof topic !== "string" ||
+							!topic ||
+							topic !== topic.trim() ||
+							topic.length > 200 ||
+							/[\r\n]/.test(topic),
+					) ||
+					new Set(item.topics.map((topic: string) => topic.toLocaleLowerCase("he")))
+						.size !== item.topics.length)) ||
 			!galleryIds.has(itemGallery(item as LearningItem))
 		)
 			throw new Error("Invalid catalog item");

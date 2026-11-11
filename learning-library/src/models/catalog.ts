@@ -1,11 +1,13 @@
 export type MediaKind = "deck" | "video";
 export type MediaFilter = "all" | MediaKind;
 export type GalleryScope = string;
+export type GallerySection = "team" | "course";
 export interface GalleryDefinition {
 	[field: string]: unknown;
 	id: string;
 	name: string;
 	url: string;
+	section?: GallerySection;
 }
 export interface CatalogDocument {
 	[field: string]: unknown;
@@ -25,7 +27,8 @@ export interface LearningItem {
 	id: string;
 	title: string;
 	description: string;
-	category: string;
+	category?: string;
+	topics?: string[];
 	featured: boolean;
 	unlisted?: boolean;
 	gallery?: GalleryScope | "none";
@@ -38,6 +41,20 @@ export interface LearningItem {
 	powerpoint: string | null;
 	video: string | null;
 	scorm?: Partial<Record<MediaKind, string>>;
+}
+
+export function itemTopics(
+	item: Pick<LearningItem, "topics" | "category">,
+	formerTeam?: string,
+): string[] {
+	if (item.topics) return item.topics;
+	const topics = new Map<string, string>();
+	for (const value of [formerTeam, item.category]) {
+		const topic = typeof value === "string" ? value.replace(/\s+/g, " ").trim() : "";
+		const key = topic.toLocaleLowerCase("he");
+		if (topic && !topics.has(key)) topics.set(key, topic);
+	}
+	return [...topics.values()];
 }
 
 export interface CatalogRepository {

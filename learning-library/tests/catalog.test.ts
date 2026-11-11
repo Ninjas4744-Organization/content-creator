@@ -53,7 +53,7 @@ test("search includes chapters, matches every word, and combines both filters", 
 	assert.equal(store.visibleItems.length, 0);
 	store.reset();
 	store.setFilter("video");
-	store.setCategory("ערכים");
+	store.setTopic("ערכים");
 	assert.deepEqual(
 		store.visibleItems.map((item) => item.id),
 		["community"],
@@ -96,7 +96,7 @@ test("unlisted content opens by ID but never appears in gallery discovery", asyn
 	assert.equal(store.featured?.id, "community");
 	assert.equal(store.deckCount, 2);
 	assert.equal(store.videoCount, 1);
-	assert.ok(!store.categories.includes(hidden.category));
+	assert.ok(!store.topics.includes(hidden.category));
 	store.setQuery("גיוסים");
 	assert.deepEqual(store.visibleItems, []);
 
@@ -105,7 +105,7 @@ test("unlisted content opens by ID but never appears in gallery discovery", asyn
 	assert.equal(hiddenOnly.featured, undefined);
 	assert.equal(hiddenOnly.deckCount, 0);
 	assert.equal(hiddenOnly.videoCount, 0);
-	assert.deepEqual(hiddenOnly.categories, ["הכול"]);
+	assert.deepEqual(hiddenOnly.topics, []);
 });
 
 test("failed loading can be retried", async () => {
@@ -154,12 +154,12 @@ test("team gallery searches and counts only unlisted content", async () => {
 	assert.equal(store.featured?.id, "team-selection");
 	assert.equal(store.deckCount, 2);
 	assert.equal(store.videoCount, 1);
-	assert.deepEqual(store.categories, ["הכול", "היכרות עם התוכנית"]);
+	assert.deepEqual(store.topics, ["היכרות עם התוכנית"]);
 	store.setQuery("קהילה");
 	assert.equal(store.visibleItems.length, 0);
 	store.setQuery("צוותים");
 	store.setFilter("video");
-	store.setCategory("היכרות עם התוכנית");
+	store.setTopic("היכרות עם התוכנית");
 	assert.deepEqual(
 		store.visibleItems.map((item) => item.id),
 		["team-selection"],
@@ -203,16 +203,16 @@ test("study content has its own discovery, filters and viewer without entering o
 	assert.equal(store.featured?.id, "math-review");
 	assert.equal(store.deckCount, 2);
 	assert.equal(store.videoCount, 1);
-	assert.deepEqual(store.categories, ["הכול", "מתמטיקה", "היסטוריה"]);
+	assert.deepEqual(store.topics, ["היסטוריה", "מתמטיקה"]);
 	assert.deepEqual(store.viewableItems, store.listedItems);
 	store.setQuery("מבחן ריבועית");
-	store.setCategory("מתמטיקה");
+	store.setTopic("מתמטיקה");
 	store.setFilter("video");
 	assert.deepEqual(
 		store.visibleItems.map((item) => item.id),
 		["math-review"],
 	);
-	store.setCategory("היסטוריה");
+	store.setTopic("היסטוריה");
 	assert.equal(store.visibleItems.length, 0);
 	store.reset();
 	assert.equal(store.visibleItems.length, 2);
@@ -222,8 +222,8 @@ test("study content has its own discovery, filters and viewer without entering o
 		await other.load();
 		assert.ok(other.listedItems.every((item) => !study.includes(item)));
 		assert.ok(other.viewableItems.every((item) => !study.includes(item)));
-		assert.ok(!other.categories.includes("מתמטיקה"));
-		assert.ok(!other.categories.includes("היסטוריה"));
+		assert.ok(!other.topics.includes("מתמטיקה"));
+		assert.ok(!other.topics.includes("היסטוריה"));
 		assert.equal(other.deckCount, scope === "public" ? 2 : 1);
 		assert.equal(other.videoCount, scope === "public" ? 1 : 0);
 		assert.equal(other.featured?.id, scope === "public" ? "community" : "recruitment");
@@ -242,7 +242,7 @@ test("study gallery stays empty until school content is added", async () => {
 	assert.equal(store.error, null);
 	assert.deepEqual(store.visibleItems, []);
 	assert.deepEqual(store.viewableItems, []);
-	assert.deepEqual(store.categories, ["הכול"]);
+	assert.deepEqual(store.topics, []);
 	assert.equal(store.featured, undefined);
 	assert.equal(store.deckCount, 0);
 	assert.equal(store.videoCount, 0);
@@ -264,7 +264,7 @@ test("a link-only lesson opens from the root without entering any gallery", asyn
 		assert.ok(!store.listedItems.includes(linkOnly));
 		assert.ok(!store.visibleItems.includes(linkOnly));
 		assert.notEqual(store.featured, linkOnly);
-		assert.ok(!store.categories.includes(linkOnly.category));
+		assert.ok(!store.topics.includes(linkOnly.category ?? ""));
 		assert.equal(store.deckCount, scope === "public" ? 2 : 0);
 		assert.equal(store.videoCount, scope === "public" ? 1 : 0);
 		store.setQuery("תקציבי");

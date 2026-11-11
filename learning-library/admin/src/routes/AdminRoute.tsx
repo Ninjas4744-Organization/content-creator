@@ -3,6 +3,7 @@ import { View } from "react-native";
 import Head from "expo-router/head";
 import { observer } from "mobx-react-lite";
 import styled from "styled-components";
+import { GalleryDialog } from "../features/catalog/GalleryDialog";
 import { GalleryManager } from "../features/catalog/GalleryManager";
 import { CatalogStore } from "../features/catalog/CatalogStore";
 import { EditorStore } from "../features/editor/EditorStore";
@@ -13,6 +14,7 @@ import { SourcesStore } from "../features/sources/SourcesStore";
 import { createBrowserSourcesRepository } from "../core/browserSourcesRepository";
 import { createBrowserRepository } from "../core/browserRepository";
 import { AdminScreen } from "../screens/AdminScreen";
+import type { GalleryDefinition, GallerySection } from "../models/catalog";
 import { IconButton } from "../ui/browserControls";
 import { Icon } from "../ui/Icon";
 import { Body } from "../ui/primitives";
@@ -40,6 +42,10 @@ export const AdminRoute = observer(function AdminRoute() {
 	const [sourcesOpen, setSourcesOpen] = useState(false);
 	const [importOpen, setImportOpen] = useState(false);
 	const [galleriesOpen, setGalleriesOpen] = useState(false);
+	const [galleryDialog, setGalleryDialog] = useState<{
+		gallery?: GalleryDefinition;
+		section?: GallerySection;
+	} | null>(null);
 	const [creatorOpen, setCreatorOpen] = useState(false);
 	const [ready, setReady] = useState(false);
 	useEffect(() => {
@@ -82,7 +88,7 @@ export const AdminRoute = observer(function AdminRoute() {
 				onSources={() => setSourcesOpen(true)}
 				onEdit={(item) => {
 					store.setError(null);
-					editor.edit(item);
+					editor.edit(item, item ? store.topicsFor(item) : []);
 				}}
 				onImport={() => {
 					store.setError(null);
@@ -91,6 +97,10 @@ export const AdminRoute = observer(function AdminRoute() {
 				onManageGalleries={() => {
 					store.setError(null);
 					setGalleriesOpen(true);
+				}}
+				onGalleryDialog={(gallery, section) => {
+					store.setError(null);
+					setGalleryDialog({ gallery, section });
 				}}
 				onNavigate={(view) => {
 					setSourcesOpen(false);
@@ -104,6 +114,14 @@ export const AdminRoute = observer(function AdminRoute() {
 			)}
 			{galleriesOpen && (
 				<GalleryManager store={store} open onClose={() => setGalleriesOpen(false)} />
+			)}
+			{galleryDialog && (
+				<GalleryDialog
+					store={store}
+					gallery={galleryDialog.gallery}
+					initialSection={galleryDialog.section}
+					onClose={() => setGalleryDialog(null)}
+				/>
 			)}
 			<ImportDialog store={store} open={importOpen} onClose={() => setImportOpen(false)} />
 			{store.message && (

@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { observer } from "mobx-react-lite";
 import styled from "styled-components";
 import type { CatalogStore } from "../catalog/CatalogStore";
+import { GalleryOptions } from "../catalog/GalleryOptions";
 import type { EditorStore } from "./EditorStore";
 import { ModalDialog, DialogBody, DialogFooter } from "../../ui/ModalDialog";
 import { ConfirmDialog } from "../../ui/ConfirmDialog";
@@ -107,45 +108,25 @@ export const EditorDialog = observer(function EditorDialog({
 								}
 							/>
 						</Field>
-						<FormRow>
-							<Field>
-								קטגוריה *
-								<input
-									required
-									maxLength={200}
-									list="editor-categories"
-									value={draft.category}
-									onChange={(event) =>
-										editor.setField("category", event.target.value)
-									}
-								/>
-								<datalist id="editor-categories">
-									{catalog.categories
-										.filter((category) => category !== "הכול")
-										.map((category) => (
-											<option key={category} value={category} />
-										))}
-								</datalist>
-							</Field>
-							<Field>
-								מופיע בספרייה
-								<select
-									value={draft.gallery}
-									onChange={(event) =>
-										editor.setField(
-											"gallery",
-											event.target.value as typeof draft.gallery,
-										)
-									}
-								>
-									{catalog.galleries.map((gallery) => (
-										<option key={gallery.id} value={gallery.id}>
-											{gallery.name}
-										</option>
-									))}
-								</select>
-							</Field>
-						</FormRow>
+						<Field>
+							שיוך לספרייה או לקורס
+							<select
+								value={draft.gallery}
+								onChange={(event) => editor.setField("gallery", event.target.value)}
+							>
+								<GalleryOptions galleries={catalog.galleries} />
+							</select>
+						</Field>
+						<Field>
+							תחומים
+							<textarea
+								rows={3}
+								maxLength={4020}
+								value={draft.topics}
+								onChange={(event) => editor.setField("topics", event.target.value)}
+							/>
+							<small>אפשר לשייך כמה תחומים לתוכן. כתבו תחום אחד בכל שורה.</small>
+						</Field>
 						<Toggle>
 							<Check
 								checked={draft.featured}

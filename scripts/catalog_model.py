@@ -36,6 +36,12 @@ def normalize_catalog(value: object) -> dict:
         parsed = urlsplit(url)
         if parsed.username or parsed.password or (parsed.scheme and (parsed.scheme.lower() not in {"http", "https"} or not parsed.hostname)):
             raise ValueError("Invalid library URL")
+        if "section" in gallery and (
+            gallery["section"] not in ("team", "course")
+            or gallery["id"] in ("public", "none")
+            or not url.startswith("/")
+        ):
+            raise ValueError("Invalid library section")
         ids.add(gallery["id"]); names.add(name.lower())
     for fixed in [gallery for gallery in DEFAULT_GALLERIES if gallery["id"] in {"public", "none"}]:
         if not any(all(gallery.get(key) == value for key, value in fixed.items()) for gallery in galleries):
@@ -46,6 +52,15 @@ def normalize_catalog(value: object) -> dict:
             raise ValueError("Invalid or duplicate catalog project ID")
         if not isinstance(item.get("title"), str) or not isinstance(item.get("chapters"), list) or gallery_of(item) not in ids:
             raise ValueError("Invalid catalog metadata or library reference")
+        if "topics" in item:
+            topics = item["topics"]
+            if (
+                not isinstance(topics, list) or len(topics) > 20
+                or any(not isinstance(topic, str) or not topic or topic != topic.strip()
+                       or len(topic) > 200 or "\r" in topic or "\n" in topic for topic in topics)
+                or len({topic.lower() for topic in topics}) != len(topics)
+            ):
+                raise ValueError("Invalid catalog topics")
         item_ids.add(item["id"])
     return document
 
@@ -59,6 +74,13 @@ def merge_publication(previous: dict | None, incoming: dict) -> dict:
     updates = {}
     for item in incoming["items"]:
         before = existing.get(item["id"])
-        updates[item["id"]] = ({**item, **before, **{key: item[key] for key in MEDIA_FIELDS if key in item}} if before else item)
+        if before is None:
+            updates[item["id"]] = item
+            continue
+        updated = {**item, **before, **{key: item[key] for key in MEDIA_FIELDS if key in item}}
+        for field in ("topics", "category"):
+            if field not in before:
+                updated.pop(field, None)
+        updates[item["id"]] = updated
     items = [updates.pop(item["id"], item) for item in previous["items"]] + list(updates.values())
     return normalize_catalog({**previous, "items": items})

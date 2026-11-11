@@ -267,17 +267,21 @@ export async function creatorApi(
 		const current = await store.read();
 		const rewrite = (value: string | null | undefined) =>
 			value ? value.replace(/^library\//, `library/releases/${session.id}/`) : value;
-		const updates = session.items.map((item) => ({
-			...item,
-			...current.items.find((old) => old.id === item.id),
-			poster: rewrite(item.poster)!,
-			deck: rewrite(item.deck),
-			video: rewrite(item.video),
-			powerpoint: rewrite(item.powerpoint),
-			scorm: Object.fromEntries(
-				Object.entries(item.scorm ?? {}).map(([k, v]) => [k, rewrite(v)]),
-			),
-		}));
+		const currentById = new Map(current.items.map((item) => [item.id, item]));
+		const updates = session.items.map((item) => {
+			const previous = currentById.get(item.id);
+			const { topics, category, ...incoming } = item;
+			return {
+				...(previous ? { ...incoming, ...previous } : item),
+				poster: rewrite(item.poster)!,
+				deck: rewrite(item.deck),
+				video: rewrite(item.video),
+				powerpoint: rewrite(item.powerpoint),
+				scorm: Object.fromEntries(
+					Object.entries(item.scorm ?? {}).map(([k, v]) => [k, rewrite(v)]),
+				),
+			};
+		});
 		if (
 			updates.every(
 				(item) => current.items.find((old) => old.id === item.id)?.poster === item.poster,

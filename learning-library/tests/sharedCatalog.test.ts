@@ -32,6 +32,51 @@ const document = {
 	customMetadata: { retained: true },
 };
 
+test("the home page filters multi-topic lessons and brings forward only formerly listed team galleries", async () => {
+	const team = {
+		id: "programming",
+		name: "תוכנה",
+		url: "/programming",
+		section: "team" as const,
+	};
+	const catalog = parseCatalog({
+		...document,
+		galleries: [...defaultGalleries, team],
+		items: [
+			{ ...item, topics: ["חשמל", "FRC"] },
+			{ ...item, id: "team-guide", gallery: team.id },
+			{ ...item, id: "untagged", gallery: team.id, topics: [] },
+			{ ...item, id: "old-unlisted", unlisted: true, topics: ["פנימי"] },
+		],
+	});
+	const store = new CatalogStore({ list: async () => catalog, dispose() {} });
+	await store.load();
+	assert.ok(!store.topics.includes("פנימי"));
+	assert.ok(store.topics.includes("תוכנה"));
+	for (const topic of ["חשמל", "frc"]) {
+		store.setTopic(topic);
+		assert.deepEqual(
+			store.visibleItems.map((entry) => entry.id),
+			[item.id],
+		);
+	}
+	store.setTopic("תוכנה");
+	assert.deepEqual(
+		store.visibleItems.map((entry) => entry.id),
+		["team-guide"],
+	);
+	store.setTopic("הדרכות");
+	assert.deepEqual(
+		store.visibleItems.map((entry) => entry.id),
+		["team-guide"],
+	);
+	store.reset();
+	assert.deepEqual(
+		store.visibleItems.map((entry) => entry.id),
+		[item.id, "team-guide", "untagged"],
+	);
+});
+
 test("new catalogs retain library definitions and metadata; legacy catalogs retain original galleries", () => {
 	assert.deepEqual(parseCatalog(document), document);
 	assert.deepEqual(parseCatalog([item]).galleries, defaultGalleries);
@@ -107,5 +152,41 @@ test("library links disambiguate shared paths and viewer navigation retains the 
 	assert.equal(
 		resolveGallery(defaultGalleries, "https://knowledge.davinci4744.com/?gallery=missing"),
 		undefined,
+	);
+});
+
+test("a course loads only its own lessons and its catalog URL stays distinct from section navigation", async () => {
+	const base = "https://knowledge.davinci4744.com/";
+	const course = { ...custom, url: "/", section: "course" as const };
+	const team = { id: "programming", name: "צוות תוכנה", url: "/", section: "team" as const };
+	const catalog = parseCatalog({
+		...document,
+		galleries: [...defaultGalleries, course, team],
+		items: [
+			{ ...item, gallery: course.id },
+			{ ...item, id: "lesson-two", gallery: course.id },
+			{ ...item, id: "team-guide", gallery: team.id },
+		],
+	});
+	assert.equal(resolveGallery(catalog.galleries, base + "?section=course")?.id, "public");
+	const address = galleryHref(course, base);
+	const store = new CatalogStore({ list: async () => catalog, dispose() {} }, address);
+	await store.load();
+	assert.equal(store.galleryDefinition?.section, "course");
+	assert.deepEqual(
+		store.visibleItems.map((entry) => entry.id),
+		["lesson", "lesson-two"],
+	);
+	assert.throws(() =>
+		parseCatalog({
+			...catalog,
+			galleries: [...defaultGalleries, { ...course, section: "invalid" }, team],
+		}),
+	);
+	assert.throws(() =>
+		parseCatalog({
+			...catalog,
+			galleries: [...defaultGalleries, { ...course, url: "https://example.com/" }, team],
+		}),
 	);
 });

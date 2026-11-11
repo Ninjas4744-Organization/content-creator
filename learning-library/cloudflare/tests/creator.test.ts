@@ -257,6 +257,7 @@ test("republishing preserves editorial and unknown metadata and can restore lega
 		...f.catalog.items[0]!,
 		title: "Admin title",
 		gallery: "team",
+		category: "Legacy topic",
 		custom: { keep: true },
 	};
 	await bucket.put(
@@ -279,6 +280,7 @@ test("republishing preserves editorial and unknown metadata and can restore lega
 	expect(new TextDecoder().decode(await (await call("sources/new-training")).arrayBuffer())).toBe(
 		"legacy sources",
 	);
+	f.catalog.items[0]!.topics = ["Package topic"];
 	const session = await begin(f);
 	await upload(session);
 	await call(`uploads/${session.id}/publish`, "POST");
@@ -286,7 +288,9 @@ test("republishing preserves editorial and unknown metadata and can restore lega
 	expect(saved.items[0]).toMatchObject({
 		title: "Admin title",
 		gallery: "team",
+		category: "Legacy topic",
 		custom: { keep: true },
 	});
+	expect(saved.items[0]).not.toHaveProperty("topics");
 	expect(saved.catalogMetadata.future).toEqual({ keep: true });
 });

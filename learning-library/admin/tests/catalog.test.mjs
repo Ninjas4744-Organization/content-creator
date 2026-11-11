@@ -29,6 +29,20 @@ test("accepts the real catalog and keeps legacy gallery behavior and unknown met
 	assert.equal(galleryOf({ unlisted: true, gallery: "none" }), "none");
 });
 
+test("topic tags round-trip with lesson assignments and reject malformed imports", async (t) => {
+	const store = await workspace(t);
+	const before = await store.read();
+	const tagged = { ...before.items[0], topics: ["תוכנה", "FRC"] };
+	delete tagged.category;
+	const saved = await store.mutate("0", [tagged, ...before.items.slice(1)], "topic tags");
+	const reopened = new CatalogStore(store.file, seed);
+	assert.deepEqual(documentOf(await reopened.read()).items[0], tagged);
+	for (const topics of ["FRC", ["FRC", "frc"], [" "], ["one\ntwo"]]) {
+		await assert.rejects(reopened.importCatalog("1", [{ ...tagged, topics }], "merge"));
+	}
+	assert.deepEqual(await reopened.read(), saved);
+});
+
 test("rejects malformed catalogs, duplicate IDs, unsafe paths, and invalid media metadata", () => {
 	for (const value of [
 		null,
@@ -157,6 +171,55 @@ test("deleting team migrates explicit and legacy unlisted items, and survives la
 	const restored = await store.mutate("2", null, null, saved.history[1].id);
 	assert.deepEqual(restored.galleries, before.galleries);
 	assert.deepEqual(restored.items, before.items);
+});
+
+test("team and course sections persist without changing lesson assignments or legacy visibility", async (t) => {
+	const store = await workspace(t);
+	const before = await store.read();
+	assert.ok(before.galleries.every((gallery) => gallery.section === undefined));
+	const team = await store.mutateGallery("0", {
+		type: "create",
+		name: "צוות תוכנה",
+		section: "team",
+	});
+	const course = await store.mutateGallery("1", {
+		type: "create",
+		name: "קורס מבוא",
+		section: "course",
+	});
+	const teamGallery = team.galleries.at(-1);
+	const courseGallery = course.galleries.at(-1);
+	const assigned = await store.mutate(
+		"2",
+		before.items.map((item, index) =>
+			index < 2 ? { ...item, gallery: courseGallery.id, unlisted: true } : item,
+		),
+	);
+	const reopened = new CatalogStore(store.file, seed);
+	const exported = documentOf(await reopened.read());
+	assert.deepEqual(exported.galleries.slice(-2), [teamGallery, courseGallery]);
+	assert.equal(exported.items.filter((item) => galleryOf(item) === courseGallery.id).length, 2);
+	for (const change of [
+		{ type: "create", name: "שגוי", section: "invalid" },
+		{
+			type: "update",
+			id: courseGallery.id,
+			name: courseGallery.name,
+			url: "https://example.com/",
+		},
+	])
+		await assert.rejects(reopened.mutateGallery("3", change));
+	const changed = await reopened.mutateGallery("3", {
+		type: "update",
+		id: courseGallery.id,
+		name: courseGallery.name,
+		url: courseGallery.url,
+		section: null,
+	});
+	assert.equal(changed.galleries.at(-1).section, undefined);
+	assert.deepEqual(changed.items, assigned.items);
+	const restored = await reopened.mutate("4", null, null, changed.history[0].id);
+	assert.equal(restored.galleries.at(-1).section, "course");
 });
 
 test("gallery validation protects fixed libraries, rejects invalid or duplicate names and unknown references", async (t) => {

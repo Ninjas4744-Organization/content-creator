@@ -71,7 +71,7 @@ cd ../..
 
 ```json
 {
-  "category": "הכשרות",
+  "topics": ["הכשרות"],
   "gallery": "public",
   "source_assets": ["assets/projects/my-training"]
 }

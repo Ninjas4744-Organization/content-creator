@@ -4,6 +4,13 @@ import styled, { useTheme } from "styled-components/native";
 import type { CatalogStore } from "../features/catalog/CatalogStore";
 import { LibraryCard, durationLabel } from "../features/catalog/LibraryCard";
 import { galleryDetails } from "../features/catalog/galleries";
+import { GalleryDirectory, LibraryNavigation } from "../features/catalog/GalleryDirectory";
+import {
+	CompletionToggle,
+	CourseProgress,
+	type LessonCompletion,
+} from "../features/catalog/CourseProgress";
+import { useCourseProgress } from "../features/catalog/useCourseProgress";
 import type { LearningItem, MediaKind } from "../models/catalog";
 import {
 	Body,
@@ -74,6 +81,7 @@ const Rule = styled.View`
 
 interface Props {
 	store: CatalogStore;
+	courseDirectory: boolean;
 	selectedId?: string;
 	selectedKind: MediaKind;
 	onOpen(id: string, kind: MediaKind): void;
@@ -86,7 +94,15 @@ function Viewer({
 	onOpen,
 	onClose,
 	compact,
-}: { item: LearningItem; kind: MediaKind; compact: boolean } & Pick<Props, "onOpen" | "onClose">) {
+	backLabel,
+	completion,
+}: {
+	item: LearningItem;
+	kind: MediaKind;
+	compact: boolean;
+	backLabel: string;
+	completion?: LessonCompletion;
+} & Pick<Props, "onOpen" | "onClose">) {
 	const path = item[kind];
 	return (
 		<Container $compact={compact} style={{ paddingTop: 30, paddingBottom: 45, gap: 22 }}>
@@ -97,10 +113,9 @@ function Viewer({
 				accessibilityRole="button"
 			>
 				<Icon name="back" size={17} />
-				<ButtonText $secondary>בחזרה לספרייה</ButtonText>
+				<ButtonText $secondary>{backLabel}</ButtonText>
 			</Button>
 			<View style={{ gap: 10 }}>
-				<Eyebrow>{item.category}</Eyebrow>
 				<Heading $compact={compact} accessibilityRole="header">
 					{item.title}
 				</Heading>
@@ -159,12 +174,14 @@ function Viewer({
 					? "אפשר לעבור בין השקפים באמצעות החצים ולפתוח את הערות המנחה מתוך המצגת."
 					: "בחרו פרק בנגן, הפעילו כתוביות או ענו על השאלות לאורך הסרטון. ההתקדמות נשמרת בדפדפן שלכם."}
 			</Body>
+			{completion && <CompletionToggle title={item.title} {...completion} />}
 		</Container>
 	);
 }
 
 export const LibraryScreen = observer(function LibraryScreen({
 	store,
+	courseDirectory,
 	selectedId,
 	selectedKind,
 	onOpen,
@@ -176,12 +193,24 @@ export const LibraryScreen = observer(function LibraryScreen({
 	const columns = width < 720 ? 1 : width < 1100 ? 2 : 3;
 	const details = galleryDetails(store.galleryDefinition);
 	const item = store.viewableItems.find((entry) => entry.id === selectedId);
-	const featured = store.featured;
+	const isCourse = store.galleryDefinition?.section === "course";
+	const isHome = store.gallery === "public" && !courseDirectory;
+	const topics = isHome ? store.topics : [];
+	const featured = isCourse || store.topic !== null ? undefined : store.featured;
+	const backLabel = isCourse ? "בחזרה לקורס" : "בחזרה לספרייה";
+	const progress = useCourseProgress(isCourse ? store.gallery : undefined);
+	const completionFor = (lesson: LearningItem): LessonCompletion | undefined =>
+		isCourse && progress.ready
+			? {
+					completed: progress.completed.has(lesson.id),
+					onToggle: () => progress.toggle(lesson.id),
+				}
+			: undefined;
 	return (
 		<Page>
 			<Header>
 				<Container $compact={compact}>
-					<Row style={{ justifyContent: "space-between", flexWrap: "wrap" }}>
+					<Row style={{ justifyContent: "space-between", flexWrap: "wrap", gap: 12 }}>
 						<Row style={{ gap: 13 }}>
 							<BrandMark>
 								<Image
@@ -203,10 +232,10 @@ export const LibraryScreen = observer(function LibraryScreen({
 								</Body>
 							</View>
 						</Row>
-						<Row style={{ gap: 9 }}>
-							<Icon name="library" size={18} />
-							<Label style={{ fontSize: 12 }}>{details.title}</Label>
-						</Row>
+						<LibraryNavigation
+							courseDirectory={courseDirectory}
+							gallery={store.galleryDefinition}
+						/>
 					</Row>
 				</Container>
 			</Header>
@@ -226,12 +255,20 @@ export const LibraryScreen = observer(function LibraryScreen({
 						<ButtonText>ניסיון נוסף</ButtonText>
 					</Button>
 				</Container>
+			) : courseDirectory ? (
+				<GalleryDirectory
+					galleries={store.galleries}
+					items={store.items}
+					compact={compact}
+				/>
 			) : selectedId ? (
 				item ? (
 					<Viewer
 						item={item}
 						kind={selectedKind}
 						compact={compact}
+						backLabel={backLabel}
+						completion={completionFor(item)}
 						onOpen={onOpen}
 						onClose={onClose}
 					/>
@@ -239,7 +276,7 @@ export const LibraryScreen = observer(function LibraryScreen({
 					<Container $compact={compact} style={{ paddingVertical: 70, gap: 20 }}>
 						<Heading>התוכן הזה לא נמצא</Heading>
 						<Button onPress={onClose} accessibilityRole="button">
-							<ButtonText>בחזרה לספרייה</ButtonText>
+							<ButtonText>{backLabel}</ButtonText>
 						</Button>
 					</Container>
 				)
@@ -286,6 +323,17 @@ export const LibraryScreen = observer(function LibraryScreen({
 								</Row>
 							</View>
 						</section>
+						{isCourse && progress.ready && store.listedItems.length > 0 && (
+							<CourseProgress
+								completed={
+									store.listedItems.filter((lesson) =>
+										progress.completed.has(lesson.id),
+									).length
+								}
+								total={store.listedItems.length}
+								saved={progress.saved === true}
+							/>
+						)}
 						{featured && (
 							<View
 								style={{
@@ -330,8 +378,7 @@ export const LibraryScreen = observer(function LibraryScreen({
 										<Body style={{ fontSize: 12 }}>
 											{featured.video
 												? durationLabel(featured.duration)
-												: `${featured.slides} שקפים`}{" "}
-											· {featured.category}
+												: `${featured.slides} שקפים`}
 										</Body>
 									</Row>
 								</View>
@@ -357,10 +404,14 @@ export const LibraryScreen = observer(function LibraryScreen({
 								}}
 							>
 								<View style={{ gap: 7 }}>
-									<Heading $compact accessibilityRole="header">
-										מה לומדים היום?
+									<Heading $compact accessibilityRole="header" aria-level={2}>
+										{isCourse ? "שיעורי הקורס" : "מה לומדים היום?"}
 									</Heading>
-									<Body style={{ fontSize: 14 }}>בוחרים נושא, ויוצאים לדרך.</Body>
+									{!isCourse && (
+										<Body style={{ fontSize: 14 }}>
+											בוחרים נושא, ויוצאים לדרך.
+										</Body>
+									)}
 								</View>
 								<SearchBox style={{ width: compact ? "100%" : 330 }}>
 									<Icon name="search" size={19} color={theme.muted} />
@@ -373,59 +424,66 @@ export const LibraryScreen = observer(function LibraryScreen({
 									/>
 								</SearchBox>
 							</Row>
-							<Row
-								style={{
-									justifyContent: "space-between",
-									flexWrap: "wrap",
-									gap: 20,
-								}}
-							>
-								<Row
-									style={{
-										flexWrap: "wrap",
-										gap: 8,
-										width: compact ? "100%" : undefined,
-									}}
-								>
-									{store.categories.map((category) => (
+							{topics.length > 0 && (
+								<View style={{ gap: 8 }}>
+									<Label>תחומים</Label>
+									<div
+										role="group"
+										aria-label="סינון לפי תחומים"
+										style={{ display: "flex", flexWrap: "wrap", gap: 8 }}
+									>
 										<Chip
-											key={category}
-											$selected={store.category === category}
+											$selected={store.topic === null}
 											accessibilityRole="button"
-											accessibilityState={{
-												selected: store.category === category,
-											}}
-											onPress={() => store.setCategory(category)}
+											aria-pressed={store.topic === null}
+											onPress={() => store.setTopic(null)}
 										>
-											<ChipText $selected={store.category === category}>
-												{category}
+											<ChipText $selected={store.topic === null}>
+												כל התחומים
 											</ChipText>
 										</Chip>
-									))}
-								</Row>
-								<Row style={{ gap: 6 }}>
-									{(
-										[
-											["all", "כל הפורמטים"],
-											["video", "סרטונים"],
-											["deck", "מצגות"],
-										] as const
-									).map(([value, label]) => (
-										<Chip
-											key={value}
-											$selected={store.filter === value}
-											accessibilityRole="button"
-											accessibilityState={{
-												selected: store.filter === value,
-											}}
-											onPress={() => store.setFilter(value)}
-										>
-											<ChipText $selected={store.filter === value}>
-												{label}
-											</ChipText>
-										</Chip>
-									))}
-								</Row>
+										{topics.map((topic) => {
+											const selected =
+												store.topic === topic.toLocaleLowerCase("he");
+											return (
+												<Chip
+													key={topic}
+													$selected={selected}
+													accessibilityRole="button"
+													aria-pressed={selected}
+													onPress={() => store.setTopic(topic)}
+												>
+													<ChipText $selected={selected}>
+														{topic}
+													</ChipText>
+												</Chip>
+											);
+										})}
+									</div>
+								</View>
+							)}
+							<Row style={{ gap: 6, flexWrap: "wrap" }}>
+								{(
+									[
+										["all", "כל הפורמטים"],
+										["video", "סרטונים"],
+										["deck", "מצגות"],
+									] as const
+								).map(([value, label]) => (
+									<Chip
+										key={value}
+										$selected={store.filter === value}
+										accessibilityRole="button"
+										accessibilityState={{
+											selected: store.filter === value,
+										}}
+										onPress={() => store.setFilter(value)}
+									>
+										<ChipText $selected={store.filter === value}>
+											{label}
+										</ChipText>
+									</Chip>
+								))}
 							</Row>
 						</View>
 						<Rule />
@@ -433,7 +491,8 @@ export const LibraryScreen = observer(function LibraryScreen({
 							accessibilityLiveRegion="polite"
 							style={{ paddingVertical: 19, fontSize: 12 }}
 						>
-							{store.visibleItems.length} נושאים בספרייה
+							{store.visibleItems.length}{" "}
+							{isCourse ? "שיעורים בקורס" : "נושאים בספרייה"}
 						</Body>
 						<View style={{ flexDirection: "row", flexWrap: "wrap", gap: 22 }}>
 							{store.visibleItems.map((entry) => (
@@ -446,7 +505,12 @@ export const LibraryScreen = observer(function LibraryScreen({
 												: `${(100 - (columns - 1) * ((22 / (Math.min(width, 1240) - (compact ? 44 : 96))) * 100)) / columns}%`,
 									}}
 								>
-									<LibraryCard item={entry} onOpen={onOpen} />
+									<LibraryCard
+										item={entry}
+										onOpen={onOpen}
+										topics={isHome ? store.topicsFor(entry) : undefined}
+										completion={completionFor(entry)}
+									/>
 								</View>
 							))}
 						</View>
@@ -465,19 +529,21 @@ export const LibraryScreen = observer(function LibraryScreen({
 							>
 								<Icon name="book" size={38} color={theme.primary} />
 								<Heading $compact style={{ textAlign: "center" }}>
-									התוכן הראשון בדרך
+									{isCourse ? "עדיין אין שיעורים בקורס" : "התוכן הראשון בדרך"}
 								</Heading>
-								<Body style={{ textAlign: "center", maxWidth: 510 }}>
-									כאן יופיעו התכנים של {details.title}.{"\n"}כשהתוכן הראשון יעלה,
-									תוכלו לבחור נושא ולהתחיל ללמוד.
-								</Body>
+								{!isCourse && (
+									<Body style={{ textAlign: "center", maxWidth: 510 }}>
+										כאן יופיעו התכנים של {details.title}.{"\n"}כשהתוכן הראשון
+										יעלה, תוכלו לבחור נושא ולהתחיל ללמוד.
+									</Body>
+								)}
 							</View>
 						) : store.visibleItems.length === 0 ? (
 							<View style={{ paddingVertical: 55, gap: 16, alignItems: "center" }}>
 								<Icon name="search" size={32} />
 								<Heading $compact>לא נמצאו נושאים מתאימים</Heading>
 								<Body style={{ textAlign: "center" }}>
-									נסו מילים אחרות או בחרו קטגוריה נוספת.
+									נסו לשנות את החיפוש או לנקות את הסינון.
 								</Body>
 								<Button $secondary onPress={store.reset} accessibilityRole="button">
 									<ButtonText $secondary>ניקוי החיפוש והסינון</ButtonText>
