@@ -10,6 +10,7 @@ import {
 	blossomId,
 	blossomItemId,
 	blossomOrigin,
+	unlinkBlossomContent,
 	uploadExistingScorm,
 } from "./blossom";
 import {
@@ -272,6 +273,12 @@ export async function creatorApi(
 			path !== `blossom/${id}/${variant}`
 		)
 			return fail("פעולת Blossom לא נמצאה.", 404);
+		if (request.method === "DELETE") {
+			const contentId = blossomId((await body(request)).contentId);
+			if (!contentId) fail("מזהה התוכן ב־Blossom אינו תקין.");
+			await unlinkBlossomContent(env, store, id, variant, owner, contentId);
+			return json({ unlinked: true });
+		}
 		if (request.method !== "POST") return fail("הפעולה אינה נתמכת.", 405);
 		const contentId = await uploadExistingScorm(
 			env,

@@ -273,6 +273,42 @@ export class CatalogStore {
 				});
 		}
 	}
+	async unlinkFromBlossom(id: string, variant: MediaKind, contentId: number) {
+		if (
+			this.saving ||
+			!this.repository.unlinkFromBlossom ||
+			this.blossom?.items[id]?.[variant] !== contentId
+		)
+			return;
+		const generation = this.generation;
+		this.saving = true;
+		this.error = null;
+		this.message = null;
+		try {
+			await this.repository.unlinkFromBlossom(id, variant, contentId);
+			if (this.disposed || generation !== this.generation) return;
+			runInAction(() => {
+				if (!this.blossom) return;
+				const items = { ...this.blossom.items };
+				const variants = { ...items[id] };
+				delete variants[variant];
+				if (Object.keys(variants).length) items[id] = variants;
+				else delete items[id];
+				this.blossom = { ...this.blossom, items };
+				this.message = "הקישור ל־Blossom הוסר";
+			});
+		} catch (error) {
+			if (!this.disposed && generation === this.generation)
+				runInAction(() => {
+					this.error = error instanceof Error ? error.message : "ניתוק הקישור נכשל.";
+				});
+		} finally {
+			if (!this.disposed)
+				runInAction(() => {
+					this.saving = false;
+				});
+		}
+	}
 	async publishBlossomCourse(id: Gallery): Promise<boolean> {
 		if (this.saving || !this.blossom?.courses || !this.repository.publishBlossomCourse)
 			return false;

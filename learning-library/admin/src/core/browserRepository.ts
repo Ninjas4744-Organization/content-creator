@@ -96,6 +96,11 @@ export function createBrowserRepository(): CatalogRepository {
 					revision,
 				)
 			).contentId,
+		unlinkFromBlossom: async (id, variant, contentId) => {
+			await request(`/api/creator/blossom/${encodeURIComponent(id)}/${variant}`, "DELETE", {
+				contentId,
+			});
+		},
 		dispose,
 	};
 }

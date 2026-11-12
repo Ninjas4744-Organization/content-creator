@@ -98,6 +98,7 @@ export interface CatalogRepository {
 	blossom?(): Promise<BlossomCatalog>;
 	blossomAssignmentForms?(id: Gallery): Promise<BlossomAssignmentForm[]>;
 	uploadToBlossom?(id: string, variant: MediaKind, revision: CatalogRevision): Promise<number>;
+	unlinkFromBlossom?(id: string, variant: MediaKind, contentId: number): Promise<void>;
 	publishBlossomCourse?(id: Gallery, revision: CatalogRevision): Promise<BlossomCourse>;
 	dispose(): void;
 }

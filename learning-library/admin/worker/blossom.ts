@@ -58,6 +58,8 @@ export function blossomContentSettings(env: BlossomEnv, owner?: string) {
 }
 
 const receiptPrefix = (owner: string) => `private/blossom-content/${owner}/davinci4744-`;
+const receiptKey = (owner: string, id: string, variant: MediaKind) =>
+	receiptPrefix(owner) + `${id}-${variant}.json`;
 
 export function blossomId(value: unknown): number | undefined {
 	if (typeof value !== "string" && typeof value !== "number") return;
@@ -220,7 +222,7 @@ async function uploadPackage(
 ): Promise<Outcome> {
 	const { owner, domain, authorization } = config;
 	const externalId = blossomContentExternalId(owner, item.id, pkg.variant);
-	const key = receiptPrefix(owner) + `${item.id}-${pkg.variant}.json`;
+	const key = receiptKey(owner, item.id, pkg.variant);
 	const previous = await bucket.get(key);
 	const receipt = previous ? await previous.json<Receipt>() : { leaseUntil: 0 };
 	if (receipt.leaseUntil > Date.now()) return { status: "busy" };
@@ -309,6 +311,53 @@ export async function blossomCatalog(
 		cursor = page.truncated ? page.cursor : undefined;
 	} while (cursor);
 	return { available: true, items };
+}
+
+export async function unlinkBlossomContent(
+	env: BlossomEnv,
+	store: CatalogDomain,
+	id: string,
+	variant: MediaKind,
+	owner: string,
+	expectedContentId: number,
+) {
+	const config = blossomContentSettings(env, owner);
+	if (!config) throw new CatalogError("החיבור ל־Blossom אינו זמין.", 503);
+	if (!(await store.read()).items.some((item) => item.id === id))
+		throw new CatalogError("התוכן לא נמצא.", 404);
+	const bucket = env.CONTENT;
+	const key = receiptKey(config.owner, id, variant);
+	const previous = await bucket.get(key);
+	if (!previous) return;
+	const original = await previous.text();
+	const receipt = JSON.parse(original) as Receipt;
+	if (receipt.leaseUntil > Date.now())
+		throw new CatalogError("העלאה קודמת עדיין בטיפול. נסו שוב בעוד כמה דקות.", 409);
+	const metadata = { ...previous.customMetadata };
+	const ids = [receipt.uploaded?.contentId, metadata.contentId].filter(
+		(value) => value !== undefined,
+	);
+	if (!ids.length) return;
+	const conflict = "הקישור ל־Blossom השתנה. רעננו את הדף ונסו שוב.";
+	if (ids.some((value) => blossomId(value) !== expectedContentId))
+		throw new CatalogError(conflict, 409);
+
+	const backupKey = `private/blossom-content-recovery/${config.owner}/${id}-${variant}/${crypto.randomUUID()}.json`;
+	const backup = await bucket.put(backupKey, original, {
+		onlyIf: { etagDoesNotMatch: "*" },
+		customMetadata: metadata,
+		httpMetadata: previous.httpMetadata,
+	});
+	if (!backup) throw new CatalogError("לא ניתן לגבות את הקישור לפני הניתוק.", 503);
+
+	delete receipt.uploaded;
+	delete metadata.contentId;
+	const saved = await bucket.put(key, JSON.stringify(receipt), {
+		onlyIf: { etagMatches: previous.etag },
+		customMetadata: metadata,
+		httpMetadata: previous.httpMetadata,
+	});
+	if (!saved) throw new CatalogError(conflict, 409);
 }
 
 export async function uploadExistingScorm(

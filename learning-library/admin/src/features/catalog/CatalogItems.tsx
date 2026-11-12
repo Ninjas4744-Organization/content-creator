@@ -4,8 +4,9 @@ import { observer } from "mobx-react-lite";
 import styled from "styled-components";
 import nativeStyled, { useTheme } from "styled-components/native";
 import { itemGallery } from "../../models/catalog";
-import type { LearningItem } from "../../models/catalog";
+import type { LearningItem, MediaKind } from "../../models/catalog";
 import type { CatalogStore } from "./CatalogStore";
+import { ConfirmDialog } from "../../ui/ConfirmDialog";
 import { Body, Button, ButtonText, Row } from "../../ui/primitives";
 import { Check, IconButton, WebLink } from "../../ui/browserControls";
 import { Icon } from "../../ui/Icon";
@@ -158,6 +159,64 @@ const FeaturedButton = observer(function FeaturedButton({
 		</IconButton>
 	);
 });
+const BlossomLink = observer(function BlossomLink({
+	item,
+	store,
+	variant,
+	label,
+	contentId,
+}: {
+	item: LearningItem;
+	store: CatalogStore;
+	variant: MediaKind;
+	label: string;
+	contentId: number;
+}) {
+	const [confirming, setConfirming] = useState(false);
+	return (
+		<Row style={{ gap: 6, alignItems: "center", flexWrap: "wrap" }}>
+			<WebLink
+				href={`https://davinci4744.blossom-kc.com/#edit/content/${contentId}`}
+				target="_blank"
+				rel="noopener noreferrer"
+				aria-label={`${label} ב־Blossom, תוכן ${contentId}`}
+			>
+				{label} ב־Blossom · {contentId}
+			</WebLink>
+			<Button
+				$secondary
+				accessibilityRole="button"
+				accessibilityLabel={`ניתוק קישור ${label} ל־Blossom, תוכן ${contentId}`}
+				disabled={store.saving}
+				onPress={() => {
+					store.setError(null);
+					setConfirming(true);
+				}}
+				style={{ minHeight: 30, paddingVertical: 5, paddingHorizontal: 8 }}
+			>
+				<ButtonText $secondary style={{ fontSize: 11 }}>
+					ניתוק קישור
+				</ButtonText>
+			</Button>
+			{confirming && (
+				<ConfirmDialog
+					open
+					title={`לנתק את הקישור לתוכן ${contentId} ב־Blossom?`}
+					description="הקישור יוסר מהאדמין ויהיה אפשר להעלות שוב את הקובץ המקורי."
+					label="ניתוק קישור"
+					busy={store.saving}
+					error={store.error}
+					onClose={() => {
+						if (store.saving) return;
+						store.setError(null);
+						setConfirming(false);
+					}}
+					onConfirm={() => void store.unlinkFromBlossom(item.id, variant, contentId)}
+				/>
+			)}
+		</Row>
+	);
+});
 const BlossomActions = observer(function BlossomActions({
 	item,
 	store,
@@ -174,15 +233,14 @@ const BlossomActions = observer(function BlossomActions({
 				const contentId = saved?.[variant];
 				if (contentId)
 					return (
-						<WebLink
+						<BlossomLink
 							key={variant}
-							href={`https://davinci4744.blossom-kc.com/#edit/content/${contentId}`}
-							target="_blank"
-							rel="noopener noreferrer"
-							aria-label={`${label} ב־Blossom, תוכן ${contentId}`}
-						>
-							{label} ב־Blossom · {contentId}
-						</WebLink>
+							item={item}
+							store={store}
+							variant={variant}
+							label={label}
+							contentId={contentId}
+						/>
 					);
 				if (!item.scorm?.[variant]) return null;
 				return (

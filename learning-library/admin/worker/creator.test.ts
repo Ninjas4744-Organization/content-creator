@@ -289,6 +289,81 @@ test("the admin uploads a saved legacy archive and projects private Blossom IDs"
 	}
 });
 
+test("unlinking a Blossom deck preserves the catalog and lets its owner upload it again", async () => {
+	const storage = new R2CatalogStorage(bucket, actor);
+	const initial = await storage.read();
+	const item = initial.items[0]!;
+	const archive = `library/exports/${item.id}/slides.zip`;
+	Object.assign(item, { gallery: "none", unlisted: true, scorm: { deck: archive } });
+	await bucket.put("library/catalog.json", JSON.stringify(documentOf(initial)));
+	await bucket.put(archive, scormArchive);
+	const before = await storage.read();
+	const receipt = JSON.stringify({ leaseUntil: 0, uploaded: { contentId: 119 } });
+	const deckKey = `private/blossom-content/42/davinci4744-${item.id}-deck.json`;
+	await bucket.put(deckKey, receipt, {
+		customMetadata: { contentId: "119" },
+	});
+	await bucket.put(
+		`private/blossom-content/42/davinci4744-${item.id}-video.json`,
+		JSON.stringify({ leaseUntil: 0, uploaded: { contentId: 120 } }),
+	);
+	const otherDeckKey = `private/blossom-content/43/davinci4744-${item.id}-deck.json`;
+	await bucket.put(otherDeckKey, JSON.stringify({ leaseUntil: 0, uploaded: { contentId: 121 } }));
+	const endpoint = `blossom/${item.id}/deck`;
+	const unlink = (contentId: number, owner = "42") =>
+		adminApi(request(endpoint, "DELETE", { contentId }), blossomSettings, actor, owner);
+	const status = async () =>
+		(await adminApi(request("blossom"), blossomSettings, actor, "42")).json();
+	const upstream = vi.spyOn(globalThis, "fetch").mockImplementation(async (url, init) => {
+		const form = await new Request(url, init).formData();
+		expect(new Uint8Array(await (form.get("lessonfile") as File).arrayBuffer())).toEqual(
+			scormArchive,
+		);
+		return new Response("122");
+	});
+	try {
+		const agent = request(endpoint, "DELETE", { contentId: 119 });
+		agent.headers.set("Authorization", "Bearer test-grant");
+		await expect(adminApi(agent, blossomSettings, actor, "42")).rejects.toMatchObject({
+			status: 403,
+		});
+		await expect(
+			adminApi(
+				request(endpoint, "DELETE", { contentId: 119 }, undefined, "https://example.com"),
+				blossomSettings,
+				actor,
+				"42",
+			),
+		).rejects.toMatchObject({ status: 403 });
+		await expect(unlink(119, "43")).rejects.toMatchObject({ status: 409 });
+		await expect(unlink(118)).rejects.toMatchObject({ status: 409 });
+		expect(await (await unlink(119)).json()).toEqual({ unlinked: true });
+		expect(await (await unlink(119)).json()).toEqual({ unlinked: true });
+		expect(upstream).not.toHaveBeenCalled();
+		expect(await status()).toEqual({ available: true, items: { [item.id]: { video: 120 } } });
+		expect(await (await bucket.get(otherDeckKey))!.json()).toMatchObject({
+			uploaded: { contentId: 121 },
+		});
+		const backups = await bucket.list({
+			prefix: `private/blossom-content-recovery/42/${item.id}-deck/`,
+		});
+		expect(backups.objects).toHaveLength(1);
+		expect(await (await bucket.get(backups.objects[0]!.key))!.text()).toBe(receipt);
+		expect(await storage.read()).toEqual(before);
+		const uploaded = await adminApi(
+			request(endpoint, "POST", {}, String(before.revision)),
+			blossomSettings,
+			actor,
+			"42",
+		);
+		expect(await uploaded.json()).toEqual({ contentId: 122 });
+		await expect(unlink(119)).rejects.toMatchObject({ status: 409 });
+		expect(await status()).toMatchObject({ items: { [item.id]: { deck: 122, video: 120 } } });
+	} finally {
+		upstream.mockRestore();
+	}
+});
+
 test("course export prepares SCORM forms and resumes without recreating courses", async () => {
 	const courseId = "library-course";
 	const storage = new R2CatalogStorage(bucket, actor);
