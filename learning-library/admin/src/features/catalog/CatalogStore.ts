@@ -1,5 +1,5 @@
 import { makeAutoObservable, observable, runInAction } from "mobx";
-import { isFixedGallery, itemGallery, itemTopics } from "../../models/catalog";
+import { isFixedGallery, itemGallery, itemTopics, normalizeTopics } from "../../models/catalog";
 import { viewNames } from "./galleries";
 import type {
 	AdminView,
@@ -15,6 +15,8 @@ import type {
 	HistoryEntry,
 	LearningItem,
 	MediaFilter,
+	MediaKind,
+	BlossomCatalog,
 } from "../../models/catalog";
 
 export class CatalogStore {
@@ -25,7 +27,7 @@ export class CatalogStore {
 	updatedAt: string | null = null;
 	query = "";
 	filter: MediaFilter = "all";
-	topic = "";
+	category = "הכול";
 	gallery: "all" | Gallery = "all";
 	view: AdminView = "all";
 	sort: CatalogSort = "original";
@@ -37,6 +39,8 @@ export class CatalogStore {
 	message: string | null = null;
 	history: HistoryEntry[] = [];
 	historyLoading = false;
+	blossom: BlossomCatalog | null = null;
+	blossomBusy: string | null = null;
 	private generation = 0;
 	private historyGeneration = 0;
 	private disposed = false;
@@ -53,6 +57,7 @@ export class CatalogStore {
 				galleries: observable.ref,
 				history: observable.ref,
 				selected: observable.ref,
+				blossom: observable.ref,
 			},
 			{ autoBind: true },
 		);
@@ -74,25 +79,17 @@ export class CatalogStore {
 			? viewNames[this.view]!
 			: this.galleryName(this.view);
 	}
-	get formerTeams() {
-		return new Map(
-			this.galleries
-				.filter((gallery) => gallery.section === "team")
-				.map(({ id, name }) => [id, name]),
-		);
+	get categories() {
+		return [
+			"הכול",
+			...normalizeTopics(this.items.flatMap(this.topicsFor)).sort((a, b) =>
+				a.localeCompare(b, "he"),
+			),
+		];
 	}
 	topicsFor(item: LearningItem) {
-		return itemTopics(item, this.formerTeams.get(itemGallery(item)));
-	}
-	get topics() {
-		const topics = new Map<string, string>();
-		for (const item of this.items) {
-			for (const topic of this.topicsFor(item)) {
-				const key = topic.toLocaleLowerCase("he");
-				if (!topics.has(key)) topics.set(key, topic);
-			}
-		}
-		return [...topics.values()].sort((a, b) => a.localeCompare(b, "he"));
+		const gallery = this.galleries.find(({ id }) => id === itemGallery(item));
+		return itemTopics(item, gallery?.section === "team" ? gallery.name : undefined);
 	}
 	get deckCount() {
 		return this.items.filter((item) => item.deck).length;
@@ -107,7 +104,7 @@ export class CatalogStore {
 		const words = this.query.trim().toLocaleLowerCase("he").split(/\s+/).filter(Boolean);
 		const items = this.items.filter((item) => {
 			const gallery = itemGallery(item);
-			const topics = this.topicsFor(item).map((topic) => topic.toLocaleLowerCase("he"));
+			const topics = this.topicsFor(item);
 			const text = [item.title, item.description, ...topics, item.id, ...item.chapters]
 				.join(" ")
 				.toLocaleLowerCase("he");
@@ -117,7 +114,11 @@ export class CatalogStore {
 					(this.view === "featured" ? item.featured : gallery === this.view)) &&
 				(this.gallery === "all" || this.gallery === gallery) &&
 				(this.filter === "all" || Boolean(item[this.filter])) &&
-				(!this.topic || topics.includes(this.topic)) &&
+				(this.category === "הכול" ||
+					topics.some(
+						(topic) =>
+							topic.toLocaleLowerCase("he") === this.category.toLocaleLowerCase("he"),
+					)) &&
 				words.every((word) => text.includes(word))
 			);
 		});
@@ -137,8 +138,8 @@ export class CatalogStore {
 	setFilter(value: MediaFilter) {
 		this.filter = value;
 	}
-	setTopic(value: string) {
-		this.topic = value.toLocaleLowerCase("he");
+	setCategory(value: string) {
+		this.category = value;
 	}
 	setGallery(value: "all" | Gallery) {
 		this.gallery = value;
@@ -179,7 +180,7 @@ export class CatalogStore {
 	reset() {
 		this.query = "";
 		this.filter = "all";
-		this.topic = "";
+		this.category = "הכול";
 		this.gallery = "all";
 		this.view = "all";
 		this.clearSelection();
@@ -197,11 +198,7 @@ export class CatalogStore {
 			this.view = "all";
 		this.revision = snapshot.revision;
 		this.updatedAt = snapshot.updatedAt;
-		if (
-			this.topic &&
-			!this.topics.some((topic) => topic.toLocaleLowerCase("he") === this.topic)
-		)
-			this.topic = "";
+		if (!this.categories.includes(this.category)) this.category = "הכול";
 		this.clearSelection();
 	}
 	async load() {
@@ -209,6 +206,7 @@ export class CatalogStore {
 		this.disposed = false;
 		this.loading = true;
 		this.error = null;
+		this.blossom = null;
 		try {
 			const snapshot = await this.repository.load();
 			if (generation !== this.generation || this.disposed) return;
@@ -216,6 +214,7 @@ export class CatalogStore {
 				this.accept(snapshot);
 				this.loading = false;
 			});
+			await this.loadBlossom(generation);
 		} catch (error) {
 			if (generation !== this.generation || this.disposed) return;
 			runInAction(() => {
@@ -223,6 +222,92 @@ export class CatalogStore {
 				this.loading = false;
 			});
 		}
+	}
+	private async loadBlossom(generation = this.generation) {
+		if (!this.repository.blossom) return;
+		try {
+			const value = await this.repository.blossom();
+			if (!this.disposed && generation === this.generation)
+				runInAction(() => {
+					this.blossom = value;
+				});
+		} catch (error) {
+			if (!this.disposed && generation === this.generation)
+				runInAction(() => {
+					this.blossom = null;
+					this.error ??=
+						error instanceof Error ? error.message : "טעינת מצב Blossom נכשלה.";
+				});
+		}
+	}
+	async uploadToBlossom(id: string, variant: MediaKind) {
+		if (this.saving || !this.blossom?.available || !this.repository.uploadToBlossom) return;
+		this.blossomBusy = `${id}/${variant}`;
+		this.saving = true;
+		this.error = null;
+		try {
+			const contentId = await this.repository.uploadToBlossom(id, variant, this.revision);
+			if (!this.disposed)
+				runInAction(() => {
+					const items = this.blossom?.items ?? {};
+					this.blossom = {
+						...this.blossom,
+						available: true,
+						items: {
+							...items,
+							[id]: { ...items[id], [variant]: contentId },
+						},
+					};
+					this.message = `החבילה הועלתה ל־Blossom (תוכן ${contentId})`;
+				});
+		} catch (error) {
+			if (!this.disposed)
+				runInAction(() => {
+					this.error = error instanceof Error ? error.message : "ההעלאה ל־Blossom נכשלה.";
+				});
+		} finally {
+			if (!this.disposed)
+				runInAction(() => {
+					this.blossomBusy = null;
+					this.saving = false;
+				});
+		}
+	}
+	async publishBlossomCourse(id: Gallery): Promise<boolean> {
+		if (this.saving || !this.blossom?.courses || !this.repository.publishBlossomCourse)
+			return false;
+		const generation = this.generation;
+		this.saving = true;
+		this.error = null;
+		this.message = null;
+		try {
+			const course = await this.repository.publishBlossomCourse(id, this.revision);
+			if (this.disposed || generation !== this.generation) return false;
+			runInAction(() => {
+				if (this.blossom)
+					this.blossom = {
+						...this.blossom,
+						courses: { ...this.blossom.courses, [id]: course },
+					};
+				this.message = "טופסי המטלות מוכנים לפתיחה ב־Blossom";
+			});
+			return true;
+		} catch (error) {
+			if (!this.disposed && generation === this.generation)
+				runInAction(() => {
+					this.error = error instanceof Error ? error.message : "יצירת הקורס נכשלה.";
+				});
+			return false;
+		} finally {
+			await this.loadBlossom(generation);
+			runInAction(() => {
+				this.saving = false;
+			});
+		}
+	}
+	async blossomAssignmentForms(id: Gallery) {
+		if (!this.repository.blossomAssignmentForms) throw new Error("טופסי המטלות אינם זמינים.");
+		return this.repository.blossomAssignmentForms(id);
 	}
 	private async persist(
 		operation: () => Promise<CatalogSnapshot>,
@@ -238,6 +323,7 @@ export class CatalogStore {
 				this.accept(snapshot);
 				this.message = message;
 			});
+			await this.loadBlossom();
 			return true;
 		} catch (error) {
 			if (!this.disposed)

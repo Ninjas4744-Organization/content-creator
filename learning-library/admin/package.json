@@ -4,8 +4,6 @@
 	"private": true,
 	"main": "expo-router/entry",
 	"scripts": {
-		"prestart": "npm run build:creator-kit",
-		"predev": "npm run build:creator-kit",
 		"start": "node scripts/dev.mjs",
 		"start:web": "expo start --web --localhost --port 8081",
 		"dev": "npm start",

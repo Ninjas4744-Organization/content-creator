@@ -1,5 +1,5 @@
 import { env } from "cloudflare:test";
-import { beforeEach, expect, test } from "vitest";
+import { beforeEach, expect, test, vi } from "vitest";
 // Synchronized into learning-library/cloudflare/tests, where the Worker runtime lives.
 import { adminApi } from "../src/admin";
 import worker from "../src/worker";
@@ -19,6 +19,19 @@ const origin = "https://knowledge.davinci4744.com";
 const actor = "allowed@example.com";
 const bucket = settings.CONTENT;
 const encode = (value: string) => new TextEncoder().encode(value);
+const scormArchive = Uint8Array.from(
+	atob(
+		"UEsDBBQAAAAAAKo6Y13tN8mLCwAAAAsAAAAPAAAAaW1zbWFuaWZlc3QueG1sPG1hbmlmZXN0Lz5QSwECFAMUAAAAAACqOmNd7TfJiwsAAAALAAAADwAAAAAAAAAAAAAAgAEAAAAAaW1zbWFuaWZlc3QueG1sUEsFBgAAAAABAAEAPQAAADgAAAAAAA==",
+	),
+	(value) => value.charCodeAt(0),
+); // ZIP with a root imsmanifest.xml entry.
+const blossomSettings = {
+	...settings,
+	ADMIN_SSO_ISSUER: "https://davinci4744.blossom-kc.com",
+	BLOSSOM_COURSE_DOMAIN_ID: "5",
+	BLOSSOM_CONTENT_API_USER: "test-content",
+	BLOSSOM_CONTENT_API_PASSWORD: "test-secret",
+};
 async function hash(data: Uint8Array) {
 	return Array.from(new Uint8Array(await crypto.subtle.digest("SHA-256", data)))
 		.map((n) => n.toString(16).padStart(2, "0"))
@@ -157,6 +170,354 @@ test("verified uploads become visible only when complete and retain private sour
 		await (await call(`uploads/${f.id}/files/0/parts/1`, "PUT", encode("overwrite"))).json(),
 	).toEqual({ complete: true });
 	expect(await (await bucket.get(saved.items.at(-1)!.poster))!.text()).toBe("poster");
+});
+
+test("creator publication and replay publish SCORM to the site without calling Blossom", async () => {
+	const f = await fixture();
+	for (const [variant, filename] of [
+		["deck", "slides.zip"],
+		["video", "video.zip"],
+	] as const) {
+		const path = `exports/new-training/${filename}`;
+		f.catalog.items[0]!.scorm = { ...f.catalog.items[0]!.scorm, [variant]: "library/" + path };
+		f.files.push({ path, size: scormArchive.length, hashes: [await hash(scormArchive)] });
+		f.data.push(scormArchive);
+	}
+	const session = await begin(f);
+	await upload(session);
+	const storage = new R2CatalogStorage(bucket, actor);
+	const upstream = vi
+		.spyOn(globalThis, "fetch")
+		.mockResolvedValue(new Response(null, { status: 503 }));
+	const publish = () =>
+		creatorApi(
+			request(`uploads/${session.id}/publish`, "POST"),
+			blossomSettings,
+			actor,
+			storage,
+		);
+	try {
+		const first = await (await publish()).json();
+		expect(first).toMatchObject({ published: true, ids: ["new-training"] });
+		expect(await (await publish()).json()).toEqual(first);
+		expect(upstream).not.toHaveBeenCalled();
+		const saved = (await storage.read()).items.at(-1)!;
+		expect(saved.scorm).toEqual({
+			deck: `library/releases/${session.id}/exports/new-training/slides.zip`,
+			video: `library/releases/${session.id}/exports/new-training/video.zip`,
+		});
+		expect(
+			await (await adminApi(request("blossom"), blossomSettings, actor, "42")).json(),
+		).toEqual({
+			available: true,
+			items: {},
+		});
+		expect((await storage.history()).length).toBe(1);
+	} finally {
+		upstream.mockRestore();
+	}
+});
+
+test("the admin uploads a saved legacy archive and projects private Blossom IDs", async () => {
+	const storage = new R2CatalogStorage(bucket, actor);
+	const initial = await storage.read();
+	const item = initial.items[0]!;
+	const path = `library/exports/${item.id}/slides.zip`;
+	item.scorm = { ...item.scorm, deck: path };
+	await bucket.put("library/catalog.json", JSON.stringify(documentOf(initial)));
+	const before = await storage.read();
+	await bucket.put(path, scormArchive);
+	// Receipt written by the original integration, before custom metadata was indexed.
+	await bucket.put(
+		`private/blossom-content/42/davinci4744-${item.id}-video.json`,
+		JSON.stringify({ leaseUntil: 0, uploaded: { fingerprint: "legacy", contentId: 96 } }),
+	);
+	const status = () => adminApi(request("blossom"), blossomSettings, actor, "42");
+	const endpoint = `blossom/${item.id}/deck`;
+	const publish = (revision: string, owner = "42") =>
+		adminApi(
+			request(endpoint, "POST", { owner: "99" }, revision),
+			blossomSettings,
+			actor,
+			owner,
+		);
+	const upstream = vi.spyOn(globalThis, "fetch").mockImplementation(async (url, init) => {
+		const form = await new Request(url, init).formData();
+		const owner = form.get("user_id");
+		expect(["42", "43"]).toContain(owner);
+		expect(form.get("user")).toBe(`user_id=${owner}&domain=5`);
+		expect(form.get("ext_id")).toBe(`davinci4744-user-${owner}-${item.id}-deck`);
+		expect(new Uint8Array(await (form.get("lessonfile") as File).arrayBuffer())).toEqual(
+			scormArchive,
+		);
+		return new Response(owner === "42" ? "97" : "98");
+	});
+	try {
+		expect(await (await status()).json()).toMatchObject({
+			available: true,
+			items: { [item.id]: { video: 96 } },
+		});
+		await expect(publish("old")).rejects.toMatchObject({ status: 409 });
+		await expect(
+			adminApi(
+				request(endpoint, "POST", { owner: "99" }, String(before.revision)),
+				blossomSettings,
+				actor,
+			),
+		).rejects.toMatchObject({ status: 403 });
+		const agentRequest = request(endpoint, "POST", {}, String(before.revision));
+		agentRequest.headers.set("Authorization", "Bearer test-grant");
+		await expect(adminApi(agentRequest, blossomSettings, actor)).rejects.toMatchObject({
+			status: 403,
+		});
+		expect(upstream).not.toHaveBeenCalled();
+		for (let attempt = 0; attempt < 2; attempt++)
+			expect(await (await publish(String(before.revision))).json()).toEqual({
+				contentId: 97,
+			});
+		expect(upstream).toHaveBeenCalledTimes(1);
+		expect(await (await publish(String(before.revision), "43")).json()).toEqual({
+			contentId: 98,
+		});
+		expect(await (await status()).json()).toMatchObject({
+			available: true,
+			items: { [item.id]: { deck: 97, video: 96 } },
+		});
+		expect((await storage.read()).revision).toBe(before.revision);
+	} finally {
+		upstream.mockRestore();
+	}
+});
+
+test("course export prepares SCORM forms and resumes without recreating courses", async () => {
+	const courseId = "library-course";
+	const storage = new R2CatalogStorage(bucket, actor);
+	const state = await storage.read();
+	const items = state.items.slice(0, 2).map((item, i) => ({
+		...item,
+		gallery: courseId,
+		scorm: i === 0 ? { deck: "library/exports/" + item.id + "/slides.zip" } : {},
+	}));
+	const gallery = { id: courseId, name: "רובוטיקה", url: "/", section: "course" };
+	await bucket.put(
+		"library/catalog.json",
+		JSON.stringify({ ...documentOf(state), galleries: [...state.galleries, gallery], items }),
+	);
+	const revision = String((await storage.read()).revision);
+	await bucket.put(items[0]!.scorm.deck!, scormArchive);
+	const legacyReceipt = "private/blossom-content/42/davinci4744-" + items[1]!.id + "-video.json";
+	const courseSettings = {
+		...blossomSettings,
+		BLOSSOM_SYNC_API_USER: "test-sync",
+		BLOSSOM_SYNC_API_PASSWORD: "test-sync-secret",
+		ADMIN_PERMISSION_URL:
+			"https://davinci4744.blossom-kc.com/WebServices/api_remote/user_details",
+		ADMIN_PERMISSION_USER: "test-remote",
+		ADMIN_PERMISSION_SECRET: "test-remote-secret",
+		BLOSSOM_COURSE_DOMAIN_ID: "5",
+	};
+	const path = "blossom/courses/" + courseId + "/publish";
+	const publish = (version = revision) =>
+		adminApi(request(path, "POST", {}, version), courseSettings, actor, "42");
+	const status = () =>
+		adminApi(request("blossom"), courseSettings, actor, "42").then((value) => value.json());
+	const forms = () =>
+		adminApi(
+			request(`blossom/courses/${courseId}/assignment-forms`),
+			courseSettings,
+			actor,
+		).then((value) => value.json());
+	let externalId = "";
+	let courseFound = false;
+	let courseName = "";
+	let nameInUse = true;
+	let keepWorkspaceNames = false;
+	const operations: string[] = [];
+	const upstream = vi.spyOn(globalThis, "fetch").mockImplementation(async (url, init) => {
+		const outgoing = new Request(url, init);
+		if (outgoing.headers.get("Content-Type")?.startsWith("multipart/form-data")) {
+			const form = await outgoing.formData();
+			expect(form.get("user")).toBe("user_id=42&domain=5");
+			expect(form.get("ext_id")).toBe("davinci4744-user-42-" + items[0]!.id + "-deck");
+			operations.push("upload");
+			return Response.json({ res: "success", content_id: "97", share_id: null });
+		}
+		if (outgoing.url.endsWith("/sync_2/ImportGroups/5")) {
+			expect(outgoing.headers.get("Authorization")).toBe(
+				"Basic " + btoa("test-sync:test-sync-secret"),
+			);
+			expect(await outgoing.json()).toEqual([
+				{ name: gallery.name, external_id: externalId, type: "course" },
+			]);
+			operations.push("import-name");
+			courseName = gallery.name;
+			return Response.json({ res: "success", results: [] });
+		}
+		const body = await outgoing.json<{
+			domain?: string;
+			details?: { name: string; external_id: string; type: string };
+			filters?: { external_id: string; type: string; limit: number };
+			as_array?: boolean;
+		}>();
+		expect(body.domain).toBe("5");
+		if (outgoing.url.endsWith("/api_remote/groups")) {
+			expect(outgoing.headers.get("Authorization")).toBe(
+				"Basic " + btoa("test-remote:test-remote-secret"),
+			);
+			expect(body).toMatchObject({ filters: { type: "course", limit: 2 }, as_array: true });
+			expect(body.filters?.external_id).toMatch(/^davinci4744-course-[a-f0-9]{32}$/);
+			operations.push("lookup");
+			return Response.json(
+				courseFound
+					? [
+							{
+								group_id: "98",
+								external_id: externalId,
+								type: "Course",
+								group_name: courseName,
+							},
+						]
+					: [],
+			);
+		}
+		expect(outgoing.url).toBe(
+			"https://davinci4744.blossom-kc.com/WebServices/sync_2/UpdateGroup",
+		);
+		expect(outgoing.headers.get("Authorization")).toBe(
+			"Basic " + btoa("test-sync:test-sync-secret"),
+		);
+		expect(body.details?.type).toBe("course");
+		expect(body.details?.external_id).toMatch(/^davinci4744-course-[a-f0-9]{32}$/);
+		if (courseName) {
+			expect(body.details?.external_id).toBe(externalId);
+			expect(body.details?.name).toBe(gallery.name);
+			if (nameInUse) {
+				operations.push("rename-conflict");
+				return Response.json(
+					{
+						res: "error",
+						error_msg: "group_name validation error: In conflict with: #99",
+					},
+					{ status: 500 },
+				);
+			}
+			operations.push("rename");
+		} else {
+			expect(body.details?.name).toMatch(/^Da Vinci setup [a-f0-9-]{36}$/);
+			externalId = body.details!.external_id;
+			operations.push("create");
+		}
+		if (!keepWorkspaceNames) courseName = body.details!.name;
+		return Response.json({ res: "success" });
+	});
+	try {
+		await expect(publish("stale")).rejects.toMatchObject({ status: 409 });
+		await expect(publish()).rejects.toMatchObject({ status: 422 });
+		const agent = request(path, "POST", {}, revision);
+		agent.headers.set("Authorization", "Bearer test-grant");
+		await expect(adminApi(agent, courseSettings, actor)).rejects.toMatchObject({ status: 403 });
+		await expect(
+			adminApi(
+				request(path, "POST", {}, revision, "https://example.org"),
+				courseSettings,
+				actor,
+			),
+		).rejects.toMatchObject({ status: 403 });
+		expect(upstream).not.toHaveBeenCalled();
+
+		await bucket.put(
+			legacyReceipt,
+			JSON.stringify({ leaseUntil: 0, uploaded: { contentId: 96 } }),
+		);
+		await expect(publish()).rejects.toMatchObject({ status: 502 });
+		expect(await status()).toMatchObject({
+			courses: { [courseId]: { externalId, lessonCount: 2, assignmentCount: 0 } },
+		});
+		await expect(forms()).rejects.toMatchObject({ status: 404 });
+
+		courseFound = true;
+		await expect(publish()).rejects.toMatchObject({ status: 409 });
+		await expect(forms()).rejects.toMatchObject({ status: 404 });
+		nameInUse = false;
+		const workspaceUrl = "https://davinci4744.blossom-kc.com/#workspace/98";
+		const formUrl = (contentId: number) =>
+			`https://davinci4744.blossom-kc.com/#edit/assignment/type=courseware&content=${contentId}&ws=98`;
+		for (let attempt = 0; attempt < 2; attempt++)
+			expect(await (await publish()).json()).toMatchObject({
+				name: gallery.name,
+				externalId,
+				lessonCount: 2,
+				assignmentCount: 0,
+				workspaceUrl,
+			});
+		expect(operations).toEqual([
+			"upload",
+			"lookup",
+			"create",
+			"lookup",
+			"lookup",
+			"rename-conflict",
+			"lookup",
+			"rename",
+			"lookup",
+		]);
+		expect(await status()).toMatchObject({
+			courses: { [courseId]: { name: gallery.name, workspaceUrl } },
+		});
+		expect(await forms()).toEqual([
+			{ title: items[0]!.title, url: formUrl(97) },
+			{ title: items[1]!.title, url: formUrl(96) },
+		]);
+
+		const name = gallery.name;
+		const legacyName =
+			name +
+			" · DV-" +
+			externalId.slice("davinci4744-course-".length, "davinci4744-course-".length + 12);
+		courseName = legacyName;
+		keepWorkspaceNames = true;
+		await bucket.put(
+			"private/blossom-courses/5/" + courseId + ".json",
+			JSON.stringify({
+				leaseUntil: 0,
+				contentEnabled: true,
+				sharedCount: 2,
+				groupId: 98,
+				plan: {
+					name: legacyName,
+					externalId,
+					lessons: [{ contentId: 97 }, { contentId: 96 }],
+				},
+			}),
+			{
+				customMetadata: {
+					name: legacyName,
+					externalId,
+					groupId: "98",
+					lessonCount: "2",
+					sharedCount: "2",
+				},
+			},
+		);
+		expect(await status()).toMatchObject({
+			courses: { [courseId]: { name: legacyName, assignmentCount: 0 } },
+		});
+		expect(await (await publish()).json()).toMatchObject({ name, externalId, workspaceUrl });
+		expect(await forms()).toEqual([
+			{ title: "שיעור 1", url: formUrl(97) },
+			{ title: "שיעור 2", url: formUrl(96) },
+		]);
+		expect(operations.slice(9)).toEqual([
+			"lookup",
+			"rename",
+			"lookup",
+			"import-name",
+			"lookup",
+		]);
+		expect((await storage.read()).revision).toBe(revision);
+	} finally {
+		upstream.mockRestore();
+	}
 });
 
 test("ownership, authentication, origin and current catalog revision guard uploads", async () => {

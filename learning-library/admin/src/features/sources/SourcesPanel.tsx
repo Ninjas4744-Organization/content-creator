@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { ActivityIndicator, View } from "react-native";
+import { Link } from "expo-router";
 import { observer } from "mobx-react-lite";
 import styled from "styled-components/native";
 import type { AlbumInput, PhotoAlbum } from "../../models/sources";
@@ -11,6 +12,8 @@ import { Field, FormButton, FormError, WebLink, Select } from "../../ui/browserC
 import { ModalDialog, DialogBody, DialogFooter } from "../../ui/ModalDialog";
 import { ConfirmDialog } from "../../ui/ConfirmDialog";
 import { Icon } from "../../ui/Icon";
+import { SectionTabs, SectionTab } from "../../ui/SectionTabs";
+import { sourceTabs, type SourceSection } from "../../routes/adminNavigation";
 
 const Card = styled.View`
 	background-color: ${({ theme }) => theme.surface};
@@ -41,9 +44,11 @@ const emptyAlbum = (): AlbumInput => ({
 export const SourcesPanel = observer(function SourcesPanel({
 	store,
 	compact,
+	section,
 }: {
 	store: SourcesStore;
 	compact: boolean;
+	section: SourceSection;
 }) {
 	const [editing, setEditing] = useState<AlbumInput | null>(null);
 	const [creating, setCreating] = useState(false);
@@ -52,9 +57,8 @@ export const SourcesPanel = observer(function SourcesPanel({
 	const [restoreId, setRestoreId] = useState("");
 	const [restoring, setRestoring] = useState(false);
 	const [prompt, setPrompt] = useState<string | null>(null);
-	const [section, setSection] = useState<"albums" | "backgrounds">("albums");
 	useEffect(() => {
-		void store.load();
+		store.setQuery("");
 	}, [store]);
 	const busy = store.loading || store.saving || store.uploading;
 	const edit = (album?: PhotoAlbum) => {
@@ -84,7 +88,7 @@ export const SourcesPanel = observer(function SourcesPanel({
 				<View style={{ gap: 8, flex: 1, minWidth: 220 }}>
 					<Body>חומרי הגלם לרעיונות הבאים שלכם</Body>
 					<Heading $compact={compact} accessibilityRole="header">
-						מקורות ליצירת תוכן
+						ניהול מקורות
 					</Heading>
 					<Body>
 						תמונות ורקעים עם ההקשר שיעזור לאייג׳נט לעצב מצגות וסרטונים שמתאימים לתוכן.
@@ -97,27 +101,15 @@ export const SourcesPanel = observer(function SourcesPanel({
 					</Button>
 				)}
 			</Row>
-			<Row style={{ flexWrap: "wrap", gap: 10 }}>
-				{(
-					[
-						["albums", "אלבומי תמונות"],
-						["backgrounds", "רקעים לתוכן"],
-					] as const
-				).map(([key, label]) => (
-					<FormButton
-						key={key}
-						$primary={section === key}
-						aria-pressed={section === key}
-						onClick={() => {
-							setSection(key);
-							store.setQuery("");
-							store.clearFeedback();
-						}}
-					>
-						{label}
-					</FormButton>
+			<SectionTabs aria-label="סוגי מקורות">
+				{Object.entries(sourceTabs).map(([key, tab]) => (
+					<Link key={key} href={tab.href} asChild push>
+						<SectionTab aria-current={section === key ? "page" : undefined}>
+							{tab.title}
+						</SectionTab>
+					</Link>
 				))}
-			</Row>
+			</SectionTabs>
 			{section === "albums" && (
 				<Card>
 					<Label>מתחילים מהמקור, יוצרים בהתאם לקונטקסט</Label>
@@ -158,7 +150,7 @@ export const SourcesPanel = observer(function SourcesPanel({
 			/>
 			{store.loading ? (
 				<ActivityIndicator accessibilityLabel="טוענים מקורות" />
-			) : section === "backgrounds" ? (
+			) : section === "themes" ? (
 				<BackgroundsPanel store={store} compact={compact} />
 			) : (
 				<Row style={{ flexWrap: "wrap", alignItems: "stretch", gap: 18 }}>

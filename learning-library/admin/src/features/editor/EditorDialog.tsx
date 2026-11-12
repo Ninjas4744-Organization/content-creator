@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import { observer } from "mobx-react-lite";
 import styled from "styled-components";
 import type { CatalogStore } from "../catalog/CatalogStore";
-import { GalleryOptions } from "../catalog/GalleryOptions";
 import type { EditorStore } from "./EditorStore";
 import { ModalDialog, DialogBody, DialogFooter } from "../../ui/ModalDialog";
 import { ConfirmDialog } from "../../ui/ConfirmDialog";
@@ -20,19 +19,6 @@ const Toggle = styled.label`
 	border-radius: 7px;
 	font: 12px ${({ theme }) => theme.font};
 	color: ${({ theme }) => theme.text};
-`;
-const Media = styled.details`
-	border-top: 1px solid ${({ theme }) => theme.border};
-	padding-top: 18px;
-	summary {
-		font: 13px ${({ theme }) => theme.font};
-		color: ${({ theme }) => theme.text};
-		margin-bottom: 18px;
-	}
-	p {
-		font: 11px/1.8 ${({ theme }) => theme.font};
-		color: ${({ theme }) => theme.muted};
-	}
 `;
 export const EditorDialog = observer(function EditorDialog({
 	editor,
@@ -60,7 +46,7 @@ export const EditorDialog = observer(function EditorDialog({
 		<>
 			<ModalDialog
 				open={editor.open}
-				title={editor.original ? "עריכת תוכן" : "תוכן חדש בספרייה"}
+				title="עריכת תוכן"
 				description={
 					catalog.production ? "השמירה מעדכנת את אתר הספרייה" : "נשמר במרחב העבודה המקומי"
 				}
@@ -69,8 +55,8 @@ export const EditorDialog = observer(function EditorDialog({
 				<form
 					onSubmit={async (event) => {
 						event.preventDefault();
-						if (await catalog.saveItem(editor.toItem(), editor.original?.id))
-							editor.close();
+						const item = editor.toItem();
+						if (await catalog.saveItem(item, item.id)) editor.close();
 					}}
 				>
 					<DialogBody>
@@ -85,16 +71,8 @@ export const EditorDialog = observer(function EditorDialog({
 							/>
 						</Field>
 						<Field>
-							מזהה תוכן *
-							<input
-								required
-								readOnly={!!editor.original}
-								pattern="[A-Za-z0-9_-]+"
-								maxLength={120}
-								dir="ltr"
-								value={draft.id}
-								onChange={(event) => editor.setField("id", event.target.value)}
-							/>
+							מזהה תוכן
+							<input readOnly dir="ltr" value={editor.original?.id ?? ""} />
 							<small>משמש לקישור הקבוע לתוכן.</small>
 						</Field>
 						<Field>
@@ -108,25 +86,38 @@ export const EditorDialog = observer(function EditorDialog({
 								}
 							/>
 						</Field>
-						<Field>
-							שיוך לספרייה או לקורס
-							<select
-								value={draft.gallery}
-								onChange={(event) => editor.setField("gallery", event.target.value)}
-							>
-								<GalleryOptions galleries={catalog.galleries} />
-							</select>
-						</Field>
-						<Field>
-							תחומים
-							<textarea
-								rows={3}
-								maxLength={4020}
-								value={draft.topics}
-								onChange={(event) => editor.setField("topics", event.target.value)}
-							/>
-							<small>אפשר לשייך כמה תחומים לתוכן. כתבו תחום אחד בכל שורה.</small>
-						</Field>
+						<FormRow>
+							<Field>
+								תחומים
+								<textarea
+									rows={3}
+									maxLength={4020}
+									value={draft.topics}
+									onChange={(event) =>
+										editor.setField("topics", event.target.value)
+									}
+								/>
+								<small>כתבו תחום אחד בכל שורה.</small>
+							</Field>
+							<Field>
+								שיוך לספרייה או לקורס
+								<select
+									value={draft.gallery}
+									onChange={(event) =>
+										editor.setField(
+											"gallery",
+											event.target.value as typeof draft.gallery,
+										)
+									}
+								>
+									{catalog.galleries.map((gallery) => (
+										<option key={gallery.id} value={gallery.id}>
+											{gallery.name}
+										</option>
+									))}
+								</select>
+							</Field>
+						</FormRow>
 						<Toggle>
 							<Check
 								checked={draft.featured}
@@ -148,57 +139,6 @@ export const EditorDialog = observer(function EditorDialog({
 								}
 							/>
 						</Field>
-						<Media open={!editor.original || undefined}>
-							<summary>מדיה וקבצים</summary>
-							<p>
-								קישורים לקבצים שכבר קיימים בספרייה. העלאת קבצים ויצירת תוכן יתווספו
-								בנפרד.
-							</p>
-							{(
-								[
-									["poster", "תמונת שער"],
-									["deck", "מצגת לצפייה"],
-									["video", "נגן וידאו"],
-									["powerpoint", "קובץ PowerPoint"],
-									["scormDeck", "SCORM — מצגת"],
-									["scormVideo", "SCORM — וידאו"],
-								] as const
-							).map(([key, label]) => (
-								<Field key={key}>
-									{label}
-									<input
-										dir="ltr"
-										value={draft[key]}
-										onChange={(event) =>
-											editor.setField(key, event.target.value)
-										}
-									/>
-								</Field>
-							))}
-							<FormRow>
-								{(
-									[
-										["slides", "מספר שקפים"],
-										["duration", "משך וידאו (שניות)"],
-										["checkpoints", "שאלות חזרה"],
-									] as const
-								).map(([key, label]) => (
-									<Field key={key}>
-										{label}
-										<input
-											type="number"
-											min="0"
-											max={key === "duration" ? 1000000 : 100000}
-											step={key === "duration" ? "any" : "1"}
-											value={draft[key]}
-											onChange={(event) =>
-												editor.setField(key, event.target.value)
-											}
-										/>
-									</Field>
-								))}
-							</FormRow>
-						</Media>
 						{editor.original && (
 							<FormButton
 								type="button"

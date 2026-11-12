@@ -219,8 +219,17 @@ test("editor keeps unknown metadata and media while tracking unsaved changes", (
 	assert.deepEqual(result.futureMetadata, item.futureMetadata);
 	assert.deepEqual(result.scorm, item.scorm);
 	assert.equal(result.poster, item.poster);
+	assert.equal(result.deck, item.deck);
 	assert.equal(result.video, item.video);
+	assert.equal(result.powerpoint, item.powerpoint);
+	assert.equal(result.slides, item.slides);
+	assert.equal(result.duration, item.duration);
+	assert.equal(result.checkpoints, item.checkpoints);
 	assert.equal(result.title, "כותרת חדשה");
+	const itemWithoutScorm = { ...item };
+	delete itemWithoutScorm.scorm;
+	editor.edit(itemWithoutScorm);
+	assert.equal(Object.hasOwn(editor.toItem(), "scorm"), false);
 });
 
 test("a disposed route ignores a late catalog response", async () => {
@@ -256,7 +265,7 @@ test("custom galleries update observable labels, filters, editor and bulk assign
 	assert.equal(store.viewName, "הדרכות חדשות");
 	assert.equal(store.items[0]!.gallery, custom.id);
 	const editor = new EditorStore();
-	editor.edit(store.items[0]);
+	editor.edit(store.items[0]!);
 	assert.equal(editor.toItem().gallery, custom.id);
 	assert.doesNotMatch(itemUrl(editor.toItem(), store.galleries), /undefined/);
 });

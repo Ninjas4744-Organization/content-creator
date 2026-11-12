@@ -1,5 +1,21 @@
 export type MediaKind = "deck" | "video";
 export type MediaFilter = "all" | MediaKind;
+export interface BlossomCatalog {
+	available: boolean;
+	items: Record<string, Partial<Record<MediaKind, number>>>;
+	courses?: Record<string, BlossomCourse>;
+}
+export interface BlossomCourse {
+	name: string;
+	externalId: string;
+	lessonCount: number;
+	assignmentCount: number;
+	workspaceUrl?: string;
+}
+export interface BlossomAssignmentForm {
+	title: string;
+	url: string;
+}
 // Stable gallery IDs; display names are workspace data.
 export type Gallery = string;
 export type GallerySection = "team" | "course";
@@ -10,8 +26,8 @@ export interface GalleryDefinition {
 	section?: GallerySection;
 }
 export type GalleryMutation =
-	| { type: "create"; name: string; url?: string; section?: "course" | null }
-	| { type: "update"; id: Gallery; name: string; url: string; section?: "course" | null }
+	| { type: "create"; name: string; url?: string; section?: GallerySection | null }
+	| { type: "update"; id: Gallery; name: string; url: string; section?: GallerySection | null }
 	| { type: "rename"; id: Gallery; name: string }
 	| { type: "delete"; id: Gallery };
 export const isFixedGallery = (id: Gallery): boolean => id === "public" || id === "none";
@@ -38,20 +54,6 @@ export interface LearningItem {
 	powerpoint: string | null;
 	video: string | null;
 	scorm?: Partial<Record<MediaKind, string>>;
-}
-
-export function itemTopics(
-	item: Pick<LearningItem, "topics" | "category">,
-	formerTeam?: string,
-): string[] {
-	if (item.topics) return item.topics;
-	const topics = new Map<string, string>();
-	for (const value of [formerTeam, item.category]) {
-		const topic = typeof value === "string" ? value.replace(/\s+/g, " ").trim() : "";
-		const key = topic.toLocaleLowerCase("he");
-		if (topic && !topics.has(key)) topics.set(key, topic);
-	}
-	return [...topics.values()];
 }
 
 export interface CatalogDocument {
@@ -93,8 +95,26 @@ export interface CatalogRepository {
 	history(): Promise<HistoryEntry[]>;
 	restore(id: string, revision: CatalogRevision): Promise<CatalogSnapshot>;
 	source(): Promise<CatalogDocument>;
+	blossom?(): Promise<BlossomCatalog>;
+	blossomAssignmentForms?(id: Gallery): Promise<BlossomAssignmentForm[]>;
+	uploadToBlossom?(id: string, variant: MediaKind, revision: CatalogRevision): Promise<number>;
+	publishBlossomCourse?(id: Gallery, revision: CatalogRevision): Promise<BlossomCourse>;
 	dispose(): void;
 }
 export function itemGallery(item: Pick<LearningItem, "gallery" | "unlisted">): Gallery {
 	return item.gallery ?? (item.unlisted ? "team" : "public");
+}
+
+export function itemTopics(item: Pick<LearningItem, "topics" | "category">, formerTeam?: string) {
+	return item.topics ?? normalizeTopics([formerTeam ?? "", item.category ?? ""]);
+}
+
+export function normalizeTopics(values: string[]) {
+	const topics = new Map<string, string>();
+	for (const value of values) {
+		const topic = value.replace(/\s+/g, " ").trim();
+		const key = topic.toLocaleLowerCase("he");
+		if (topic && !topics.has(key)) topics.set(key, topic);
+	}
+	return [...topics.values()];
 }

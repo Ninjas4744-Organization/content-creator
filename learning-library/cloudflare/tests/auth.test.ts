@@ -64,7 +64,7 @@ async function start(next = "/admin/", config = settings) {
 	const response = await call("/admin/auth/start", form({ next }), config);
 	expect(response.status).toBe(303);
 	const provider = new URL(response.headers.get("Location")!);
-	expect(provider.origin).toBe("https://lms.example");
+	expect(provider.origin).toBe(new URL(config.ADMIN_SSO_URL!).origin);
 	expect(provider.searchParams.get("target")).toBe("jwt");
 	return { cookie: cookies(response), callback: new URL(provider.searchParams.get("url")!) };
 }
@@ -294,6 +294,29 @@ test("unauthenticated UI redirects to login while content writes and incomplete 
 	).toBe(503);
 });
 
+test("browser login preserves a routed library tab and rejects arbitrary return targets", async () => {
+	const path = "/admin/content/library?gallery=team";
+	const redirect = await call(path);
+	expect(redirect.status).toBe(303);
+	expect(new URL(redirect.headers.get("Location")!, origin).searchParams.get("next")).toBe(path);
+
+	const flow = await start(path);
+	flow.callback.searchParams.set("jwt", await token());
+	const callback = await call(flow.callback.pathname + flow.callback.search, {
+		headers: { Cookie: flow.cookie },
+	});
+	expect(callback.headers.get("Location")).toBe(path);
+	const headers = { Cookie: cookies(callback) };
+	for (const route of [path, "/admin/sources/", "/admin/sources/themes", "/admin/history"]) {
+		const page = await call(route, { headers });
+		expect(page.status).toBe(200);
+		expect(await page.text()).toContain("/admin/_expo/");
+	}
+
+	const invalid = await call("/admin/auth/login?next=" + encodeURIComponent("//other.example"));
+	expect(await invalid.text()).toContain('name="next" value="/admin/"');
+});
+
 test("agent pairing requires a browser, literal loopback, PKCE and an exact redirect; a code is redeemed once", async () => {
 	const browser = await login();
 	for (const uri of [
@@ -407,6 +430,44 @@ test("agent credentials cannot manage galleries/catalog or approve agents, and a
 		303,
 	);
 	expect((await call("/admin/api/catalog", { headers: { Cookie: browser } })).status).toBe(401);
+});
+
+test("Blossom upload status uses the UID of the signed Blossom browser session", async () => {
+	const issuer = "https://davinci4744.blossom-kc.com";
+	const config = {
+		...settings,
+		ADMIN_SSO_ISSUER: issuer,
+		ADMIN_SSO_URL: issuer + "/redirect?target=jwt",
+		BLOSSOM_CONTENT_API_USER: "content-api",
+		BLOSSOM_CONTENT_API_PASSWORD: "test-secret",
+		BLOSSOM_COURSE_DOMAIN_ID: "5",
+	};
+	const api = "/admin/api/creator/blossom";
+	const browser = await login(config, { iss: issuer, uid: 42 });
+	await bucket.put(
+		"private/blossom-content/42/davinci4744-community-deck.json",
+		JSON.stringify({ uploaded: { contentId: 97 } }),
+	);
+	const response = await call(api, { headers: { Cookie: browser } }, config);
+	expect(response.status).toBe(200);
+	expect(await response.json()).toMatchObject({
+		available: true,
+		items: { community: { deck: 97 } },
+	});
+	const other = await login(config, { iss: issuer, uid: 43 });
+	expect(await (await call(api, { headers: { Cookie: other } }, config)).json()).toMatchObject({
+		available: true,
+		items: {},
+	});
+	const foreign = {
+		...config,
+		ADMIN_SSO_ISSUER: settings.ADMIN_SSO_ISSUER,
+		ADMIN_SSO_URL: settings.ADMIN_SSO_URL,
+	};
+	const foreignBrowser = await login(foreign);
+	expect(
+		await (await call(api, { headers: { Cookie: foreignBrowser } }, foreign)).json(),
+	).toMatchObject({ available: false, items: {} });
 });
 
 test("a paired agent publishes a complete package through the actual authenticated Worker and retains recovery history", async () => {

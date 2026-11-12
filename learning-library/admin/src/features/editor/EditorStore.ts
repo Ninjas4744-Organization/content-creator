@@ -1,43 +1,23 @@
 import { makeAutoObservable, observable } from "mobx";
-import { itemGallery, itemTopics } from "../../models/catalog";
+import { itemGallery, itemTopics, normalizeTopics } from "../../models/catalog";
 import type { Gallery, LearningItem } from "../../models/catalog";
 
 export interface EditorFields {
-	id: string;
 	title: string;
 	description: string;
 	topics: string;
 	gallery: Gallery;
 	featured: boolean;
 	chapters: string;
-	poster: string;
-	deck: string;
-	video: string;
-	powerpoint: string;
-	slides: string;
-	duration: string;
-	checkpoints: string;
-	scormDeck: string;
-	scormVideo: string;
 }
 function fields(item?: LearningItem, topics: readonly string[] = []): EditorFields {
 	return {
-		id: item?.id ?? "",
 		title: item?.title ?? "",
 		description: item?.description ?? "",
 		topics: topics.join("\n"),
 		gallery: item ? itemGallery(item) : "none",
 		featured: item?.featured ?? false,
 		chapters: item?.chapters.join("\n") ?? "",
-		poster: item?.poster ?? "",
-		deck: item?.deck ?? "",
-		video: item?.video ?? "",
-		powerpoint: item?.powerpoint ?? "",
-		slides: String(item?.slides ?? 0),
-		duration: item?.duration == null ? "" : String(item.duration),
-		checkpoints: String(item?.checkpoints ?? 0),
-		scormDeck: item?.scorm?.deck ?? "",
-		scormVideo: item?.scorm?.video ?? "",
 	};
 }
 export class EditorStore {
@@ -55,8 +35,8 @@ export class EditorStore {
 	get dirty() {
 		return this.open && this.initial !== JSON.stringify(this.draft);
 	}
-	edit(item?: LearningItem, topics = item ? itemTopics(item) : []) {
-		this.original = item ?? null;
+	edit(item: LearningItem, topics = itemTopics(item)) {
+		this.original = item;
 		this.draft = fields(item, topics);
 		this.initial = JSON.stringify(this.draft);
 		this.open = true;
@@ -68,22 +48,13 @@ export class EditorStore {
 		this.open = false;
 	}
 	toItem(): LearningItem {
+		if (!this.original) throw new Error("No content selected for editing");
 		const draft = this.draft;
-		const topics = new Map<string, string>();
-		for (const line of draft.topics.split("\n")) {
-			const topic = line.trim();
-			const key = topic.toLocaleLowerCase("he");
-			if (topic && !topics.has(key)) topics.set(key, topic);
-		}
-		const scorm: LearningItem["scorm"] = {};
-		if (draft.scormDeck.trim()) scorm.deck = draft.scormDeck.trim();
-		if (draft.scormVideo.trim()) scorm.video = draft.scormVideo.trim();
 		return {
 			...this.original,
-			id: draft.id.trim(),
 			title: draft.title.trim(),
 			description: draft.description.trim(),
-			topics: [...topics.values()],
+			topics: normalizeTopics(draft.topics.split("\n")),
 			gallery: draft.gallery,
 			unlisted: draft.gallery !== "public",
 			featured: draft.featured,
@@ -91,14 +62,6 @@ export class EditorStore {
 				.split("\n")
 				.map((chapter) => chapter.trim())
 				.filter(Boolean),
-			poster: draft.poster.trim(),
-			deck: draft.deck.trim() || null,
-			video: draft.video.trim() || null,
-			powerpoint: draft.powerpoint.trim() || null,
-			slides: Number(draft.slides),
-			duration: draft.duration === "" ? null : Number(draft.duration),
-			checkpoints: Number(draft.checkpoints),
-			scorm,
 		};
 	}
 }

@@ -4,13 +4,14 @@ This folder is a standalone workspace downloaded from the library admin. Work fr
 
 - Presentations: read `.agents/skills/davinci-presentation/SKILL.md`.
 - Interactive videos: read `.agents/skills/davinci-interactive-video/SKILL.md`.
-- Uploading, publication or restoring editable sources: read `.agents/skills/davinci-publish/SKILL.md`.
+- Importing existing files or restoring editable sources from the library: read `.agents/skills/davinci-import/SKILL.md`.
+- Uploading or publication: read `.agents/skills/davinci-publish/SKILL.md`.
 - Updating these skills/tools: read `.agents/skills/davinci-update/SKILL.md`.
 - Brand and content schema: `docs/brand.md` and `docs/content-format.md`.
 - For team imagery, load the site's active albums with `scripts/creator_agent.py sources` and follow `docs/source-library.md`. Match context and tags to the brief, inspect images visually, and preserve source records. The bundled album registry is an offline seed, not the current source library.
 - Every new presentation or video must select a background. Follow `docs/backgrounds.md`, choose it yourself from the active names/descriptions and the brief, and apply it with `scripts/creator_agent.py background <id> --project <project> --reason "why it fits"`. New projects cannot render with a null background. Keep selected images and the reason with their sources.
 - Use local Rubik fonts and supplied logos; Hebrew uses logical RTL. Preserve Gracious Professionalism®.
-- Create and edit under `projects/<id>/`. Run `python3 scripts/setup.py` if `.venv` is absent. Use the project's Python environment for rendering.
+- Before any Python command, follow `docs/setup.md`: detect and install missing Python and required dependencies, prepare or repair `.venv`, and verify it before continuing the requested task. Create and edit under `projects/<id>/`. Use the kit's Python environment for rendering.
 - Retain local sources and output previews. Publication includes a private recoverable source archive. Restore with `scripts/creator_agent.py pull <id>`; local changes are never overwritten.
 - All website operations use `scripts/creator_agent.py` and the creator's learning-platform login with browser approval. No cloudflared is needed. Do not use legacy Wrangler/S3 instructions in reference docs. Do not ask for Git access, Cloudflare API keys, storage credentials or admin service tokens.
 - Never put credentials in a project or generated output. Narration credentials belong in an environment variable or private file. The kit never supplies or updates them.

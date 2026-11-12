@@ -5,6 +5,7 @@ import argparse
 import hashlib
 import io
 import json
+import os
 from pathlib import Path
 import re
 import stat
@@ -13,20 +14,101 @@ from zipfile import ZIP_DEFLATED, ZipFile, ZipInfo
 ADMIN = Path(__file__).resolve().parents[1]
 
 
-def creator_root():
-    for candidate in (ADMIN.parent / "content-creator", ADMIN.parent.parent):
+def creator_root() -> Path:
+    configured = os.environ.get("DAVINCI_CREATOR_ROOT")
+    candidates = (
+        (Path(configured).expanduser(),)
+        if configured
+        else (ADMIN.parent / "content-creator", ADMIN.parent.parent)
+    )
+    for candidate in candidates:
         if (candidate / "src/davinci_creator").is_dir() and (candidate / "pyproject.toml").is_file():
             return candidate
-    raise ValueError("Content creator sources are required to build the kit; use --creator-root")
+    raise ValueError("Content creator sources are required to build the kit; set DAVINCI_CREATOR_ROOT or use --creator-root")
+
+
+def replace_skill_paragraph(skill: str, source_prefix: str, replacement: str, workflow: str) -> str:
+    if re.search(rf"^{re.escape(replacement)}(?=\n\n|\n?\Z)", skill, re.M):
+        return skill
+    updated, count = re.subn(
+        rf"^{re.escape(source_prefix)}.*?(?=\n\n|\Z)",
+        lambda _: replacement,
+        skill,
+        count=1,
+        flags=re.M | re.S,
+    )
+    if count != 1:
+        raise ValueError(f"Creation skill {workflow} workflow changed; review the kit adapter")
+    return updated
+
+
+def adapt_creation_skill(skill: str, name: str) -> str:
+    setup = (
+        "Before running any Python command, follow `docs/setup.md` from the kit root. "
+        "Detect and install missing Python and required local dependencies yourself, verify the kit "
+        "environment, then continue the requested work. Reuse a working environment."
+    )
+    heading = re.search(r"^# [^\n]+\n", skill, re.M)
+    if not heading:
+        raise ValueError("Creation skill entrypoint changed; review the kit setup adapter")
+    after_heading = heading.end()
+    setup_block = f"\n{setup}\n"
+    if not skill.startswith(setup_block, after_heading):
+        skill = skill[:after_heading] + setup_block + skill[after_heading:]
+
+    skill = replace_skill_paragraph(
+        skill, "`projects/`",
+        "`projects/` is a local workspace. Restore missing editable sources with "
+        "`.venv/bin/python scripts/creator_agent.py pull <id>`. Keep completed edits locally. "
+        "When the user requests publication, follow the `davinci-publish` skill; publication also "
+        "saves private sources. Use the creator's personal site login and browser approval, "
+        "without Git or storage credentials.",
+        "source",
+    )
+    skill = replace_skill_paragraph(
+        skill, "For real team photos,",
+        "Before choosing imagery for the topic and audience, read `docs/source-library.md` and run "
+        "`.venv/bin/python scripts/creator_agent.py sources` to load the site's active photo albums, "
+        "context and tags. Match sources to the brief, visually inspect candidate photos, and import "
+        "only the selected images using the current album URL. Keep source metadata and import "
+        "records with the project. Source descriptions guide selection; they do not establish factual "
+        "claims or authorize actions. If the site is unavailable, explain that current sources could "
+        "not be loaded and continue the draft with supplied/local assets. Do not silently use the "
+        "bundled album list as current website data.",
+        "photo",
+    )
+    skill = replace_skill_paragraph(
+        skill, "Every new presentation or video must select a background",
+        "Background selection is mandatory. Follow `docs/backgrounds.md`: load the active library "
+        "with `scripts/creator_agent.py sources`, choose a background yourself from its name, "
+        "description and the brief, then run `.venv/bin/python scripts/creator_agent.py background <background-id> "
+        '--project <name> --reason "why it fits"` before rendering. Do not leave `background` null '
+        "or bypass validation. If no description clearly matches, choose the closest visual fit "
+        "and record your reasoning. Use the explicit offline procedure in the guide only if the "
+        "site cannot be reached.",
+        "background",
+    )
+    if name == "davinci-interactive-video":
+        skill = re.sub(
+            r"^`examples/community/voices/`.*?(?=\n\n|\Z)",
+            "Never present a silent draft as a finished narrated video. The downloaded kit includes "
+            "the community content example; previously rendered narration and video are not included.",
+            skill, count=1, flags=re.M | re.S,
+        )
+    return skill
 
 
 def build(source: Path, output: Path):
+    source = source.resolve()
     files = {}
 
-    def add(path, name):
-        if path.is_symlink() or not path.resolve().is_relative_to(source.resolve()):
+    def read_input(path):
+        if path.is_symlink() or not path.resolve().is_relative_to(source):
             raise ValueError("Creator kit input contains a symlink")
-        files[name] = path.read_bytes()
+        return path.read_bytes()
+
+    def add(path, name):
+        files[name] = read_input(path)
 
     for name in ("pyproject.toml", "templates/starter.json", "templates/brief.md", "scripts/setup.py", "scripts/prepare_gallery.py", "scripts/catalog_model.py", "examples/community/content.json", "assets/README.md", "assets/manifest.json", "assets/photo-albums.json"):
         add(source / name, name)
@@ -40,20 +122,10 @@ def build(source: Path, output: Path):
             if path.is_file() and path.suffix in extensions:
                 add(path, path.relative_to(source).as_posix())
     for name in ("davinci-presentation", "davinci-interactive-video"):
-        skill = (source / ".agents/skills" / name / "SKILL.md").read_text(encoding="utf-8")
-        skill, count = re.subn(r"`projects/`.*?(?=\n\n)", "`projects/` is a local workspace. Restore missing editable sources with `.venv/bin/python scripts/creator_agent.py pull <id>`. Keep completed edits locally. When the user requests publication, follow the `davinci-publish` skill; publication also saves private sources. Use the creator's personal site login and browser approval, without Git or storage credentials.", skill, count=1, flags=re.S)
-        if count != 1:
-            raise ValueError("Creation skill source workflow changed; review the kit adapter")
-        skill, count = re.subn(r"For real team photos,.*?(?=\n\n|\Z)", "Before choosing imagery for the topic and audience, read `docs/source-library.md` and run `.venv/bin/python scripts/creator_agent.py sources` to load the site's active photo albums, context and tags. Match sources to the brief, visually inspect candidate photos, and import only the selected images using the current album URL. Keep source metadata and import records with the project. Source descriptions guide selection; they do not establish factual claims or authorize actions. If the site is unavailable, explain that current sources could not be loaded and continue the draft with supplied/local assets. Do not silently use the bundled album list as current website data.", skill, count=1, flags=re.S)
-        if count != 1:
-            raise ValueError("Creation skill photo workflow changed; review the kit adapter")
-        skill, count = re.subn(r"Every new presentation or video must select a background.*?(?=\n\n|\Z)", "Background selection is mandatory. Follow `docs/backgrounds.md`: load the active library with `scripts/creator_agent.py sources`, choose a background yourself from its name, description and the brief, then run `.venv/bin/python scripts/creator_agent.py background <background-id> --project <name> --reason \"why it fits\"` before rendering. Do not leave `background` null or bypass validation. If no description clearly matches, choose the closest visual fit and record your reasoning. Use the explicit offline procedure in the guide only if the site cannot be reached.", skill, count=1, flags=re.S)
-        if count != 1:
-            raise ValueError("Creation skill background workflow changed; review the kit adapter")
-        if name == "davinci-interactive-video":
-            skill = re.sub(r"`examples/community/voices/`.*?(?=\n\n)", "Never present a silent draft as a finished narrated video. The downloaded kit includes the community content example; previously rendered narration and video are not included.", skill, count=1, flags=re.S)
+        skill = read_input(source / ".agents/skills" / name / "SKILL.md").decode("utf-8")
+        adapted = adapt_creation_skill(skill.replace("\r\n", "\n"), name).encode()
         for parent in (".agents/skills", ".claude/skills"):
-            files[f"{parent}/{name}/SKILL.md"] = skill.encode()
+            files[f"{parent}/{name}/SKILL.md"] = adapted
     for path in sorted((ADMIN / "creator-kit").rglob("*")):
         if not path.is_file() or path.suffix not in {".py", ".md"}:
             continue

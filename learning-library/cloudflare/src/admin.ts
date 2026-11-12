@@ -52,7 +52,12 @@ const snapshot = (state: Awaited<ReturnType<CatalogDomain["read"]>>) => ({
 	updatedAt: state.updatedAt,
 	mode: "production",
 });
-export async function adminApi(request: Request, env: Env, email: string): Promise<Response> {
+export async function adminApi(
+	request: Request,
+	env: Env,
+	email: string,
+	blossomUserId?: string,
+): Promise<Response> {
 	const url = new URL(request.url);
 	const path = url.pathname.slice("/admin".length);
 	if (
@@ -73,7 +78,13 @@ export async function adminApi(request: Request, env: Env, email: string): Promi
 	)
 		return sourcesApi(request, env, email);
 	if (path.startsWith("/api/creator/"))
-		return creatorApi(request, env, email, new R2CatalogStorage(env.CONTENT, email));
+		return creatorApi(
+			request,
+			env,
+			email,
+			new R2CatalogStorage(env.CONTENT, email),
+			blossomUserId,
+		);
 	const revision = request.headers.get("If-Match") ?? undefined;
 	if (path === "/api/catalog" && request.method === "GET")
 		return json(200, snapshot(await store.read()));
@@ -111,9 +122,12 @@ export async function admin(request: Request, env: Env): Promise<Response> {
 		const authResponse = await adminAuthRoutes(request, env);
 		if (authResponse) return authResponse;
 		let email: string;
+		let blossomUserId: string | undefined;
 		if (ssoEnabled(env)) {
 			try {
-				email = (await authenticateSiteAdmin(request, env)).actor;
+				const identity = await authenticateSiteAdmin(request, env);
+				email = identity.actor;
+				if (identity.kind === "browser") blossomUserId = identity.uid;
 			} catch (error) {
 				if (
 					env.ADMIN_AUTH_MODE === "migration" &&
@@ -134,7 +148,8 @@ export async function admin(request: Request, env: Env): Promise<Response> {
 			}
 		} else email = await authenticateAdmin(request, env);
 		const path = new URL(request.url).pathname;
-		if (path.startsWith("/admin/api/")) return await adminApi(request, env, email);
+		if (path.startsWith("/admin/api/"))
+			return await adminApi(request, env, email, blossomUserId);
 		if (!["GET", "HEAD"].includes(request.method))
 			throw new CatalogError("הפעולה אינה נתמכת.", 405);
 		const result = await env.ASSETS.fetch(request);

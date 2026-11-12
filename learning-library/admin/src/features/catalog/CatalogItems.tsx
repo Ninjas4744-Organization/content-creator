@@ -158,6 +158,53 @@ const FeaturedButton = observer(function FeaturedButton({
 		</IconButton>
 	);
 });
+const BlossomActions = observer(function BlossomActions({
+	item,
+	store,
+}: {
+	item: LearningItem;
+	store: CatalogStore;
+}) {
+	if (!store.blossom?.available || !/^[a-z0-9][a-z0-9-]{0,119}$/.test(item.id)) return null;
+	const saved = store.blossom.items[item.id];
+	return (
+		<Row style={{ gap: 6, flexWrap: "wrap" }}>
+			{(["deck", "video"] as const).map((variant) => {
+				const label = variant === "deck" ? "מצגת" : "וידאו";
+				const contentId = saved?.[variant];
+				if (contentId)
+					return (
+						<WebLink
+							key={variant}
+							href={`https://davinci4744.blossom-kc.com/#edit/content/${contentId}`}
+							target="_blank"
+							rel="noopener noreferrer"
+							aria-label={`${label} ב־Blossom, תוכן ${contentId}`}
+						>
+							{label} ב־Blossom · {contentId}
+						</WebLink>
+					);
+				if (!item.scorm?.[variant]) return null;
+				return (
+					<Button
+						key={variant}
+						$secondary
+						accessibilityRole="button"
+						disabled={store.saving}
+						onPress={() => void store.uploadToBlossom(item.id, variant)}
+						style={{ minHeight: 30, paddingVertical: 5, paddingHorizontal: 8 }}
+					>
+						<ButtonText $secondary style={{ fontSize: 11 }}>
+							{store.blossomBusy === `${item.id}/${variant}`
+								? "מעלה ל־Blossom…"
+								: `העלאת ${label} ל־Blossom`}
+						</ButtonText>
+					</Button>
+				);
+			})}
+		</Row>
+	);
+});
 export const CatalogItems = observer(function CatalogItems({
 	store,
 	onEdit,
@@ -196,11 +243,14 @@ export const CatalogItems = observer(function CatalogItems({
 								/>
 								<TitleButton onClick={() => onEdit(item)}>{item.title}</TitleButton>
 							</Row>
-							<Body style={{ fontSize: 11 }}>{item.slides} שקפים</Body>
+							<Body style={{ fontSize: 11 }}>
+								{[...store.topicsFor(item), item.slides + " שקפים"].join(" · ")}
+							</Body>
 							<Row style={{ justifyContent: "space-between", flexWrap: "wrap" }}>
 								<Formats item={item} />
 								<Scope item={item} store={store} />
 							</Row>
+							<BlossomActions item={item} store={store} />
 							<Row
 								style={{
 									justifyContent: "space-between",
@@ -277,11 +327,15 @@ export const CatalogItems = observer(function CatalogItems({
 											{item.title}
 										</TitleButton>
 										<Body style={{ fontSize: 10, lineHeight: 17 }}>
-											{item.slides} שקפים
+											{[
+												...store.topicsFor(item),
+												item.slides + " שקפים",
+											].join(" · ")}
 											{item.duration
 												? ` · ${Math.ceil(item.duration / 60)} דק׳`
 												: ""}
 										</Body>
+										<BlossomActions item={item} store={store} />
 									</View>
 								</Row>
 							</td>

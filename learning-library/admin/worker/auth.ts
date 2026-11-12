@@ -242,6 +242,13 @@ function pairing(url: URL) {
 }
 function nextPath(value: unknown, origin: string): string {
 	if (value === "/admin/auth/account") return value;
+	if (
+		typeof value === "string" &&
+		(value === "/admin/?featured=1" ||
+			/^\/admin\/(?:history|sources(?:\/themes)?|content\/new)\/?$/.test(value) ||
+			/^\/admin\/content\/library\/?\?gallery=[A-Za-z0-9_-]{1,120}$/.test(value))
+	)
+		return value;
 	if (typeof value === "string" && value.startsWith("/admin/auth/agent/authorize?")) {
 		const target = new URL(value, origin);
 		if (

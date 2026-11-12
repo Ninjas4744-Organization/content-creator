@@ -18,6 +18,25 @@ export interface PermissionProfile {
 	email?: string;
 }
 const encode = (value: string) => new TextEncoder().encode(value);
+export async function permissionAuthorization({
+	auth,
+	user,
+	secret,
+}: {
+	auth: string;
+	user: string;
+	secret: string;
+}) {
+	return auth === "jwt"
+		? "Bearer " +
+				(await new SignJWT({})
+					.setProtectedHeader({ alg: "HS256" })
+					.setIssuer(user)
+					.setIssuedAt()
+					.setExpirationTime("30s")
+					.sign(encode(secret)))
+		: "Basic " + btoa(String.fromCharCode(...encode(user + ":" + secret)));
+}
 const now = () => Math.floor(Date.now() / 1000);
 async function digest(value: string) {
 	return Array.from(new Uint8Array(await crypto.subtle.digest("SHA-256", encode(value))))
@@ -125,17 +144,7 @@ export async function permissionProfile(
 		}
 	}
 	try {
-		const authorization =
-			config.auth === "jwt"
-				? "Bearer " +
-					(await new SignJWT({})
-						.setProtectedHeader({ alg: "HS256" })
-						.setIssuer(config.user)
-						.setIssuedAt()
-						.setExpirationTime("30s")
-						.sign(encode(config.secret)))
-				: "Basic " +
-					btoa(String.fromCharCode(...encode(config.user + ":" + config.secret)));
+		const authorization = await permissionAuthorization(config);
 		const response = await fetch(config.url, {
 			method: "POST",
 			headers: {

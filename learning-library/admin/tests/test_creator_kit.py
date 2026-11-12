@@ -45,12 +45,21 @@ class CreatorKitTests(unittest.TestCase):
             for name, digest in manifest["files"].items():
                 self.assertTrue(agent.managed_path(name), name)
                 self.assertEqual(hashlib.sha256(archive.read("davinci-creator/" + name)).hexdigest(), digest)
-            for skill in ["davinci-presentation", "davinci-interactive-video", "davinci-publish", "davinci-update"]:
+            for skill in ["davinci-presentation", "davinci-interactive-video", "davinci-import", "davinci-publish", "davinci-update"]:
                 self.assertIn(f".agents/skills/{skill}/SKILL.md", manifest["files"])
                 self.assertIn(f".claude/skills/{skill}/SKILL.md", manifest["files"])
             self.assertFalse(any("projects/" in name or ".env" in name or name.endswith(".pyc") for name in manifest["files"]))
             for name in ["pyproject.toml", "scripts/setup.py", "scripts/prepare_gallery.py", "src/davinci_creator/deck.py", "assets/brand/Rubik-Regular.ttf"]:
                 self.assertIn(name, manifest["files"])
+
+    def test_rebuild_from_extracted_kit_preserves_every_file(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            with ZipFile(io.BytesIO(self.data)) as archive:
+                archive.extractall(root)
+            with patch.dict(os.environ, {"DAVINCI_CREATOR_ROOT": str(root / "davinci-creator")}):
+                rebuilt = builder.build(builder.creator_root(), root / "rebuilt")
+            self.assertEqual(rebuilt, self.data)
 
     def test_previous_kit_updater_can_install_background_support(self):
         # Compatibility contract from the kit released before managed backgrounds.

@@ -5,6 +5,19 @@ import {
 	validateDocument,
 } from "../server/catalog-domain.mjs";
 import type { CatalogStorage } from "../server/catalog-domain.mjs";
+import {
+	blossomCatalog,
+	blossomId,
+	blossomItemId,
+	blossomOrigin,
+	uploadExistingScorm,
+} from "./blossom";
+import {
+	blossomAssignmentForms,
+	blossomCourses,
+	publishBlossomCourse,
+	type BlossomCourseEnv,
+} from "./blossom-courses";
 
 const chunkSize = 8 * 1024 * 1024;
 const prefix = "library/creator-uploads/";
@@ -39,9 +52,9 @@ interface Session {
 	items: ReturnType<typeof validateDocument>["items"];
 	files: UploadFile[];
 }
-interface CreatorEnv {
-	CONTENT: R2Bucket;
+interface CreatorEnv extends BlossomCourseEnv {
 	ASSETS: Fetcher;
+	ADMIN_SSO_ISSUER?: string;
 }
 const headers = { "Cache-Control": "no-store", "X-Content-Type-Options": "nosniff" };
 const json = (value: unknown, status = 200) => Response.json(value, { status, headers });
@@ -188,6 +201,7 @@ export async function creatorApi(
 	env: CreatorEnv,
 	actor: string,
 	storage: CatalogStorage,
+	verifiedBrowserUid?: string,
 ): Promise<Response> {
 	const path = new URL(request.url).pathname.slice("/admin/api/creator/".length);
 	const bucket = env.CONTENT;
@@ -214,6 +228,61 @@ export async function creatorApi(
 		return response;
 	}
 	const store = new CatalogDomain(storage);
+	if (path === "blossom" || path.startsWith("blossom/")) {
+		if (request.headers.has("Authorization")) fail("פעולה זו דורשת התחברות בדפדפן.", 403);
+		const owner =
+			env.ADMIN_SSO_ISSUER?.replace(/\/$/, "") === blossomOrigin
+				? verifiedBrowserUid
+				: undefined;
+		if (path === "blossom" && request.method === "GET") {
+			const [catalog, courses] = await Promise.all([
+				blossomCatalog(env, store, owner),
+				blossomCourses(env, store, owner),
+			]);
+			return json({ ...catalog, courses });
+		}
+		const assignmentForms = /^blossom\/courses\/([A-Za-z0-9_-]{1,120})\/assignment-forms$/.exec(
+			path,
+		)?.[1];
+		if (assignmentForms) {
+			if (request.method !== "GET") return fail("הפעולה אינה נתמכת.", 405);
+			const domain = env.BLOSSOM_COURSE_DOMAIN_ID;
+			if (!domain || !blossomId(domain)) return fail("החיבור ל־Blossom אינו זמין.", 503);
+			return json(await blossomAssignmentForms(env.CONTENT, store, domain, assignmentForms));
+		}
+		if (!owner) fail("התחברו לאדמין דרך Blossom כדי להעלות תוכן על שמכם.", 403);
+		const [, id, variant] = path.split("/");
+		const courseId = /^blossom\/courses\/([A-Za-z0-9_-]{1,120})\/publish$/.exec(path)?.[1];
+		if (courseId) {
+			if (request.method !== "POST") return fail("הפעולה אינה נתמכת.", 405);
+			return json(
+				await publishBlossomCourse(
+					env,
+					store,
+					courseId,
+					request.headers.get("If-Match"),
+					owner,
+				),
+			);
+		}
+		if (
+			!id ||
+			!blossomItemId.test(id) ||
+			(variant !== "deck" && variant !== "video") ||
+			path !== `blossom/${id}/${variant}`
+		)
+			return fail("פעולת Blossom לא נמצאה.", 404);
+		if (request.method !== "POST") return fail("הפעולה אינה נתמכת.", 405);
+		const contentId = await uploadExistingScorm(
+			env,
+			store,
+			id,
+			variant,
+			request.headers.get("If-Match"),
+			owner,
+		);
+		return json({ contentId });
+	}
 	if (path.startsWith("sources/") && request.method === "GET") {
 		const id = path.slice(8);
 		if (!/^[a-z0-9][a-z0-9-]{0,119}$/.test(id)) fail("מזהה תוכן אינו תקין.");
@@ -270,7 +339,7 @@ export async function creatorApi(
 		const currentById = new Map(current.items.map((item) => [item.id, item]));
 		const updates = session.items.map((item) => {
 			const previous = currentById.get(item.id);
-			const { topics, category, ...incoming } = item;
+			const { category, topics, ...incoming } = item;
 			return {
 				...(previous ? { ...incoming, ...previous } : item),
 				poster: rewrite(item.poster)!,
@@ -282,37 +351,31 @@ export async function creatorApi(
 				),
 			};
 		});
-		if (
-			updates.every(
-				(item) => current.items.find((old) => old.id === item.id)?.poster === item.poster,
-			)
-		)
-			return json({
-				revision: current.revision,
-				ids: updates.map((item) => item.id),
-				published: true,
-			});
-		if (String(current.revision) !== String(session.revision))
-			fail("הקטלוג השתנה בזמן ההעלאה. טענו ושלבו מחדש לפני הפרסום.", 409);
-		for (const file of session.files) {
-			const object = await bucket.head(key(session, file));
-			if (
-				!object ||
-				object.size !== file.size ||
-				object.customMetadata?.creatorSession !== session.id
-			)
-				fail("העלאת הקבצים טרם הושלמה.", 409);
+		let revision = current.revision;
+		if (!updates.every((item) => currentById.get(item.id)?.poster === item.poster)) {
+			if (String(current.revision) !== String(session.revision))
+				fail("הקטלוג השתנה בזמן ההעלאה. טענו ושלבו מחדש לפני הפרסום.", 409);
+			for (const file of session.files) {
+				const object = await bucket.head(key(session, file));
+				if (
+					!object ||
+					object.size !== file.size ||
+					object.customMetadata?.creatorSession !== session.id
+				)
+					fail("העלאת הקבצים טרם הושלמה.", 409);
+			}
+			const byId = new Map(updates.map((item) => [item.id, item]));
+			const items = current.items.map((item) => byId.get(item.id) ?? item);
+			items.push(...updates.filter((item) => !currentById.has(item.id)));
+			const saved = await store.mutate(
+				String(session.revision),
+				items,
+				`פרסום ${updates.length} תכנים על ידי סוכן`,
+			);
+			revision = saved.revision;
 		}
-		const byId = new Map(updates.map((item) => [item.id, item]));
-		const items = current.items.map((item) => byId.get(item.id) ?? item);
-		items.push(...updates.filter((item) => !current.items.some((old) => old.id === item.id)));
-		const saved = await store.mutate(
-			String(session.revision),
-			items,
-			`פרסום ${updates.length} תכנים על ידי סוכן`,
-		);
 		return json({
-			revision: saved.revision,
+			revision,
 			ids: updates.map((item) => item.id),
 			published: true,
 		});

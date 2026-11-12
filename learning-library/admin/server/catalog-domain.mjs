@@ -72,12 +72,13 @@ export function validateGalleries(value) {
 			fail("מזהה הספרייה אינו תקין או כבר קיים.");
 		const name = galleryName(gallery.name);
 		if (galleryUrl(gallery.url) !== gallery.url) fail("קישור הספרייה אינו תקין.");
-		if (gallery.section !== undefined) {
-			if (gallery.section !== "team" && gallery.section !== "course")
-				fail("האזור שנבחר לספרייה אינו תקין.");
-			if (fixedGallery(gallery.id) || !gallery.url.startsWith("/"))
-				fail("אזורי הצוותים והקורסים מיועדים לספריות שניתנות לעריכה עם נתיב באתר.");
-		}
+		if (
+			gallery.section !== undefined &&
+			((gallery.section !== "team" && gallery.section !== "course") ||
+				fixedGallery(gallery.id) ||
+				!gallery.url.startsWith("/"))
+		)
+			fail("אזורי הצוותים והקורסים מיועדים לספריות עם נתיב באתר.");
 		if (name !== gallery.name || names.has(name.toLocaleLowerCase("he")))
 			fail("שם הספרייה כבר קיים או אינו תקין.");
 		ids.add(gallery.id);
@@ -120,10 +121,11 @@ export function validateCatalog(value, galleries = defaultGalleries) {
 			)
 				fail("יש למלא כותרת ולבדוק את אורך הכותרת והתיאור.");
 		}
-		for (const key of ["featured", "unlisted"]) {
-			if (item[key] !== undefined && typeof item[key] !== "boolean")
-				fail("ערך סימון אינו תקין.");
-		}
+		if (
+			item.category !== undefined &&
+			(typeof item.category !== "string" || item.category.length > 200)
+		)
+			fail("קטגוריה אינה תקינה.");
 		if (
 			item.topics !== undefined &&
 			(!Array.isArray(item.topics) ||
@@ -140,6 +142,10 @@ export function validateCatalog(value, galleries = defaultGalleries) {
 					item.topics.length)
 		)
 			fail("אפשר לשייך עד 20 תחומים שונים, באורך של עד 200 תווים לכל תחום.");
+		for (const key of ["featured", "unlisted"]) {
+			if (item[key] !== undefined && typeof item[key] !== "boolean")
+				fail("ערך סימון אינו תקין.");
+		}
 		if (!galleryIds.has(galleryOf(item))) fail("בחירת הספרייה אינה תקינה.");
 		for (const key of ["slides", "checkpoints"]) {
 			if (!Number.isSafeInteger(item[key]) || item[key] < 0 || item[key] > 100000)

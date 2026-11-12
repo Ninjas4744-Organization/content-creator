@@ -1,4 +1,4 @@
-import { spawn } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
 import { createRequire } from "node:module";
 
 const require = createRequire(import.meta.url);
@@ -9,6 +9,12 @@ for (const port of [apiPort, webPort]) {
 		throw new Error("Ports must be integers between 1 and 65535.");
 }
 if (apiPort === webPort) throw new Error("The API and Expo ports must differ.");
+
+const kit = spawnSync("python3", ["scripts/build-creator-kit.py"], { stdio: "inherit" });
+if (kit.error) console.warn(kit.error.message);
+if (kit.status !== 0)
+	console.warn("Creator kit build failed. Starting the admin with any previously built kit.");
+
 const environment = {
 	...process.env,
 	PORT: String(apiPort),

@@ -47,13 +47,3 @@ export const ButtonText = styled.Text<{ $secondary?: boolean }>`
 	font-size: 12px;
 	color: ${({ theme, $secondary }) => ($secondary ? theme.text : theme.primaryText)};
 `;
-export const Chip = styled.Pressable<{ $selected?: boolean }>`
-	padding: 11px 9px;
-	border-bottom-width: 2px;
-	border-bottom-color: ${({ theme, $selected }) => ($selected ? theme.primary : "transparent")};
-`;
-export const ChipText = styled.Text<{ $selected?: boolean }>`
-	font-family: ${({ theme }) => theme.font};
-	font-size: 11px;
-	color: ${({ theme, $selected }) => ($selected ? theme.primary : theme.muted)};
-`;

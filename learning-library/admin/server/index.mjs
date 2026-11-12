@@ -8,6 +8,7 @@ import { SourcesStore } from "./sources.mjs";
 import { sourceSnapshot, sourceHistory } from "./sources-domain.mjs";
 import { BackgroundStorage } from "./background-storage.mjs";
 import { maxBackgroundBytes } from "./background-assets.mjs";
+import { createLocalBlossom } from "./local-blossom.mjs";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const source = "https://knowledge.davinci4744.com/library/catalog.json";
@@ -46,12 +47,12 @@ async function bytes(request, limit = MAX_BODY) {
 	}
 	return Buffer.concat(chunks);
 }
-async function body(request) {
+async function body(request, limit) {
 	if (!request.headers["content-type"]?.startsWith("application/json"))
 		throw new CatalogError("נדרש JSON.", 415);
 	let parsed;
 	try {
-		parsed = JSON.parse((await bytes(request)).toString("utf8"));
+		parsed = JSON.parse((await bytes(request, limit)).toString("utf8"));
 	} catch (error) {
 		if (error instanceof CatalogError) throw error;
 		throw new CatalogError("קובץ JSON אינו תקין.");
@@ -68,6 +69,12 @@ export function createApp({
 	creatorKitDirectory = resolve(root, "output/creator-kit"),
 	devOrigin = process.env.ADMIN_DEV_ORIGIN || null,
 	libraryOrigin = process.env.LIBRARY_DEV_ORIGIN || null,
+	blossomLocalUrl = process.env.BLOSSOM_LOCAL_URL || "http://localhost/lms/v64",
+	blossomLocalDomain = process.env.BLOSSOM_LOCAL_DOMAIN_ID ||
+		process.env.BLOSSOM_COURSE_DOMAIN_ID ||
+		"1",
+	blossomLocalUserId = process.env.BLOSSOM_LOCAL_USER_ID,
+	blossomEnv = process.env,
 	fetchCatalog = async () => {
 		const response = await fetch(source, {
 			signal: AbortSignal.timeout(15000),
@@ -92,6 +99,14 @@ export function createApp({
 		libraryOrigin ? [libraryOrigin, libraryOrigin.replace("localhost", "127.0.0.1")] : [],
 	);
 	const store = new CatalogStore(dataFile, seedFile);
+	const localBlossom = createLocalBlossom({
+		store,
+		file: resolve(dirname(dataFile), "blossom-receipts.json"),
+		url: blossomLocalUrl,
+		domain: blossomLocalDomain,
+		userId: blossomLocalUserId,
+		env: blossomEnv,
+	});
 	const backgroundAssets = new BackgroundStorage(resolve(dirname(dataFile), "background-assets"));
 	const sources = new SourcesStore(resolve(dirname(dataFile), "sources.json"), backgroundAssets);
 	const json = (response, status, value, extra = {}) => {
@@ -142,6 +157,27 @@ export function createApp({
 				(mutating && request.headers.origin !== origin && !developmentRequest)
 			)
 				throw new CatalogError("מקור הבקשה אינו מורשה.", 403);
+
+			if (url.pathname === "/api/creator/blossom" && request.method === "GET")
+				return json(response, 200, await localBlossom.status());
+			const assignmentForms =
+				/^\/api\/creator\/blossom\/courses\/([A-Za-z0-9_-]{1,120})\/assignment-forms$/.exec(
+					url.pathname,
+				)?.[1];
+			if (assignmentForms && request.method === "GET")
+				return json(response, 200, await localBlossom.assignmentForms(assignmentForms));
+			const blossomCourse =
+				/^\/api\/creator\/blossom\/courses\/([A-Za-z0-9_-]{1,120})\/publish$/.exec(
+					url.pathname,
+				)?.[1];
+			if (blossomCourse && request.method === "POST") {
+				await body(request, 8192);
+				return json(
+					response,
+					200,
+					await localBlossom.publish(blossomCourse, request.headers["if-match"] ?? null),
+				);
+			}
 
 			if (url.pathname === "/api/sources/background-assets" && request.method === "POST") {
 				const data = await bytes(request, maxBackgroundBytes);
@@ -296,12 +332,18 @@ export function createApp({
 			if (url.pathname.startsWith("/api/")) throw new CatalogError("הפעולה לא נמצאה.", 404);
 			if (!["GET", "HEAD"].includes(request.method))
 				throw new CatalogError("הפעולה אינה נתמכת.", 405);
-			const path = resolve(
+			let path = resolve(
 				publicDir,
 				"." + decodeURIComponent(url.pathname === "/" ? "/index.html" : url.pathname),
 			);
 			if (!path.startsWith(publicDir + sep)) throw new CatalogError("הקובץ לא נמצא.", 404);
 			try {
+				// Expo exports route files and directory indexes behind clean URLs.
+				if (!extname(path)) {
+					const entry = await stat(path).catch(() => null);
+					if (!entry?.isFile())
+						path = entry?.isDirectory() ? resolve(path, "index.html") : path + ".html";
+				}
 				if (!(await stat(path)).isFile()) throw new Error("not a file");
 				const content = await readFile(path);
 				const csp =
@@ -348,6 +390,13 @@ export function createApp({
 }
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+	for (const file of [".env.local", ".env"]) {
+		try {
+			process.loadEnvFile(resolve(root, file));
+		} catch (error) {
+			if (error.code !== "ENOENT") throw error;
+		}
+	}
 	const port = Number(process.env.PORT || 4310);
 	if (!Number.isInteger(port) || port < 1 || port > 65535)
 		throw new Error("PORT must be an integer between 1 and 65535.");

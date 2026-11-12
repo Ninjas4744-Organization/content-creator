@@ -1,10 +1,10 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { once } from "node:events";
-import { request } from "node:http";
+import { createServer, request } from "node:http";
 import { createApp } from "../server/index.mjs";
 import { backgroundPng } from "./background-fixture.ts";
 
@@ -91,6 +91,34 @@ test("creator kit downloads use only their build directory and stay read-only lo
 	assert.equal((await get("/api/creator/../../data/workspace.json")).status, 404);
 });
 
+test("serves exported routes with clean URLs and leaves missing routes and APIs as 404s", async (t) => {
+	const directory = await mkdtemp(join(tmpdir(), "davinci-admin-pages-"));
+	t.after(() => rm(directory, { recursive: true, force: true }));
+	await mkdir(join(directory, "content"));
+	await mkdir(join(directory, "sources"));
+	const html = "<html><script>window.EXPO_TEST=true;</script></html>";
+	await writeFile(join(directory, "content", "library.html"), html);
+	await writeFile(join(directory, "sources", "index.html"), html);
+	const { get, origin } = await app(t, { staticDirectory: directory });
+	for (const path of [
+		"/content/library?gallery=team",
+		"/content/library/?gallery=public",
+		"/sources",
+		"/sources/",
+	]) {
+		const page = await get(path);
+		assert.equal(page.status, 200);
+		assert.match(page.headers.get("content-type"), /text\/html/);
+		assert.match(page.headers.get("content-security-policy"), /script-src 'self' 'sha256-/);
+		assert.equal(await page.text(), html);
+	}
+	const head = await fetch(origin + "/content/library?gallery=none", { method: "HEAD" });
+	assert.equal(head.status, 200);
+	assert.equal(await head.text(), "");
+	assert.equal((await get("/content/missing")).status, 404);
+	assert.equal((await get("/api/content/library")).status, 404);
+});
+
 test("only an explicitly configured Expo development origin can make cross-origin requests", async (t) => {
 	const devOrigin = "http://localhost:8081";
 	const { origin, get } = await app(t, { devOrigin });
@@ -143,6 +171,59 @@ test("enforces local host, same-origin writes, and revision preconditions", asyn
 	assert.equal((await put({ items }, { "Content-Type": "text/plain" })).status, 415);
 	assert.equal((await put({ items })).status, 200);
 	assert.equal((await put({ items })).status, 409);
+});
+
+test("local Blossom publishing uses server settings and checks the current course revision", async (t) => {
+	let probes = 0;
+	const upstream = createServer((incoming, response) => {
+		assert.equal(incoming.url, "/lms/v64/WebServices/sync_2/Test");
+		assert.equal(incoming.method, "GET");
+		probes++;
+		const accepted =
+			incoming.headers.authorization ===
+			"Basic " + Buffer.from("local:testing").toString("base64");
+		response.writeHead(accepted ? 200 : 401, { "Content-Type": "application/json" });
+		response.end(JSON.stringify({ res: accepted ? "success" : "error" }));
+	});
+	upstream.listen(0, "127.0.0.1");
+	await once(upstream, "listening");
+	t.after(() => new Promise((resolve) => upstream.close(resolve)));
+	const { origin, get } = await app(t, {
+		blossomLocalUrl: "http://127.0.0.1:" + upstream.address().port + "/lms/v64",
+		blossomLocalDomain: "1",
+		blossomLocalUserId: "1",
+		blossomEnv: {
+			BLOSSOM_SYNC_API_USER: "local",
+			BLOSSOM_SYNC_API_PASSWORD: "testing",
+			BLOSSOM_CONTENT_API_USER: "content",
+			BLOSSOM_CONTENT_API_PASSWORD: "test-content",
+			BLOSSOM_REMOTE_API_USER: "remote",
+			BLOSSOM_REMOTE_API_PASSWORD: "test-remote",
+		},
+	});
+	assert.deepEqual(await (await get("/api/creator/blossom")).json(), {
+		available: false,
+		items: {},
+		courses: {},
+	});
+	const created = await fetch(origin + "/api/galleries", {
+		method: "POST",
+		headers: { Origin: origin, "Content-Type": "application/json", "If-Match": "0" },
+		body: JSON.stringify({ type: "create", name: "קורס בדיקה", url: "/", section: "course" }),
+	});
+	assert.equal(created.status, 200);
+	const { galleries } = await created.json();
+	const publish = (input, requestOrigin = origin) =>
+		fetch(origin + "/api/creator/blossom/courses/" + galleries.at(-1).id + "/publish", {
+			method: "POST",
+			headers: { Origin: requestOrigin, "Content-Type": "application/json", "If-Match": "0" },
+			body: JSON.stringify(input),
+		});
+	assert.equal((await publish({}, "https://malicious.example")).status, 403);
+	assert.equal(probes, 0);
+	assert.equal((await publish({})).status, 409);
+	assert.equal((await publish({ user: "wrong", password: "wrong", owner: "999" })).status, 409);
+	assert.equal(probes, 2);
 });
 
 test("API updates, history, and restore preserve metadata and media", async (t) => {

@@ -4,6 +4,9 @@ import type {
 	CatalogSnapshot,
 	CatalogRevision,
 	HistoryEntry,
+	BlossomCatalog,
+	BlossomCourse,
+	BlossomAssignmentForm,
 } from "../models/catalog";
 
 export function apiUrl(path: string): string {
@@ -72,6 +75,27 @@ export function createBrowserRepository(): CatalogRepository {
 		restore: (id, revision) =>
 			request<CatalogSnapshot>("/api/restore", "POST", { id }, revision),
 		source: async () => (await request<{ catalog: CatalogDocument }>("/api/source")).catalog,
+		blossom: () => request<BlossomCatalog>("/api/creator/blossom"),
+		blossomAssignmentForms: (id) =>
+			request<BlossomAssignmentForm[]>(
+				"/api/creator/blossom/courses/" + encodeURIComponent(id) + "/assignment-forms",
+			),
+		publishBlossomCourse: (id, revision) =>
+			request<BlossomCourse>(
+				"/api/creator/blossom/courses/" + encodeURIComponent(id) + "/publish",
+				"POST",
+				{},
+				revision,
+			),
+		uploadToBlossom: async (id, variant, revision) =>
+			(
+				await request<{ contentId: number }>(
+					`/api/creator/blossom/${encodeURIComponent(id)}/${variant}`,
+					"POST",
+					{},
+					revision,
+				)
+			).contentId,
 		dispose,
 	};
 }
