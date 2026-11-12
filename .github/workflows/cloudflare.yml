@@ -102,9 +102,13 @@ jobs:
               with:
                   node-version: "22"
                   cache: npm
-                  cache-dependency-path: learning-library/cloudflare/package-lock.json
-            - name: Install pinned Cloudflare tools
-              run: npm ci --no-audit --no-fund
+                  cache-dependency-path: |
+                      learning-library/cloudflare/package-lock.json
+                      learning-library/admin/package-lock.json
+            - name: Install pinned Cloudflare and admin dependencies
+              run: |
+                  npm ci --no-audit --no-fund
+                  npm --prefix ../admin ci --omit=dev --no-audit --no-fund
             - uses: actions/download-artifact@v4
               with:
                   name: cloudflare-library
