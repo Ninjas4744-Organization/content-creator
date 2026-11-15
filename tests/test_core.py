@@ -8,8 +8,11 @@ from pathlib import Path
 from unittest.mock import patch
 from zipfile import ZipFile
 
+from PIL import Image, ImageChops, ImageDraw, ImageFont, features
+
 from davinci_creator.common import ROOT,ASSETS,load,validate,voice_signature,write_json
-from davinci_creator.layout import elements,textbox
+from davinci_creator.layout import H, W, WHITE, elements, textbox
+from davinci_creator.render import frame
 from davinci_creator.deck import pptx_deck,html_deck
 from davinci_creator.tts import cached_voice,extract_audio,generate
 from davinci_creator.video import plan
@@ -118,6 +121,43 @@ class CoreTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp:
             folder=Path(temp);write_json(folder/"manifest.json",{s["id"]:{"file":"missing.wav","signature":voice_signature(s,self.doc,"gemini-3.8-flash-tts")}})
             self.assertIsNone(cached_voice(s,self.doc,folder))
+
+    def test_video_text_keeps_hebrew_and_latin_in_the_correct_order(self):
+        logical = "שלום (ABC 4744)!"
+        scene = {"layout": "video", "title": logical}
+        engines = [ImageFont.Layout.BASIC]
+        if features.check_feature("raqm"):
+            engines.append(ImageFont.Layout.RAQM)
+
+        for engine in engines:
+            with self.subTest(engine=engine.name):
+                def test_font(size, bold=False):
+                    name = "Rubik-Bold.ttf" if bold else "Rubik-Regular.ttf"
+                    return ImageFont.truetype(str(ASSETS / "brand" / name), size, layout_engine=engine)
+
+                with patch("davinci_creator.layout.font", test_font), patch("davinci_creator.render.font", test_font):
+                    result = frame(scene, 0, 1, caption=logical)
+
+                # Use Pillow's native bidi shaping for the logical string with RAQM,
+                # or a known left-to-right glyph sequence with BASIC.
+                native = engine == ImageFont.Layout.RAQM
+                expected_text = logical if native else "!(ABC 4744) םולש"
+                direction = "rtl" if native else None
+                expected = Image.new("RGB", result.size, "#000000")
+                draw = ImageDraw.Draw(expected)
+                caption_y = H - 38 - 31
+                draw.rounded_rectangle((55, caption_y-12, W-55, H-18), radius=12, fill=(9, 23, 43))
+                title_font = test_font(50, True)
+                title_x = (W - title_font.getlength(expected_text, direction=direction))/2
+                draw.text((title_x, 115), expected_text, font=title_font,
+                          fill="#"+WHITE, anchor="lt", direction=direction)
+                draw.text((W/2, caption_y), expected_text, font=test_font(24),
+                          fill="#"+WHITE, anchor="mt", direction=direction)
+                for top, bottom in ((110, 200), (caption_y-12, H)):
+                    with self.subTest(top=top):
+                        region = (0, top, W, bottom)
+                        difference = ImageChops.difference(result.crop(region), expected.crop(region))
+                        self.assertIsNone(difference.getbbox())
 
     def test_video_rejects_missing_narration(self):
         with tempfile.TemporaryDirectory() as temp:

@@ -4,7 +4,7 @@ from __future__ import annotations
 import functools
 import re
 from PIL import Image, ImageFont
-from bidi.algorithm import get_display
+from bidi.algorithm import get_base_level, get_display
 from .common import ASSETS
 
 W, H = 1280, 720
@@ -16,8 +16,17 @@ def font(size, bold=False):
     return ImageFont.truetype(str(ASSETS / "brand" / ("Rubik-Bold.ttf" if bold else "Rubik-Regular.ttf")), int(size))
 
 
+def text_run(text, face):
+    """Reorder a line exactly once, using the same run for drawing and measuring."""
+    if face.layout_engine == ImageFont.Layout.RAQM:
+        return text, "rtl" if get_base_level(text) else "ltr"
+    return get_display(text), None
+
+
 def width(text, size, bold=False):
-    return font(size, bold).getlength(get_display(text))
+    face = font(size, bold)
+    display, direction = text_run(text, face)
+    return face.getlength(display, direction=direction)
 
 
 def wrapped(text, size, max_width, bold=False):

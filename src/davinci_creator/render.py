@@ -5,10 +5,9 @@ import math
 import random
 from pathlib import Path
 from PIL import Image, ImageDraw, ImageOps
-from bidi.algorithm import get_display
 from .common import ASSETS, local_file
 from .backgrounds import background_name, themed_elements
-from .layout import W, H, WHITE, GOLD, BLUE, font, elements, wrapped
+from .layout import W, H, WHITE, GOLD, BLUE, font, elements, text_run, wrapped
 
 
 @functools.lru_cache(64)
@@ -54,11 +53,11 @@ def draw_element(im, item, progress=1):
     else:
         f = font(item["size"], item["bold"])
         for i, text in enumerate(item["text"].split("\n")):
-            visual = get_display(text)
-            length = f.getlength(visual)
+            display, direction = text_run(text, f)
+            length = f.getlength(display, direction=direction)
             x = item["x"] + (item["w"]-length if item["align"]=="right" else (item["w"]-length)/2 if item["align"]=="center" else 0)
             y = item["y"]+i*item["size"]*1.25+dy
-            d.text((x, y), visual, font=f, fill="#"+item["color"], anchor="lt")
+            d.text((x, y), display, font=f, fill="#"+item["color"], anchor="lt", direction=direction)
     if progress < 1:
         layer.putalpha(layer.getchannel("A").point(lambda a: round(a*progress)))
     im.alpha_composite(layer)
@@ -90,8 +89,10 @@ def frame(scene, index, total, t=None, caption=None, background_selection=None):
         lines = wrapped(caption,24,1100).split("\n")
         y = H-38-len(lines)*31
         d.rounded_rectangle((55,y-12,W-55,H-18),radius=12,fill=(9,23,43,240))
+        face = font(24)
         for i,line in enumerate(lines):
-            d.text((W/2,y+i*31),get_display(line),font=font(24),anchor="mt",fill="#"+WHITE)
+            display, direction = text_run(line, face)
+            d.text((W/2,y+i*31),display,font=face,anchor="mt",fill="#"+WHITE,direction=direction)
     return im.convert("RGB")
 
 
